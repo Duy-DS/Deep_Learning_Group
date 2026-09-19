@@ -35,3 +35,7 @@
 - PyTorch Dataset/DataLoader.
 - MLP, training loop va early stopping.
 - Cross-validation, experiment tracking va submission Kaggle.
+
+## 2026-09-19 - Baseline completed
+- Hoan thanh baseline voi 2 model LinearRegression va RandomForestRegressor
+
