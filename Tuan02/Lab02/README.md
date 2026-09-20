@@ -2,7 +2,7 @@
 
 ## Muc tieu
 
-Du bao `SalePrice` cua nha o Ames bang Multilayer Perceptron (MLP) trong PyTorch.
+Du bao `SalePrice` cua nha o Ames bang Multilayer Perceptron (MLP) trong PyTorch theo chuẩn thực hành Data Science / MLOps chuyên nghiệp.
 
 Tai lieu dieu hanh, phan cong va tien do cua nhom nam tai
 [`memory-bank/project-management.md`](memory-bank/project-management.md).
@@ -16,31 +16,57 @@ Ke hoach va ket qua EDA nam tai
 
 ## Du lieu
 
-- `data/train.csv`: du lieu huan luyen, bao gom cot muc tieu `SalePrice`.
-- `data/test.csv`: du lieu can du bao.
-- `data/sample_submission.csv`: dinh dang nop bai tham chieu.
-- `data/data_description.txt`: mo ta cac bien.
+Toàn bộ dữ liệu được quản lý tập trung trong thư mục `data/`:
+- `data/raw/`: Dữ liệu gốc bất biến từ Kaggle (`train.csv`, `test.csv`, `sample_submission.csv`, `data_description.txt`).
+- `data/processed/`: Dữ liệu đã làm sạch và model-ready (`train_processed.csv`, `test_processed.csv`, `feature_names.csv`).
 
-## Cau truc
+## Cau truc du an (Project Architecture)
 
 ```text
-data/        Du lieu dau vao.
-docs/        Tai lieu va tai lieu tham khao.
-notebooks/   Kham pha du lieu va thi nghiem mo hinh.
-outputs/     Bieu do, chi so va cac file submission.
-src/         Ma nguon tai su dung khi pipeline duoc tach tu notebook.
-memory-bank/ Nhat ky va boi canh lam viec cua Lab02.
+Lab02/
+├── .gitignore                      # Bo qua checkpoint mo hinh lon va file rac
+├── README.md                       # Huong dan va tai lieu du an
+│
+├── data/                           # Tang du lieu tap trung
+│   ├── raw/                        # Du lieu goc bat bien
+│   └── processed/                  # Du lieu model-ready sau tien xu ly
+│
+├── notebooks/                      # Pipeline nghien cuu tuan tu (theo so thu tu)
+│   ├── 01_eda.ipynb                # 1. Kham pha va phan tich phan phoi
+│   ├── 02_data_preprocessing.ipynb # 2. Tien xu ly du lieu va pipeline artifacts
+│   ├── 03_baseline.ipynb           # 3. Mo hinh co so Ridge Regression
+│   ├── 04_train_mlp.ipynb          # 4. Huan luyen va danh gia mang PyTorch MLP
+│   └── archive/                    # Cac notebook phu / nhap cu (mlp_model.ipynb)
+│
+├── src/                            # Ma nguon Python tai su dung (Modular Codebase)
+│   ├── config.py                   # Quan ly duong dan dong va hyperparameters
+│   ├── data/
+│   │   └── dataset.py              # PyTorch HousePriceDataset
+│   ├── models/
+│   │   └── mlp.py                  # Kien truc mang MLPRegressor
+│   └── utils/
+│       └── metrics.py              # Ham tinh toan RMSE va evaluation helpers
+│
+├── models/                         # Luu tru checkpoint mo hinh (.pth)
+├── outputs/                        # Artifacts sinh ra tu qua trinh thuc nghiem
+│   ├── figures/                    # Bieu do EDA va huan luyen
+│   ├── metrics/                    # Bang chi so va feature audit
+│   └── preprocessing/              # Fitted pipeline pickle va validation predictions
+├── docs/                           # Tai lieu nghien cuu va bao cao
+│   └── reports/                    # Paper tham khao va project charters
+└── memory-bank/                    # Nhat ky va boi canh lam viec cua Lab02
 ```
 
-## Quy trinh de xuat
+## Quy trinh thuc hien (Pipeline Workflow)
 
-1. Kham pha `train.csv`, xac dinh du lieu thieu va phan phoi `SalePrice`.
-2. Tao baseline co the lap lai va danh gia bang cross-validation.
-3. Thu nghiem xu ly dac trung va mo hinh; ghi ket qua vao `memory-bank/progress.md`.
-4. Sinh `outputs/submission.csv` voi hai cot `Id` va `SalePrice` theo `sample_submission.csv`.
+1. **`01_eda.ipynb`**: Khám phá `data/train.csv`, kiểm tra missing semantics và phân phối `SalePrice`.
+2. **`02_data_preprocessing.ipynb`**: Thực hiện chuẩn hóa đặc trưng, fit pipeline và xuất dữ liệu model-ready ra `data/processed/`.
+3. **`03_baseline.ipynb`**: Tạo baseline có thể lặp lại và đánh giá cross-validation.
+4. **`04_train_mlp.ipynb`**: Huấn luyện kiến trúc PyTorch MLP, so sánh và đánh giá hiệu năng trên validation split.
 
 ## Quy uoc
 
-- Khong chinh sua truc tiep cac file trong `data/`.
+- Khong chinh sua truc tiep cac file trong `data/raw/`.
+- Su dung module `src/config.py` hoac `src/` khi can mo rong va tai su dung ma nguon.
 - Ghi ro du lieu chia, metric va tham so cua moi thi nghiem.
-- Chi commit code, notebook da duoc lam sach, tai lieu va submission can chia se; khong commit model/checkpoint lon.
+- Chi commit code, notebook da duoc lam sach, tai lieu va submission; khong commit checkpoint binary lon len Git.

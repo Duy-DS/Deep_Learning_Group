@@ -28,7 +28,7 @@ Preprocessing đã hoàn thành và notebook đã chạy top-to-bottom không l�
 
 ## Data handoff
 
-Thư mục `data_processed/` chứa dữ liệu model-ready:
+Thư mục `data/processed/` chứa dữ liệu model-ready:
 
 - `train_processed.csv`: 1,460 dòng, target gốc, target log, split label và 314 features.
 - `test_processed.csv`: 1,459 dòng và 314 features.

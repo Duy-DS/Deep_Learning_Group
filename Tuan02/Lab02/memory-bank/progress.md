@@ -27,7 +27,7 @@
 - Fit imputer, OneHotEncoder va StandardScaler chi tren training split.
 - Dung `log1p(SalePrice)`, split 80/20 voi seed 42 va Ridge baseline.
 - Validation log-RMSE `0.1437`, log-MAE `0.0963`; output 314 features; khong con NaN sau transform.
-- Tao `data_processed/` cho nguoi train model va `outputs/preprocessing/` cho artifacts.
+- Tao `data/processed/` cho nguoi train model va `outputs/preprocessing/` cho artifacts.
 - Cap nhat `memory-bank/preprocessing-handoff.md` lam contract giua EDA, preprocessing va modeling.
 
 ## Chua thuc hien sau preprocessing
