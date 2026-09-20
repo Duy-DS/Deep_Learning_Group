@@ -1,7 +1,7 @@
 # Data preprocessing handoff
 
 Thư mục này là đầu ra bàn giao giữa nhóm EDA/preprocessing và người train model.
-Các CSV ở đây đã được xử lý bởi `notebooks/Data Preprocessing.ipynb`.
+Các CSV ở đây đã được xử lý bởi `notebooks/02_data_preprocessing.ipynb`.
 Người train model không cần impute, encode hoặc scale lại các file này.
 
 ## Nguồn quyết định
@@ -85,7 +85,7 @@ Ví dụ dùng cho người train model:
 ```python
 import pandas as pd
 
-df = pd.read_csv("data_processed/train_processed.csv")
+df = pd.read_csv("data/processed/train_processed.csv")
 feature_columns = [
     c for c in df.columns
     if c not in {"Id", "SalePrice", "SalePrice_log", "split"}
@@ -103,7 +103,7 @@ y_valid = valid_df["SalePrice_log"]
 1.459 dòng test sau preprocessing, gồm `Id` và 314 features; không có target.
 
 ```python
-test_df = pd.read_csv("data_processed/test_processed.csv")
+test_df = pd.read_csv("data/processed/test_processed.csv")
 X_test = test_df[feature_columns]
 ```
 

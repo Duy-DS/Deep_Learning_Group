@@ -1,0 +1,30 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+*/.ipynb_checkpoints/*
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Model weights & Checkpoints (tránh làm phình to repo Git)
+*.pth
+*.pt
+*.onnx
+
+# Scikit-learn / Joblib / Pickle models
+# Bỏ comment nếu muốn ignore toàn bộ pickle lớn:
+# *.pkl
+# *.joblib
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Temporary & intermediate output caches
+.pytest_cache/

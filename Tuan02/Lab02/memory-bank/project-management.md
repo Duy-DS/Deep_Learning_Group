@@ -409,7 +409,7 @@ House Prices: Advanced Regression Techniques reference EDA/preprocessing/modelin
 
 T05 (thiết kế preprocessing numeric/categorical) và T06 (train/validation split, leakage check) đã hoàn thành ở mức baseline. `Data Preprocessing.ipynb` đã chạy thành công và tạo pipeline có semantic missing rules, median imputation, missing indicators, one-hot encoding, `StandardScaler`, split 80/20 với seed 42 và target `log1p(SalePrice)`.
 
-Kết quả baseline: 314 output features, validation log-RMSE `0.1437`, validation log-MAE `0.0963`. Dữ liệu bàn giao nằm trong `data_processed/`; fitted pipeline, feature names và validation predictions nằm trong `outputs/preprocessing/`. Chi tiết contract được ghi trong `memory-bank/preprocessing-handoff.md`.
+Kết quả baseline: 314 output features, validation log-RMSE `0.1437`, validation log-MAE `0.0963`. Dữ liệu bàn giao nằm trong `data/processed/`; fitted pipeline, feature names và validation predictions nằm trong `outputs/preprocessing/`. Chi tiết contract được ghi trong `memory-bank/preprocessing-handoff.md`.
 
 T03/T04 đã có notebook, findings và artifacts; việc review EDA vẫn cần nhóm xác nhận chính thức. Bước tiếp theo của project là Dataset/DataLoader, MLP và baseline comparison.
 

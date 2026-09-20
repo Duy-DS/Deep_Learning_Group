@@ -28,6 +28,6 @@ Preprocessing da hoan thanh trong `notebooks/Data Preprocessing.ipynb` va chay t
 
 Ket qua validation baseline: log-RMSE `0.1437`, log-MAE `0.0963`; ma tran sau encoding co 314 features va khong con NaN.
 
-Data model-ready duoc luu tai `data_processed/`: `train_processed.csv`, `test_processed.csv`, `feature_names.csv`, kem `README.md`. Pipeline artifact va validation predictions nam tai `outputs/preprocessing/`.
+Data model-ready duoc luu tai `data/processed/`: `train_processed.csv`, `test_processed.csv`, `feature_names.csv`, kem `README.md`. Pipeline artifact va validation predictions nam tai `outputs/preprocessing/`.
 
 T03/T04 da co findings va artifacts; T05/T06 da hoan thanh o muc pipeline baseline. Buoc tiep theo la PyTorch Dataset/DataLoader, baseline comparison va MLP.
