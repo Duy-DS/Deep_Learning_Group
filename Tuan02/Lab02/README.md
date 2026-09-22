@@ -36,6 +36,7 @@ Lab02/
 │   ├── 02_data_preprocessing.ipynb # 2. Tien xu ly du lieu va pipeline artifacts
 │   ├── 03_baseline.ipynb           # 3. Mo hinh co so Ridge Regression
 │   ├── 04_train_mlp.ipynb          # 4. Huan luyen va danh gia mang PyTorch MLP
+│   ├── 05_evaluation.ipynb         # 5. Danh gia mo hinh tot nhat va xuat submission
 │   └── archive/                    # Cac notebook phu / nhap cu (mlp_model.ipynb)
 │
 ├── src/                            # Ma nguon Python tai su dung (Modular Codebase)
@@ -51,7 +52,8 @@ Lab02/
 ├── outputs/                        # Artifacts sinh ra tu qua trinh thuc nghiem
 │   ├── figures/                    # Bieu do EDA va huan luyen
 │   ├── metrics/                    # Bang chi so va feature audit
-│   └── preprocessing/              # Fitted pipeline pickle va validation predictions
+│   ├── preprocessing/              # Fitted pipeline pickle va validation predictions
+│   └── submissions/                # File du bao nop bai Kaggle (submission_mlp.csv)
 ├── docs/                           # Tai lieu nghien cuu va bao cao
 │   └── reports/                    # Paper tham khao va project charters
 └── memory-bank/                    # Nhat ky va boi canh lam viec cua Lab02
@@ -61,8 +63,9 @@ Lab02/
 
 1. **`01_eda.ipynb`**: Khám phá `data/train.csv`, kiểm tra missing semantics và phân phối `SalePrice`.
 2. **`02_data_preprocessing.ipynb`**: Thực hiện chuẩn hóa đặc trưng, fit pipeline và xuất dữ liệu model-ready ra `data/processed/`.
-3. **`03_baseline.ipynb`**: Tạo baseline có thể lặp lại và đánh giá cross-validation.
-4. **`04_train_mlp.ipynb`**: Huấn luyện kiến trúc PyTorch MLP, so sánh và đánh giá hiệu năng trên validation split.
+3. **`03_baseline.ipynb`**: Tạo baseline có thể lặp lại và đánh giá cross-validation (Linear, Ridge, Random Forest).
+4. **`04_train_mlp.ipynb`**: Huấn luyện kiến trúc PyTorch MLP với Early Stopping và lưu checkpoint tốt nhất `mlp_model_best.pth`.
+5. **`05_evaluation.ipynb`**: Đánh giá mô hình tốt nhất trên tập validation, vẽ biểu đồ dự đoán vs thực tế và sinh file nộp bài `outputs/submissions/submission_mlp.csv`.
 
 ## Quy uoc
 
