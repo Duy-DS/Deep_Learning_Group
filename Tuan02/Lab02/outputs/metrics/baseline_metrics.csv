@@ -1,4 +1,0 @@
-Model,Validation log-RMSE,Validation log-MAE,Validation R2
-Linear Regression,0.1332,0.0955,0.9049
-Ridge Regression (alpha=1.0),0.1363,0.0973,0.9004
-Random Forest Baseline,0.1517,0.0992,0.8767
