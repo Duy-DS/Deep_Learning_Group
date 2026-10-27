@@ -526,7 +526,7 @@ python -c "import torch; print(f'PyTorch Version: {torch.__version__}'); print(f
 
 ## 🚀 6. HƯỚNG DẪN TÁI LẬP THỰC NGHIỆM (REPRODUCIBILITY & CLI)
 
-Giao thức yêu cầu deterministic trong cùng môi trường; không cam kết kết quả bitwise xuyên phiên bản/phần cứng. **Tại T0102, các lệnh pipeline bên dưới là giao diện dự kiến, chưa có script triển khai.** Cấu hình và đặc tả đã sẵn sàng; kiểm tra hiện có, từ project root và Python môi trường dự án:
+Giao thức yêu cầu deterministic trong cùng môi trường; không cam kết kết quả bitwise xuyên phiên bản/phần cứng. Từ T0201-T0203, pipeline sinh dữ liệu và khảo sát ban đầu đã được triển khai qua `experiments/generate_data.py`; các script huấn luyện A/B/C vẫn là giao diện dự kiến cho các task tiếp theo. Kiểm tra giao thức hiện có, từ project root và Python môi trường dự án:
 
 ```powershell
 python scripts/verify_protocol.py
@@ -539,7 +539,7 @@ Lệnh này sẽ tính toán theo công thức giải tích, tạo 3 file CSV tr
 ```bash
 python experiments/generate_data.py
 ```
-* **Đầu ra sinh ra:** `data/train_full.csv`, `data/val.csv`, `data/test.csv`, `outputs/figures/data_distribution_3d.png`.
+* **Đầu ra sinh ra:** `data/train_full.csv`, `data/val.csv`, `data/test.csv`, `outputs/tables/data_summary.csv`, `outputs/tables/data_integrity_checks.csv`, `outputs/tables/data_generation_manifest.json`, `outputs/figures/data_distribution_3d.png`, `outputs/figures/true_gaussian_surface_3d.png`.
 
 ### 6.2. Chạy Từng Kịch Bản Thực Nghiệm Chuyên Biệt
 
@@ -592,8 +592,8 @@ Tất cả các sản phẩm tạo ra từ mã nguồn đều được phân lo�
 | Thư Mục Lưu Trữ | Tệp Đầu Ra (Artifacts) | Mô Tả Kỹ Thuật Chi Tiết | Nguồn Phát Sinh |
 | :--- | :--- | :--- | :--- |
 | **`outputs/checkpoints/`** | `best_model_exp_A_*.pt`<br>`best_model_exp_B_*.pt`<br>`best_model_exp_C_*.pt` | Trọng số PyTorch tối ưu (`state_dict`) tương ứng với từng siêu tham số tại thời điểm đạt `val_loss` thấp nhất. | `src/trainer.py` |
-| **`outputs/tables/`** | `summary_exp_A.csv`<br>`summary_exp_B.csv`<br>`summary_exp_C.csv`<br>`overall_comparison.csv` | Bảng tổng hợp số liệu đo lường định lượng các chỉ số MSE, RMSE, MAE (Train / Val / Test) và thời gian huấn luyện (giây). | `src/evaluator.py`<br>`src/runner.py` |
-| **`outputs/figures/`** | `true_gaussian_surface_3d.png`<br>`predicted_mlp_surface_3d.png`<br>`exp_A_error_vs_samples.png`<br>`exp_B_error_vs_neurons.png`<br>`exp_C_depth_convergence_time.png` | Hệ thống hình vẽ đồ thị vector độ phân giải cao $\ge 300\text{ DPI}$, đầy đủ nhãn trục, đơn vị và ghi chú phục vụ xuất bản. | `src/visualizer.py` |
+| **`outputs/tables/`** | `data_summary.csv`<br>`data_integrity_checks.csv`<br>`data_generation_manifest.json`<br>`summary_exp_A.csv`<br>`summary_exp_B.csv`<br>`summary_exp_C.csv`<br>`overall_comparison.csv` | Bảng thống kê dữ liệu T0203, kiểm tra toàn vẹn split, manifest hash và bảng tổng hợp số liệu thực nghiệm A/B/C sau này. | `src/visualizer.py`<br>`src/evaluator.py`<br>`src/runner.py` |
+| **`outputs/figures/`** | `data_distribution_3d.png`<br>`true_gaussian_surface_3d.png`<br>`predicted_mlp_surface_3d.png`<br>`exp_A_error_vs_samples.png`<br>`exp_B_error_vs_neurons.png`<br>`exp_C_depth_convergence_time.png` | Hệ thống hình vẽ đồ thị vector độ phân giải cao $\ge 300\text{ DPI}$, đầy đủ nhãn trục, đơn vị và ghi chú phục vụ xuất bản. | `src/visualizer.py` |
 | **`docs/thesis/`** | `Report_BTL01.docx`<br>`Report_BTL01.pdf` | Báo cáo khoa học học thuật hoàn chỉnh (15–20 trang) theo thể thức chuẩn IEEE / Đề cương Đại học. | Nhóm tác giả biên soạn |
 | **`docs/slides/`** | `Slide_BTL01.pptx`<br>`Slide_BTL01.pdf` | Bộ slide trình chiếu bảo vệ bài tập lớn trước hội đồng (10–15 slides tinh gọn, trực quan). | Nhóm tác giả biên soạn |
 | **`docs/reports/`** | `T[ID]_[YYMMDD]_[HHMM].md` | Báo cáo chi tiết sau khi hoàn thành từng tác vụ kỹ thuật theo quy định Điều 5.1 trong `AGENTS.md`. | Quy trình Agent & Dev |
