@@ -1,4 +1,4 @@
-"""Visualization helpers for Gaussian data exploration artifacts."""
+"""Các hàm tiện ích trực quan hóa dữ liệu và biểu đồ khảo sát phân bố Gaussian."""
 
 from __future__ import annotations
 
@@ -17,15 +17,15 @@ from src.data_generator import GaussianDataGenerator
 
 
 class Visualizer:
-    """Create publication-ready figures and tables for T0203.
+    """Tạo biểu đồ và bảng kết quả chất lượng cao cho báo cáo (T0203).
 
-    Args:
-        figures_dir: Directory used for generated figures.
-        dpi: Output figure resolution.  The project requires at least 300.
-        figure_format: Matplotlib format such as ``png``.
+    Tham số:
+        figures_dir: Thư mục dùng để lưu trữ các đồ thị sinh ra.
+        dpi: Độ phân giải của đồ thị xuất ra (quy định dự án tối thiểu 300).
+        figure_format: Định dạng ảnh xuất ra của Matplotlib (ví dụ: ``png``).
 
-    Raises:
-        ValueError: If ``dpi`` is below 300.
+    Ngoại lệ:
+        ValueError: Nếu ``dpi`` nhỏ hơn 300.
     """
 
     def __init__(
@@ -34,9 +34,9 @@ class Visualizer:
         dpi: int = 300,
         figure_format: str = "png",
     ) -> None:
-        """Initialize the visualizer and ensure the output directory exists."""
+        """Khởi tạo visualizer và đảm bảo thư mục lưu trữ tồn tại."""
         if dpi < 300:
-            raise ValueError("dpi must be at least 300.")
+            raise ValueError("dpi phải đạt tối thiểu 300.")
         self.figures_dir = figures_dir
         self.dpi = dpi
         self.figure_format = figure_format
@@ -47,15 +47,14 @@ class Visualizer:
         splits: Mapping[str, pd.DataFrame],
         output_name: str = "data_distribution_3d.png",
     ) -> Path:
-        """Plot a 3-D scatter view of generated train/val/test data.
+        """Vẽ biểu đồ phân tán 3D thể hiện phân bố dữ liệu train/val/test đã sinh.
 
-        Args:
-            splits: Mapping of split names to DataFrames with columns
-                ``x1``, ``x2``, and ``y``.
-            output_name: File name written under ``figures_dir``.
+        Tham số:
+            splits: Ánh xạ tên tập dữ liệu sang DataFrame chứa các cột ``x1``, ``x2``, và ``y``.
+            output_name: Tên file lưu trong ``figures_dir``.
 
-        Returns:
-            Path to the generated PNG file.
+        Trả về:
+            Đường dẫn Path tới file ảnh PNG đã sinh.
         """
         output_path = self.figures_dir / output_name
         fig = plt.figure(figsize=(8.0, 6.0))
@@ -81,10 +80,10 @@ class Visualizer:
                 label=labels.get(split_name, split_name),
                 depthshade=True,
             )
-        axis.set_title("Gaussian 2D Generated Data Distribution")
+        axis.set_title("Phân bố dữ liệu Gaussian 2D đã sinh")
         axis.set_xlabel("x1")
         axis.set_ylabel("x2")
-        axis.set_zlabel("Density y")
+        axis.set_zlabel("Mật độ xác suất y")
         axis.legend(loc="upper right")
         fig.tight_layout()
         fig.savefig(output_path, dpi=self.dpi, bbox_inches="tight")
@@ -97,15 +96,15 @@ class Visualizer:
         grid_size: tuple[int, int] = (101, 101),
         output_name: str = "true_gaussian_surface_3d.png",
     ) -> Path:
-        """Plot the exact Gaussian density surface over the domain.
+        """Vẽ bề mặt 3D thực tế của hàm mật độ xác suất Gaussian trên toàn bộ miền xác định.
 
-        Args:
-            generator: Configured Gaussian generator.
-            grid_size: Number of grid points for ``x1`` and ``x2``.
-            output_name: File name written under ``figures_dir``.
+        Tham số:
+            generator: Bộ sinh dữ liệu Gaussian đã cấu hình.
+            grid_size: Số lượng điểm lưới cho ``x1`` và ``x2``.
+            output_name: Tên file lưu trong ``figures_dir``.
 
-        Returns:
-            Path to the generated PNG file.
+        Trả về:
+            Đường dẫn Path tới file ảnh PNG đã sinh.
         """
         output_path = self.figures_dir / output_name
         x1 = np.linspace(
@@ -133,11 +132,11 @@ class Visualizer:
             antialiased=True,
             alpha=0.92,
         )
-        axis.set_title("True 2D Gaussian Density Surface")
+        axis.set_title("Bề mặt hàm mật độ xác suất Gaussian 2D thực tế")
         axis.set_xlabel("x1")
         axis.set_ylabel("x2")
-        axis.set_zlabel("Density y")
-        fig.colorbar(surface, ax=axis, shrink=0.62, label="Density y")
+        axis.set_zlabel("Mật độ xác suất y")
+        fig.colorbar(surface, ax=axis, shrink=0.62, label="Mật độ xác suất y")
         fig.tight_layout()
         fig.savefig(output_path, dpi=self.dpi, bbox_inches="tight")
         plt.close(fig)
@@ -147,14 +146,13 @@ class Visualizer:
         self,
         splits: Mapping[str, pd.DataFrame],
     ) -> pd.DataFrame:
-        """Build summary statistics for coordinates and labels.
+        """Xây dựng bảng thống kê mô tả cho các tọa độ đầu vào và nhãn y.
 
-        Args:
-            splits: Mapping of split names to DataFrames with columns
-                ``x1``, ``x2``, and ``y``.
+        Tham số:
+            splits: Ánh xạ tên tập dữ liệu sang DataFrame chứa các cột ``x1``, ``x2``, và ``y``.
 
-        Returns:
-            Table with split, feature, count, mean, std, min, and max columns.
+        Trả về:
+            DataFrame thống kê với các cột: split, feature, count, mean, std, min, và max.
         """
         rows: list[dict[str, float | int | str]] = []
         for split_name, frame in splits.items():

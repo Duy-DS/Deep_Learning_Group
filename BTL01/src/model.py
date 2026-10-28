@@ -38,7 +38,7 @@ class FunctionApproximatorMLP(nn.Module):
         layers: list[nn.Module] = []
         current_dim = input_dim
 
-        # Build Hidden Layers
+        # Xây dựng các tầng ẩn (Hidden Layers)
         for hidden_dim in hidden_dims:
             linear = nn.Linear(current_dim, hidden_dim, bias=use_bias)
             self._init_weights(
@@ -53,7 +53,7 @@ class FunctionApproximatorMLP(nn.Module):
             )
             current_dim = hidden_dim
 
-        # Build Output Layer
+        # Xây dựng tầng đầu ra (Output Layer)
         output_layer = nn.Linear(current_dim, output_dim, bias=use_bias)
         self._init_weights(
             output_layer,
