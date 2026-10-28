@@ -1,4 +1,4 @@
-"""Generate deterministic Gaussian data splits and exploration artifacts."""
+"""Sinh các tập dữ liệu Gaussian xác định và các artifacts khảo sát phân bố."""
 
 from __future__ import annotations
 
@@ -20,32 +20,32 @@ from src.visualizer import Visualizer
 
 
 def load_yaml(relative_path: str) -> dict[str, Any]:
-    """Load a project YAML mapping using ``yaml.safe_load``.
+    """Tải file YAML cấu hình dự án bằng ``yaml.safe_load``.
 
-    Args:
-        relative_path: File path relative to ``PROJECT_ROOT``.
+    Tham số:
+        relative_path: Đường dẫn file cấu hình tương đối so với ``PROJECT_ROOT``.
 
-    Returns:
-        Parsed YAML mapping.
+    Trả về:
+        Dictionary cấu hình đã giải nạp.
 
-    Raises:
-        ValueError: If the YAML top level is not a mapping.
+    Ngoại lệ:
+        ValueError: Nếu nội dung YAML cấp cao nhất không phải là một mapping/dict.
     """
     with (PROJECT_ROOT / relative_path).open(encoding="utf-8") as stream:
         content = yaml.safe_load(stream)
     if not isinstance(content, dict):
-        raise ValueError(f"Expected YAML mapping: {relative_path}")
+        raise ValueError(f"Kỳ vọng YAML mapping: {relative_path}")
     return content
 
 
 def sha256_file(path: Path) -> str:
-    """Return SHA-256 hash for a file.
+    """Tính mã băm SHA-256 cho một file.
 
-    Args:
-        path: File path to hash.
+    Tham số:
+        path: Đường dẫn file cần tính hash.
 
-    Returns:
-        Hex digest string.
+    Trả về:
+        Chuỗi biểu diễn thập lục phân (hex digest).
     """
     digest = hashlib.sha256()
     with path.open("rb") as stream:
@@ -58,14 +58,14 @@ def audit_splits(
     splits: Mapping[str, pd.DataFrame],
     generator: GaussianDataGenerator,
 ) -> pd.DataFrame:
-    """Validate generated splits and build an integrity audit table.
+    """Kiểm tra tính hợp lệ của các tập dữ liệu đã sinh và xây dựng bảng kiểm tra toàn vẹn.
 
-    Args:
-        splits: Generated DataFrames keyed by split name.
-        generator: Gaussian generator used for formula checks.
+    Tham số:
+        splits: Ánh xạ chứa các DataFrame đã sinh theo tên từng tập dữ liệu.
+        generator: Đối tượng sinh dữ liệu Gaussian dùng để đối chiếu công thức.
 
-    Returns:
-        DataFrame containing pass/fail audit rows.
+    Trả về:
+        DataFrame chứa kết quả kiểm tra PASS/FAIL cho từng hạng mục.
     """
     rows: list[dict[str, str]] = []
     coordinate_sets: dict[str, set[tuple[float, float]]] = {}
@@ -101,7 +101,7 @@ def audit_splits(
             )
             if overlap:
                 raise ValueError(
-                    f"Found overlap between {left_name} and {right_name}."
+                    f"Phát hiện trùng lặp tọa độ giữa {left_name} và {right_name}."
                 )
     return pd.DataFrame(rows)
 
@@ -110,14 +110,14 @@ def write_splits(
     splits: Mapping[str, pd.DataFrame],
     data_config: Mapping[str, Any],
 ) -> dict[str, Path]:
-    """Write train, validation, and test CSV files.
+    """Ghi dữ liệu các tập train, validation, và test ra các file CSV.
 
-    Args:
-        splits: Generated DataFrames keyed by split name.
-        data_config: ``data`` section from ``baseline.yaml``.
+    Tham số:
+        splits: Ánh xạ chứa các DataFrame theo tên tập dữ liệu.
+        data_config: Mục ``data`` trong file cấu hình ``baseline.yaml``.
 
-    Returns:
-        Mapping of split name to written path.
+    Trả về:
+        Ánh xạ tên tập dữ liệu sang đường dẫn Path của file CSV đã ghi.
     """
     path_keys = {
         "train_full": "train_full_path",
@@ -139,7 +139,7 @@ def write_splits(
 
 
 def main() -> None:
-    """Run T0201-T0203 data generation and visualization workflow."""
+    """Thực thi luồng sinh dữ liệu và trực quan hóa cho các nhiệm vụ T0201-T0203."""
     baseline = load_yaml("configs/baseline.yaml")
     data_config = baseline["data"]
     output_config = baseline["outputs"]
@@ -219,14 +219,14 @@ def main() -> None:
         encoding="utf-8",
     )
 
-    print("Generated Gaussian data and T0203 artifacts")
+    print("Đã sinh dữ liệu Gaussian và các artifacts cho T0203")
     for split_name, path in written_splits.items():
         print(f"{split_name}: {path.relative_to(PROJECT_ROOT)}")
-    print(f"summary: {summary_path.relative_to(PROJECT_ROOT)}")
-    print(f"integrity: {audit_path.relative_to(PROJECT_ROOT)}")
-    print(f"manifest: {manifest_path.relative_to(PROJECT_ROOT)}")
-    print(f"figures: {data_distribution_path.relative_to(PROJECT_ROOT)}")
-    print(f"figures: {true_surface_path.relative_to(PROJECT_ROOT)}")
+    print(f"Bảng tổng kết: {summary_path.relative_to(PROJECT_ROOT)}")
+    print(f"Kiểm tra toàn vẹn: {audit_path.relative_to(PROJECT_ROOT)}")
+    print(f"Manifest: {manifest_path.relative_to(PROJECT_ROOT)}")
+    print(f"Đồ thị phân bố: {data_distribution_path.relative_to(PROJECT_ROOT)}")
+    print(f"Đồ thị bề mặt: {true_surface_path.relative_to(PROJECT_ROOT)}")
 
 
 if __name__ == "__main__":
