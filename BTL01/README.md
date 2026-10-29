@@ -568,19 +568,27 @@ python experiments/run_exp_C.py
 Để tự động thực hiện từ khâu tạo dữ liệu, chạy cả 3 thực nghiệm và xuất báo cáo đối sánh tổng hợp:
 ```bash
 python experiments/run_all.py
+
+# Chạy smoke nhanh để kiểm tra wiring mà không chạy full grid
+python experiments/run_all.py --smoke --epochs 3
+
+# Chỉ tổng hợp lại từ các bảng/checkpoint đã có
+python experiments/run_all.py --skip-training
 ```
 
 ### 6.4. Tùy Biến Nâng Cao qua CLI Entry Point (`main.py`)
 Tệp [`main.py`](main.py) cung cấp giao diện dòng lệnh linh hoạt (`argparse`) hỗ trợ truyền tham số:
 ```bash
-# Chạy thực nghiệm A với seed tùy chọn
-python main.py --mode exp_A --seed 123 --device cuda
+# Chạy riêng từng nhóm thực nghiệm với số epoch tùy chỉnh
+python main.py --mode exp_A --epochs 100
+python main.py --mode exp_B --epochs 100
+python main.py --mode exp_C --epochs 100
 
-# Chạy mạng tùy biến: 2 tầng ẩn (mỗi tầng 16 nơ-ron), hàm kích hoạt relu
-python main.py --mode custom --depth 2 --width 16 --activation relu --epochs 500
+# Chạy toàn bộ workflow ở chế độ smoke
+python main.py --mode all --smoke --epochs 3
 
-# Xuất lại toàn bộ biểu đồ báo cáo từ bảng kết quả CSV đã có
-python main.py --mode visualize --dpi 300
+# Tổng hợp đối sánh A/B/C từ bảng đã có
+python main.py --mode analyze
 ```
 
 ---
@@ -592,8 +600,8 @@ Tất cả các sản phẩm tạo ra từ mã nguồn đều được phân lo�
 | Thư Mục Lưu Trữ | Tệp Đầu Ra (Artifacts) | Mô Tả Kỹ Thuật Chi Tiết | Nguồn Phát Sinh |
 | :--- | :--- | :--- | :--- |
 | **`outputs/checkpoints/`** | `best_model_exp_A_*.pt`<br>`best_model_exp_B_*.pt`<br>`best_model_exp_C_*.pt` | Trọng số PyTorch tối ưu (`state_dict`) tương ứng với từng siêu tham số tại thời điểm đạt `val_loss` thấp nhất. | `src/trainer.py` |
-| **`outputs/tables/`** | `data_summary.csv`<br>`data_integrity_checks.csv`<br>`data_generation_manifest.json`<br>`summary_exp_A.csv`<br>`summary_exp_B.csv`<br>`summary_exp_C.csv`<br>`overall_comparison.csv` | Bảng thống kê dữ liệu T0203, kiểm tra toàn vẹn split, manifest hash và bảng tổng hợp số liệu thực nghiệm A/B/C sau này. | `src/visualizer.py`<br>`src/evaluator.py`<br>`src/runner.py` |
-| **`outputs/figures/`** | `data_distribution_3d.png`<br>`true_gaussian_surface_3d.png`<br>`predicted_mlp_surface_3d.png`<br>`exp_A_error_vs_samples.png`<br>`exp_B_error_vs_neurons.png`<br>`exp_C_depth_convergence_time.png` | Hệ thống hình vẽ đồ thị vector độ phân giải cao $\ge 300\text{ DPI}$, đầy đủ nhãn trục, đơn vị và ghi chú phục vụ xuất bản. | `src/visualizer.py` |
+| **`outputs/tables/`** | `data_summary.csv`<br>`data_integrity_checks.csv`<br>`data_generation_manifest.json`<br>`summary_exp_A.csv`<br>`summary_exp_B.csv`<br>`summary_exp_C.csv`<br>`best_runs_by_validation.csv`<br>`summary_overall.csv` | Bảng thống kê dữ liệu T0203, kiểm tra toàn vẹn split, manifest hash, best run chọn bằng validation MSE và bảng tổng hợp đối sánh baseline + best A/B/C. | `src/visualizer.py`<br>`src/evaluator.py`<br>`src/runner.py`<br>`experiments/analyze_overall.py` |
+| **`outputs/figures/`** | `data_distribution_3d.png`<br>`true_gaussian_surface_3d.png`<br>`exp_A_error_vs_samples.png`<br>`exp_B_error_vs_neurons.png`<br>`exp_C_depth_convergence_time.png`<br>`overall_comparison_metrics.png`<br>`best_model_surface_comparison_3d.png`<br>`best_model_parity_plot.png`<br>`best_model_residual_surface.png` | Hệ thống hình vẽ đồ thị vector độ phân giải cao $\ge 300\text{ DPI}$, đầy đủ nhãn trục, đơn vị và ghi chú phục vụ xuất bản. | `src/visualizer.py`<br>`experiments/analyze_overall.py` |
 | **`docs/thesis/`** | `Report_BTL01.docx`<br>`Report_BTL01.pdf` | Báo cáo khoa học học thuật hoàn chỉnh (15–20 trang) theo thể thức chuẩn IEEE / Đề cương Đại học. | Nhóm tác giả biên soạn |
 | **`docs/slides/`** | `Slide_BTL01.pptx`<br>`Slide_BTL01.pdf` | Bộ slide trình chiếu bảo vệ bài tập lớn trước hội đồng (10–15 slides tinh gọn, trực quan). | Nhóm tác giả biên soạn |
 | **`docs/reports/`** | `T[ID]_[YYMMDD]_[HHMM].md` | Báo cáo chi tiết sau khi hoàn thành từng tác vụ kỹ thuật theo quy định Điều 5.1 trong `AGENTS.md`. | Quy trình Agent & Dev |
