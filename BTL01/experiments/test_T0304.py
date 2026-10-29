@@ -115,6 +115,9 @@ class TestT0304(unittest.TestCase):
             self.assertIn("train_mse", result)
             self.assertIn("val_rmse", result)
             self.assertIn("test_mae", result)
+            self.assertIn("training_time_seconds", result)
+            self.assertIn("epochs_run", result)
+            self.assertIn("optimizer_steps", result)
             self.assertTrue(ckpt_path.exists())
 
 

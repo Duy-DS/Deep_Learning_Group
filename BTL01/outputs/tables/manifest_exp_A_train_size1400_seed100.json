@@ -1,0 +1,82 @@
+{
+  "checkpoint_path": "D:\\Workspace\\MonHoc\\DL-Sgu\\BTL01\\outputs\\checkpoints\\best_model_exp_A_train_size1400_seed100.pt",
+  "config_hashes": {
+    "baseline": "b60361867eeee01f7d6df0673874b57553f3d2a5e5111edba223117300b7edd8",
+    "experiment_specs": "fa005cd7fb7ccf1b2361a99028b49d3e84810c39377a3b1174d5721978701cd9"
+  },
+  "data_hashes": {
+    "test": "c3c783ebd79a9f80b4aca0e5347f2ea091c02d12cae3a45e8ce12acbc6dc0123",
+    "train_full": "190732e57a5389f91f4f64b5267fbb2e9a7ae9263ffa5f82711cc1d2624ccd3d",
+    "val": "a9a2e9e10eda86e38516e3c266ba78e58e451a7ab5667cf04eb783df7fbfe919"
+  },
+  "device": "cpu",
+  "experiment": "exp_A",
+  "factor": {
+    "name": "train_size",
+    "value": 1400
+  },
+  "resolved_config": {
+    "model": {
+      "activation": "tanh",
+      "bias": true,
+      "bias_init": "zeros",
+      "hidden_depth": 1,
+      "hidden_dims": [
+        10
+      ],
+      "hidden_init_gain": 1.6666666666666667,
+      "leaky_relu_negative_slope": 0.01,
+      "output_activation": "linear",
+      "output_init_gain": 1.0,
+      "supported_activations": [
+        "tanh",
+        "relu",
+        "sigmoid",
+        "leaky_relu"
+      ],
+      "weight_init": "xavier_normal"
+    },
+    "training": {
+      "adam_amsgrad": false,
+      "adam_betas": [
+        0.9,
+        0.999
+      ],
+      "adam_eps": 1e-08,
+      "batch_size": 32,
+      "checkpoint": {
+        "mode": "min",
+        "monitor": "val_loss",
+        "restore_best": true,
+        "save_on": "strict_improvement"
+      },
+      "drop_last": false,
+      "early_stopping": {
+        "enabled": true,
+        "min_delta": 1e-06,
+        "mode": "min",
+        "monitor": "val_loss",
+        "patience": 50
+      },
+      "epochs": 1000,
+      "gradient_clipping": false,
+      "learning_rate": 0.005,
+      "loss_function": "mse",
+      "loss_reduction": "mean",
+      "optimizer": "adam",
+      "scheduler": "none",
+      "sgd_momentum": 0.0,
+      "sgd_nesterov": false,
+      "shuffle_train": true,
+      "shuffle_validation": false,
+      "supported_optimizers": [
+        "adam",
+        "sgd"
+      ],
+      "train_size": 1000,
+      "weight_decay": 0.0
+    }
+  },
+  "run_id": "exp_A_train_size1400_seed100",
+  "seed": 100
+}

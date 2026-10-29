@@ -186,6 +186,13 @@ class TrainerTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 EarlyStopping(patience, delta)
 
+    @patch("src.trainer.Path.replace", side_effect=[PermissionError("locked"), None])
+    def test_checkpoint_replace_retries_transient_permission_error(self, replace) -> None:
+        """Checkpoint writes retry a transient Windows file-lock failure."""
+        self.trainer.best_val_loss = 0.5
+        self.trainer.save_checkpoint(1)
+        self.assertEqual(replace.call_count, 2)
+
     def test_legacy_config_keywords(self) -> None:
         """Duy trì khởi tạo từ config và các bí danh phương thức trước đây."""
         trainer = Trainer(

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+import time
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -346,7 +347,14 @@ class Trainer:
         }
         try:
             torch.save(checkpoint, temporary)
-            temporary.replace(self.checkpoint_path)
+            for attempt in range(3):
+                try:
+                    temporary.replace(self.checkpoint_path)
+                    break
+                except PermissionError:
+                    if attempt == 2:
+                        raise
+                    time.sleep(0.05 * (attempt + 1))
         finally:
             temporary.unlink(missing_ok=True)
         return self.checkpoint_path

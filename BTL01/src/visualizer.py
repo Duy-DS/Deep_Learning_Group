@@ -170,3 +170,116 @@ class Visualizer:
                     }
                 )
         return pd.DataFrame(rows)
+
+    def plot_factor_error(
+        self,
+        summary: pd.DataFrame,
+        factor_column: str,
+        metric: str,
+        output_name: str,
+        factor_label: str,
+    ) -> Path:
+        """Plot mean metric against an experiment factor with sample std bars."""
+        mean_column = f"{metric}_mean"
+        std_column = f"{metric}_std"
+        required = {factor_column, mean_column, std_column}
+        missing = required.difference(summary.columns)
+        if missing:
+            raise ValueError(f"Thiếu cột biểu đồ: {sorted(missing)}")
+        output_path = self.figures_dir / output_name
+        fig, axis = plt.subplots(figsize=(8.0, 5.0))
+        axis.errorbar(
+            summary[factor_column],
+            summary[mean_column],
+            yerr=summary[std_column],
+            marker="o",
+            capsize=4,
+            label=f"Mean {metric.upper()} ± sample std",
+        )
+        axis.set_title(f"{metric.upper()} theo {factor_label}")
+        axis.set_xlabel(factor_label)
+        axis.set_ylabel(metric.upper())
+        axis.legend()
+        fig.tight_layout()
+        fig.savefig(output_path, dpi=self.dpi, bbox_inches="tight")
+        plt.close(fig)
+        return output_path
+
+    def plot_train_validation_gap(
+        self,
+        summary: pd.DataFrame,
+        factor_column: str,
+        output_name: str,
+        factor_label: str,
+    ) -> Path:
+        """Plot validation-minus-training MSE to diagnose capacity gaps."""
+        required = {factor_column, "train_mse_mean", "val_mse_mean"}
+        missing = required.difference(summary.columns)
+        if missing:
+            raise ValueError(f"Thiếu cột biểu đồ: {sorted(missing)}")
+        output_path = self.figures_dir / output_name
+        gap = summary["val_mse_mean"] - summary["train_mse_mean"]
+        fig, axis = plt.subplots(figsize=(8.0, 5.0))
+        axis.axhline(0.0, color="black", linewidth=0.8)
+        axis.plot(summary[factor_column], gap, marker="o", label="Validation MSE - Train MSE")
+        axis.set_title(f"Khoảng cách train-validation theo {factor_label}")
+        axis.set_xlabel(factor_label)
+        axis.set_ylabel("MSE gap")
+        axis.legend()
+        fig.tight_layout()
+        fig.savefig(output_path, dpi=self.dpi, bbox_inches="tight")
+        plt.close(fig)
+        return output_path
+
+    def plot_depth_convergence_time(
+        self, summary: pd.DataFrame, output_name: str
+    ) -> Path:
+        """Plot depth error, best epoch, and training time in labeled panels."""
+        required = {
+            "depth",
+            "test_mse_mean",
+            "test_mse_std",
+            "training_time_seconds_mean",
+            "training_time_seconds_std",
+            "best_epoch_mean",
+        }
+        missing = required.difference(summary.columns)
+        if missing:
+            raise ValueError(f"Thiếu cột biểu đồ: {sorted(missing)}")
+        output_path = self.figures_dir / output_name
+        fig, axes = plt.subplots(1, 3, figsize=(14.0, 4.5))
+        depths = summary["depth"]
+        axes[0].errorbar(
+            depths,
+            summary["test_mse_mean"],
+            yerr=summary["test_mse_std"],
+            marker="o",
+            capsize=4,
+            label="Test MSE ± sample std",
+        )
+        axes[0].set_title("Test error")
+        axes[0].set_xlabel("Hidden depth C")
+        axes[0].set_ylabel("Test MSE")
+        axes[0].legend()
+        axes[1].plot(depths, summary["best_epoch_mean"], marker="o", label="Best epoch")
+        axes[1].set_title("Convergence")
+        axes[1].set_xlabel("Hidden depth C")
+        axes[1].set_ylabel("Epoch")
+        axes[1].legend()
+        axes[2].errorbar(
+            depths,
+            summary["training_time_seconds_mean"],
+            yerr=summary["training_time_seconds_std"],
+            marker="o",
+            capsize=4,
+            label="Training time ± sample std",
+        )
+        axes[2].set_title("Training cost")
+        axes[2].set_xlabel("Hidden depth C")
+        axes[2].set_ylabel("Seconds")
+        axes[2].legend()
+        fig.suptitle("Độ sâu, hội tụ và thời gian huấn luyện")
+        fig.tight_layout()
+        fig.savefig(output_path, dpi=self.dpi, bbox_inches="tight")
+        plt.close(fig)
+        return output_path
