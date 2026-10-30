@@ -72,3 +72,8 @@ class RegressionEvaluator:
             "rmse": final_rmse,
             "mae": final_mae,
         }
+
+# Bi danh tuong thich theo dinh danh Class trong Hien phap AGENTS.md
+Evaluator = RegressionEvaluator
+
+__all__ = ['RegressionEvaluator', 'Evaluator']

@@ -152,7 +152,7 @@ Bảng dưới đây minh họa sự tương đồng hình học giữa bề m�
 
 | Bề mặt Hàm Gaussian 2D Lý thuyết ($y$) | Bề mặt Mạng MLP Xấp xỉ ($\hat{y}$) | Sai số Tuyệt đối $\|y - \hat{y}\|$ |
 | :---: | :---: | :---: |
-| <img src="outputs/figures/true_gaussian_surface_3d.png" alt="Bề mặt hàm Gaussian thật" width="280" onerror="this.src='https://via.placeholder.com/300x220/1e88e5/ffffff?text=True+Gaussian+Surface+3D';" /> | <img src="outputs/figures/predicted_mlp_surface_3d.png" alt="Bề mặt xấp xỉ MLP" width="280" onerror="this.src='https://via.placeholder.com/300x220/2e7d32/ffffff?text=Predicted+MLP+Surface+3D';" /> | <img src="outputs/figures/absolute_error_surface_3d.png" alt="Bề mặt sai số tuyệt đối" width="280" onerror="this.src='https://via.placeholder.com/300x220/c62828/ffffff?text=Absolute+Error+Surface+3D';" /> |
+| <img src="outputs/figures/true_gaussian_surface_3d.png" alt="Bề mặt hàm Gaussian thật" width="280" onerror="this.src='https://via.placeholder.com/300x220/1e88e5/ffffff?text=True+Gaussian+Surface+3D';" /> | <img src="outputs/figures/best_model_surface_comparison_3d.png" alt="So sánh bề mặt hàm thật vs xấp xỉ MLP" width="280" onerror="this.src='https://via.placeholder.com/300x220/2e7d32/ffffff?text=Surface+Comparison+3D';" /> | <img src="outputs/figures/best_model_residual_surface.png" alt="Bề mặt sai số thặng dư tuyệt đối" width="280" onerror="this.src='https://via.placeholder.com/300x220/c62828/ffffff?text=Residual+Surface+3D';" /> |
 | *Hình 1.1: Đồ thị 3D hàm Gaussian giải tích với đỉnh nhọn tại tâm $\boldsymbol{\mu} = [0, 0]^T$.* | *Hình 1.2: Bề mặt tái tạo bởi mạng MLP tối ưu với sai số cực tiểu trên tập kiểm tra.* | *Hình 1.3: Bản đồ sai số 3D phân bố đều, tiệm cận 0 trên toàn bộ miền compact.* |
 
 </div>
