@@ -75,14 +75,14 @@ class ExperimentRunner:
     def build_width_trials(
         self, experiment_config: Mapping[str, Any]
     ) -> list[dict[str, Any]]:
-        """Resolve the complete Experiment B width/seed grid.
+        """Thiết lập lưới thử nghiệm (grid) hoàn chỉnh theo số nơ-ron/seed cho Thực nghiệm B.
 
-        Args:
-            experiment_config: The ``exp_B`` mapping from ``exp_specs.yaml``.
+        Tham số:
+            experiment_config: Ánh xạ cấu hình ``exp_B`` từ ``exp_specs.yaml``.
 
-        Returns:
-            Trial mappings with ``width``, ``hidden_dims``, ``train_size``,
-            and ``seed`` for every registered run.
+        Trả về:
+            Danh sách ánh xạ các lần thử chứa ``width``, ``hidden_dims``, ``train_size``,
+            và ``seed`` cho từng lượt chạy đã đăng ký.
         """
         widths = [
             *experiment_config["neuron_widths"],
@@ -103,7 +103,7 @@ class ExperimentRunner:
     def _parameter_count(
         input_dim: int, hidden_dims: list[int], output_dim: int
     ) -> int:
-        """Count parameters for bias-enabled fully connected layers."""
+        """Đếm tổng số tham số của các tầng fully connected có bias."""
         widths = [input_dim, *hidden_dims, output_dim]
         return sum(
             (left * right) + right
@@ -112,7 +112,7 @@ class ExperimentRunner:
 
     @staticmethod
     def _sha256(path: Path) -> str:
-        """Return the SHA-256 digest of a persisted input artifact."""
+        """Tính mã băm SHA-256 của file artifact đầu vào đã lưu trên đĩa."""
         digest = hashlib.sha256()
         with path.open("rb") as stream:
             for block in iter(lambda: stream.read(1024 * 1024), b""):
@@ -130,20 +130,20 @@ class ExperimentRunner:
         output_root: Path | str = REPO_ROOT / "outputs",
         epochs: int | None = None,
     ) -> tuple[pd.DataFrame, pd.DataFrame]:
-        """Run and aggregate the registered Experiment B width trials.
+        """Thực thi và tổng hợp kết quả các lần thử nghiệm theo chiều rộng tầng ẩn của Thực nghiệm B.
 
-        Args:
-            train_dataset: Full training dataset with ``split='train'`` metadata.
-            val_dataset: Validation dataset with ``split='val'`` metadata.
-            test_dataset: Independent test dataset used only after fitting.
-            experiment_config: The ``exp_B`` mapping from ``exp_specs.yaml``.
-            model_config: Baseline model configuration.
-            train_config: Baseline training configuration.
-            output_root: Root directory for checkpoints and tables.
-            epochs: Optional smoke-test override; ``None`` uses the baseline.
+        Tham số:
+            train_dataset: Tập dữ liệu huấn luyện đầy đủ với metadata ``split='train'``.
+            val_dataset: Tập dữ liệu validation với metadata ``split='val'``.
+            test_dataset: Tập dữ liệu kiểm tra độc lập chỉ được dùng sau khi huấn luyện xong.
+            experiment_config: Cấu hình ``exp_B`` từ ``exp_specs.yaml``.
+            model_config: Cấu hình kiến trúc mô hình baseline.
+            train_config: Cấu hình huấn luyện baseline.
+            output_root: Thư mục gốc lưu trữ checkpoints và tables.
+            epochs: Tham số ghi đè số epoch khi chạy smoke-test; mặc định dùng theo baseline.
 
-        Returns:
-            Per-run and mean/std summary DataFrames.
+        Trả về:
+            Bộ 2 DataFrame: kết quả chi tiết từng lượt chạy (per-run) và bảng tóm tắt mean/std.
         """
         root = Path(output_root)
         checkpoints = root / "checkpoints"
@@ -288,7 +288,14 @@ class ExperimentRunner:
     def build_train_size_trials(
         self, experiment_config: Mapping[str, Any]
     ) -> list[dict[str, Any]]:
-        """Resolve the Experiment A train-size/seed grid."""
+        """Thiết lập lưới thử nghiệm theo quy mô mẫu huấn luyện/seed cho Thực nghiệm A.
+
+        Tham số:
+            experiment_config: Ánh xạ cấu hình ``exp_A`` từ ``exp_specs.yaml``.
+
+        Trả về:
+            Danh sách ánh xạ các lần thử chứa ``train_size``, ``hidden_dims``, và ``seed``.
+        """
         return [
             {
                 "train_size": int(train_size),
@@ -310,7 +317,21 @@ class ExperimentRunner:
         output_root: Path | str = REPO_ROOT / "outputs",
         epochs: int | None = None,
     ) -> tuple[pd.DataFrame, pd.DataFrame]:
-        """Run and aggregate the registered Experiment A train-size trials."""
+        """Thực thi và tổng hợp kết quả các lần thử nghiệm theo quy mô mẫu của Thực nghiệm A.
+
+        Tham số:
+            train_dataset: Tập dữ liệu huấn luyện đầy đủ với metadata ``split='train'``.
+            val_dataset: Tập dữ liệu validation với metadata ``split='val'``.
+            test_dataset: Tập dữ liệu test độc lập chỉ dùng đánh giá sau khi hoàn tất fitting.
+            experiment_config: Cấu hình ``exp_A`` từ ``exp_specs.yaml``.
+            model_config: Cấu hình kiến trúc mô hình baseline.
+            train_config: Cấu hình huấn luyện baseline.
+            output_root: Thư mục gốc lưu trữ checkpoints và tables.
+            epochs: Số epoch chạy thử (smoke-test); ``None`` sẽ dùng theo cấu hình baseline.
+
+        Trả về:
+            Bộ 2 DataFrame: kết quả từng lượt chạy (runs) và bảng tổng kết thống kê mean/std (summary).
+        """
         root = Path(output_root)
         checkpoints = root / "checkpoints"
         tables = root / "tables"
@@ -443,7 +464,14 @@ class ExperimentRunner:
     def build_depth_trials(
         self, experiment_config: Mapping[str, Any]
     ) -> list[dict[str, Any]]:
-        """Resolve the fixed-width Experiment C depth/seed grid."""
+        """Thiết lập lưới thử nghiệm theo độ sâu mạng/seed (cố định chiều rộng) cho Thực nghiệm C.
+
+        Tham số:
+            experiment_config: Ánh xạ cấu hình ``exp_C`` từ ``exp_specs.yaml``.
+
+        Trả về:
+            Danh sách cấu hình thử nghiệm chứa ``depth``, ``hidden_dims``, ``train_size``, ``seed``, và ``parameter_count``.
+        """
         width = int(experiment_config["width_per_layer"])
         trials: list[dict[str, Any]] = []
         for depth in experiment_config["depths"]:
@@ -469,7 +497,21 @@ class ExperimentRunner:
         output_root: Path | str = REPO_ROOT / "outputs",
         epochs: int | None = None,
     ) -> tuple[pd.DataFrame, pd.DataFrame]:
-        """Run and aggregate the registered Experiment C depth trials."""
+        """Thực thi và tổng hợp kết quả các lần thử nghiệm theo độ sâu mạng của Thực nghiệm C.
+
+        Tham số:
+            train_dataset: Tập dữ liệu huấn luyện đầy đủ với metadata ``split='train'``.
+            val_dataset: Tập dữ liệu validation với metadata ``split='val'``.
+            test_dataset: Tập kiểm tra độc lập chỉ dùng đánh giá sau khi huấn luyện.
+            experiment_config: Cấu hình ``exp_C`` từ ``exp_specs.yaml``.
+            model_config: Cấu hình mô hình baseline.
+            train_config: Cấu hình huấn luyện baseline.
+            output_root: Thư mục gốc lưu trữ checkpoints và tables.
+            epochs: Số epoch ghi đè khi chạy kiểm thử nhanh (smoke-test).
+
+        Trả về:
+            Bộ 2 DataFrame: bảng dữ liệu chi tiết từng lượt chạy và bảng tổng kết mean/std.
+        """
         root = Path(output_root)
         checkpoints = root / "checkpoints"
         tables = root / "tables"

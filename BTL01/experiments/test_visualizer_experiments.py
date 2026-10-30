@@ -1,4 +1,4 @@
-"""Tests for Experiment B/C summary visualizations."""
+"""Kiểm thử trực quan hóa kết quả tổng hợp của Thực nghiệm B và C."""
 
 from __future__ import annotations
 
@@ -12,10 +12,10 @@ from src.visualizer import Visualizer
 
 
 class ExperimentVisualizationTests(unittest.TestCase):
-    """Ensure experiment plots are generated from persisted summary-shaped data."""
+    """Đảm bảo các đồ thị thực nghiệm được sinh ra chính xác từ dữ liệu tóm tắt đã lưu trữ."""
 
     def test_factor_error_and_train_validation_gap_plots(self) -> None:
-        """B plots include error bars and the train-validation gap."""
+        """Đồ thị của Thực nghiệm B bao gồm thanh sai số (error bars) và khoảng cách train-validation gap."""
         summary = pd.DataFrame(
             {
                 "width": [1, 10],
@@ -40,7 +40,7 @@ class ExperimentVisualizationTests(unittest.TestCase):
             self.assertGreater(gap_path.stat().st_size, 0)
 
     def test_depth_convergence_time_plot_requires_timing_columns(self) -> None:
-        """C plot requires explicit convergence and timing metrics."""
+        """Đồ thị của Thực nghiệm C yêu cầu các cột số liệu thời gian và tốc độ hội tụ tường minh."""
         summary = pd.DataFrame(
             {
                 "depth": [1, 2],

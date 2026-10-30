@@ -188,7 +188,7 @@ class TrainerTests(unittest.TestCase):
 
     @patch("src.trainer.Path.replace", side_effect=[PermissionError("locked"), None])
     def test_checkpoint_replace_retries_transient_permission_error(self, replace) -> None:
-        """Checkpoint writes retry a transient Windows file-lock failure."""
+        """Việc ghi checkpoint có cơ chế thử lại (retry) khi gặp lỗi khóa file tạm thời trên Windows."""
         self.trainer.best_val_loss = 0.5
         self.trainer.save_checkpoint(1)
         self.assertEqual(replace.call_count, 2)

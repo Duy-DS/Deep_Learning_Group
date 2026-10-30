@@ -1,4 +1,4 @@
-"""Run the full reproducible BTL01 workflow from data to T0701/T0702."""
+"""Chạy toàn bộ quy trình tái lập của dự án BTL01 từ sinh dữ liệu đến tổng hợp T0701/T0702."""
 
 from __future__ import annotations
 
@@ -12,14 +12,14 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def run_step(args: list[str]) -> None:
-    """Run one Python step in the project root and fail on non-zero status."""
+    """Chạy một bước Python trong thư mục gốc của dự án và báo lỗi nếu mã thoát khác 0."""
     command = [sys.executable, *args]
     print(" ".join(command))
     subprocess.run(command, cwd=ROOT, check=True)
 
 
 def main() -> None:
-    """Coordinate data generation, experiments, analyses, and overall plots."""
+    """Điều phối việc sinh dữ liệu, chạy các thực nghiệm A/B/C, phân tích và xuất đồ thị tổng thể."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-root", type=Path, default=ROOT / "outputs")
     parser.add_argument("--skip-training", action="store_true")
