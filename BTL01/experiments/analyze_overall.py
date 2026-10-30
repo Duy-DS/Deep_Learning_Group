@@ -1,4 +1,4 @@
-"""Build overall A/B/C comparison artifacts for T0701 and T0702."""
+"""Xây dựng các artifacts đối sánh tổng thể A/B/C cho T0701 và T0702."""
 
 from __future__ import annotations
 
@@ -37,13 +37,13 @@ EXPERIMENT_FACTORS = {
 
 
 def load_yaml(path: Path) -> dict[str, Any]:
-    """Load a YAML document with safe parsing."""
+    """Đọc file YAML với cơ chế phân tích cú pháp an toàn."""
     with path.open(encoding="utf-8") as stream:
         return yaml.safe_load(stream)
 
 
 def resolve_device(config: dict[str, Any]) -> torch.device:
-    """Resolve the configured PyTorch device."""
+    """Xác định thiết bị tính toán PyTorch được cấu hình."""
     requested = config["hardware"]["device"]
     if requested != "auto":
         return torch.device(requested)
@@ -58,16 +58,16 @@ def resolve_device(config: dict[str, Any]) -> torch.device:
 
 
 def read_csv(path: Path) -> pd.DataFrame:
-    """Read a required CSV artifact with a precise error message."""
+    """Đọc file CSV artifact bắt buộc kèm thông báo lỗi chi tiết."""
     if not path.exists():
         raise FileNotFoundError(f"Missing required table: {path}")
     return pd.read_csv(path, encoding="utf-8-sig")
 
 
 def choose_best_runs(tables_dir: Path) -> pd.DataFrame:
-    """Select one best run per experiment using validation MSE only."""
+    """Chọn một lần chạy tốt nhất cho mỗi thực nghiệm chỉ dựa trên validation MSE."""
     rows: list[dict[str, Any]] = []
-    # Baseline is represented by the standard A=1000, width=10 run.
+    # Baseline được đại diện bởi lần chạy tiêu chuẩn A=1000, width=10.
     runs_a = read_csv(tables_dir / "runs_exp_A.csv")
     baseline_runs = runs_a[
         (runs_a["train_size"] == 1000) & (runs_a["status"] == "completed")
@@ -131,7 +131,7 @@ def choose_best_runs(tables_dir: Path) -> pd.DataFrame:
 
 
 def build_overall_summary(best_runs: pd.DataFrame, tables_dir: Path) -> pd.DataFrame:
-    """Attach mean/std metrics for the selected factor values."""
+    """Gắn các chỉ số đo lường mean/std tương ứng với giá trị factor được chọn."""
     rows: list[dict[str, Any]] = []
     for row in best_runs.to_dict("records"):
         exp = row["experiment"]
@@ -174,7 +174,7 @@ def build_overall_summary(best_runs: pd.DataFrame, tables_dir: Path) -> pd.DataF
 
 
 def load_manifest(tables_dir: Path, run_id: str) -> dict[str, Any]:
-    """Load the per-run manifest created by ExperimentRunner."""
+    """Tải manifest của từng lượt chạy được tạo bởi ExperimentRunner."""
     path = tables_dir / f"manifest_{run_id}.json"
     if not path.exists():
         raise FileNotFoundError(f"Missing manifest for best run: {path}")
@@ -183,7 +183,7 @@ def load_manifest(tables_dir: Path, run_id: str) -> dict[str, Any]:
 
 
 def checkpoint_path(output_root: Path, manifest: dict[str, Any]) -> Path:
-    """Resolve a checkpoint path, preferring the current output root."""
+    """Xác định đường dẫn checkpoint, ưu tiên đường dẫn trong thư mục output hiện tại."""
     run_id = manifest["run_id"]
     local_path = output_root / "checkpoints" / f"best_model_{run_id}.pt"
     if local_path.exists():
@@ -200,7 +200,7 @@ def load_best_model(
     best_row: pd.Series,
     device: torch.device,
 ) -> torch.nn.Module:
-    """Load the selected best checkpoint, retraining locally if missing."""
+    """Tải checkpoint tốt nhất đã chọn, tự động huấn luyện tái lập tại chỗ nếu file chưa có trên đĩa."""
     tables = output_root / "tables"
     checkpoints = output_root / "checkpoints"
     checkpoints.mkdir(parents=True, exist_ok=True)
@@ -267,7 +267,7 @@ def predict_dataset(
     dataset: GaussianDataset,
     device: torch.device,
 ) -> tuple[list[float], list[float]]:
-    """Return true and predicted target values for a dataset."""
+    """Trả về các giá trị mục tiêu thực tế và giá trị dự đoán trên tập dữ liệu."""
     with torch.no_grad():
         inputs = dataset.features.to(device)
         predictions = model(inputs).cpu().numpy().reshape(-1).tolist()
@@ -281,7 +281,7 @@ def generate_model_figures(
     device: torch.device,
     grid_size: tuple[int, int],
 ) -> list[Path]:
-    """Generate surface, parity, and residual plots for the best overall model."""
+    """Khởi tạo biểu đồ bề mặt, đồ thị tương quan parity và mặt sai số thặng dư cho mô hình tốt nhất."""
     best_row = overall.sort_values(["val_mse", "run_id"]).iloc[0]
     model = load_best_model(baseline, output_root, best_row, device)
     data_config = baseline["data"]
@@ -316,7 +316,7 @@ def generate_model_figures(
 
 
 def main() -> None:
-    """Create overall comparison tables and figures."""
+    """Tạo các bảng tổng hợp và biểu đồ đối sánh tổng thể."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-root", type=Path, default=ROOT / "outputs")
     parser.add_argument("--skip-model-figures", action="store_true")

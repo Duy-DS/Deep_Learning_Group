@@ -1,4 +1,4 @@
-"""Contract tests for the Experiment C depth suite."""
+"""Kiểm thử ràng buộc (contract tests) cho bộ thực nghiệm độ sâu mạng của Thực nghiệm C."""
 
 from __future__ import annotations
 
@@ -19,11 +19,11 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class ExperimentCContractTests(unittest.TestCase):
-    """Verify the fixed-width depth grid and suite artifact contract."""
+    """Kiểm tra lưới độ sâu cố định chiều rộng và định dạng artifact lưu trữ của Thực nghiệm C."""
 
     @classmethod
     def setUpClass(cls) -> None:
-        """Load the normative baseline and Experiment C specification."""
+        """Tải cấu hình baseline chuẩn mực và đặc tả Thực nghiệm C."""
         with (ROOT / "configs/baseline.yaml").open(encoding="utf-8") as stream:
             cls.baseline = yaml.safe_load(stream)
         with (ROOT / "configs/exp_specs.yaml").open(encoding="utf-8") as stream:
@@ -31,7 +31,7 @@ class ExperimentCContractTests(unittest.TestCase):
         cls.runner = ExperimentRunner(cls.baseline, torch.device("cpu"))
 
     def test_depth_grid_has_15_trials_and_declared_parameter_counts(self) -> None:
-        """The C grid has five depths crossed with three fixed seeds."""
+        """Lưới tham số C chứa 5 mốc độ sâu nhân với 3 hạt giống cố định (15 trials)."""
         trials = self.runner.build_depth_trials(self.specs["experiments"]["exp_C"])
 
         self.assertEqual(len(trials), 15)
@@ -45,7 +45,7 @@ class ExperimentCContractTests(unittest.TestCase):
         )
 
     def test_depth_suite_writes_rows_and_summary(self) -> None:
-        """The C suite returns completed rows and one summary row per depth."""
+        """Bộ thực nghiệm C trả về các dòng kết quả hoàn thành và một dòng tóm tắt cho mỗi độ sâu."""
         experiment = {
             "train_size": 1,
             "depths": [1, 2],

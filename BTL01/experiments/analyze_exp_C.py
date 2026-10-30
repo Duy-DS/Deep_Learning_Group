@@ -1,4 +1,4 @@
-"""Generate Experiment C figures from persisted summary tables."""
+"""Khởi tạo các biểu đồ Thực nghiệm C từ bảng dữ liệu tổng hợp đã lưu trữ."""
 
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ from src.visualizer import Visualizer
 
 
 def main() -> None:
-    """Read C summary CSV and write the required figure."""
+    """Đọc bảng CSV tổng hợp Thực nghiệm C và xuất các biểu đồ theo yêu cầu."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-root", type=Path, default=ROOT / "outputs")
     args = parser.parse_args()
