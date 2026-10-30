@@ -1,4 +1,4 @@
-"""Command line entry point for the BTL01 function approximation project."""
+"""Điểm vào giao diện dòng lệnh (CLI entry point) cho dự án xấp xỉ hàm số BTL01."""
 
 from __future__ import annotations
 
@@ -12,12 +12,17 @@ ROOT = Path(__file__).resolve().parent
 
 
 def run_script(script: str, extra_args: list[str]) -> None:
-    """Run a project script with the current Python interpreter."""
+    """Chạy một kịch bản của dự án bằng trình thông dịch Python hiện tại.
+
+    Tham số:
+        script: Đường dẫn tương đối đến file script cần thực thi.
+        extra_args: Danh sách các tham số dòng lệnh bổ sung.
+    """
     subprocess.run([sys.executable, script, *extra_args], cwd=ROOT, check=True)
 
 
 def main() -> None:
-    """Dispatch common project workflows through one CLI."""
+    """Điều phối các quy trình làm việc phổ biến của dự án thông qua một CLI duy nhất."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--mode",

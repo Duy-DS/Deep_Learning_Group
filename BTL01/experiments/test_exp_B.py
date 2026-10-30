@@ -1,4 +1,4 @@
-"""Contract tests for the Experiment B width suite."""
+"""Kiểm thử ràng buộc (contract tests) cho bộ thực nghiệm chiều rộng tầng ẩn của Thực nghiệm B."""
 
 from __future__ import annotations
 
@@ -19,11 +19,11 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class ExperimentBContractTests(unittest.TestCase):
-    """Verify the fixed Experiment B grid before running expensive trials."""
+    """Kiểm tra lưới tham số cố định của Thực nghiệm B trước khi chạy các thử nghiệm tốn kém tài nguyên."""
 
     @classmethod
     def setUpClass(cls) -> None:
-        """Load the normative baseline and Experiment B specification."""
+        """Tải cấu hình baseline chuẩn mực và đặc tả Thực nghiệm B."""
         with (ROOT / "configs/baseline.yaml").open(encoding="utf-8") as stream:
             cls.baseline = yaml.safe_load(stream)
         with (ROOT / "configs/exp_specs.yaml").open(encoding="utf-8") as stream:
@@ -31,7 +31,7 @@ class ExperimentBContractTests(unittest.TestCase):
         cls.runner = ExperimentRunner(cls.baseline, torch.device("cpu"))
 
     def test_width_grid_has_39_trials_and_declared_seeds(self) -> None:
-        """The B grid contains 13 widths crossed with the three fixed seeds."""
+        """Lưới tham số B chứa 13 giá trị chiều rộng nhân với 3 hạt giống cố định (39 trials)."""
         trials = self.runner.build_width_trials(self.specs["experiments"]["exp_B"])
 
         self.assertEqual(len(trials), 39)
@@ -44,7 +44,7 @@ class ExperimentBContractTests(unittest.TestCase):
         )
 
     def test_width_trial_resolves_baseline_train_configuration(self) -> None:
-        """Every B trial varies only width and keeps the B/C train size."""
+        """Mỗi thử nghiệm B chỉ thay đổi chiều rộng nơ-ron và giữ nguyên kích thước tập train của B/C."""
         trials = self.runner.build_width_trials(self.specs["experiments"]["exp_B"])
         trial = next(item for item in trials if item["width"] == 16 and item["seed"] == 100)
 
@@ -53,7 +53,7 @@ class ExperimentBContractTests(unittest.TestCase):
         self.assertEqual(trial["seed"], 100)
 
     def test_width_suite_writes_per_run_and_summary_tables(self) -> None:
-        """The suite persists rows and aggregates only successful trial results."""
+        """Bộ thực nghiệm lưu trữ chi tiết từng lượt chạy và chỉ tổng hợp kết quả của các lượt chạy thành công."""
         experiment = {
             "train_size": 1,
             "neuron_widths": [1],
@@ -103,7 +103,7 @@ class ExperimentBContractTests(unittest.TestCase):
         self.assertEqual(manifest_count, 2)
 
     def test_width_suite_forwards_epoch_override(self) -> None:
-        """Smoke mode changes epochs without mutating the baseline mapping."""
+        """Chế độ smoke-test cho phép thay đổi số epoch mà không làm biến đổi cấu hình gốc trong baseline."""
         experiment = {
             "train_size": 1,
             "neuron_widths": [1],

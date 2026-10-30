@@ -1,4 +1,4 @@
-"""Unit tests for overall A/B/C comparative analysis and visualizations (T0701)."""
+"""Kiểm thử đơn vị cho phân tích đối sánh tổng thể A/B/C và trực quan hóa (T0701)."""
 
 from __future__ import annotations
 
@@ -22,10 +22,10 @@ from src.visualizer import Visualizer
 
 
 class OverallAnalysisTests(unittest.TestCase):
-    """Test best model selection logic, overall table construction, and plotting."""
+    """Kiểm thử logic chọn mô hình tốt nhất, khởi tạo bảng tổng thể và vẽ biểu đồ."""
 
     def test_choose_best_runs_and_summary_generation(self) -> None:
-        """Validate selection by validation loss without data leakage."""
+        """Xác minh việc lựa chọn dựa trên validation loss mà không rò rỉ dữ liệu tập test."""
         with tempfile.TemporaryDirectory() as tmpdir:
             tables_dir = Path(tmpdir)
             # Tạo dữ liệu giả lập cho runs_exp_A, B, C
@@ -174,7 +174,7 @@ class OverallAnalysisTests(unittest.TestCase):
             self.assertIn("val_mse_mean", overall.columns)
 
     def test_visualizer_new_methods(self) -> None:
-        """Test Visualizer 3D comparison, parity scatter, residual, and overall comparison plots."""
+        """Kiểm thử các phương thức mới của Visualizer: so sánh 3D, parity scatter, residual surface và overall comparison."""
         with tempfile.TemporaryDirectory() as tmpdir:
             figures_dir = Path(tmpdir)
             visualizer = Visualizer(figures_dir)

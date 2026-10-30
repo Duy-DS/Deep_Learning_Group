@@ -1,4 +1,4 @@
-"""Run Experiment C: fixed-width hidden-depth ablation."""
+"""Thực thi Thực nghiệm C: Khảo sát độ sâu mạng MLP với chiều rộng cố định (fixed-width hidden-depth ablation)."""
 
 from __future__ import annotations
 
@@ -20,13 +20,13 @@ from src.runner import ExperimentRunner
 
 
 def load_yaml(path: Path) -> dict[str, Any]:
-    """Load one project YAML file with safe parsing."""
+    """Đọc một file YAML của dự án với cơ chế phân tích cú pháp an toàn (safe parsing)."""
     with path.open(encoding="utf-8") as stream:
         return yaml.safe_load(stream)
 
 
 def resolve_device(config: dict[str, Any]) -> torch.device:
-    """Resolve the first available device from the baseline priority."""
+    """Xác định thiết bị tính toán đầu tiên khả dụng theo thứ tự ưu tiên của baseline."""
     if config["hardware"]["device"] != "auto":
         return torch.device(config["hardware"]["device"])
     for name in config["hardware"]["device_priority"]:
@@ -40,7 +40,7 @@ def resolve_device(config: dict[str, Any]) -> torch.device:
 
 
 def main() -> None:
-    """Run the requested Experiment C suite."""
+    """Thực thi kịch bản Thực nghiệm C theo các tham số yêu cầu."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--depths", nargs="+", type=int)
     parser.add_argument("--seeds", nargs="+", type=int)

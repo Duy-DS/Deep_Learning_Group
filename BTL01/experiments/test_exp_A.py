@@ -1,4 +1,4 @@
-"""Contract tests for the Experiment A train-size suite."""
+"""Kiểm thử ràng buộc (contract tests) cho bộ thực nghiệm quy mô mẫu huấn luyện của Thực nghiệm A."""
 
 from __future__ import annotations
 
@@ -19,11 +19,11 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class ExperimentAContractTests(unittest.TestCase):
-    """Verify the fixed Experiment A grid and persisted suite contract."""
+    """Kiểm tra tính cố định của lưới tham số Thực nghiệm A và định dạng artifact lưu trữ."""
 
     @classmethod
     def setUpClass(cls) -> None:
-        """Load project configurations once for the contract tests."""
+        """Tải cấu hình dự án một lần phục vụ các bài kiểm thử ràng buộc."""
         with (ROOT / "configs/baseline.yaml").open(encoding="utf-8") as stream:
             cls.baseline = yaml.safe_load(stream)
         with (ROOT / "configs/exp_specs.yaml").open(encoding="utf-8") as stream:
@@ -31,7 +31,7 @@ class ExperimentAContractTests(unittest.TestCase):
         cls.runner = ExperimentRunner(cls.baseline, torch.device("cpu"))
 
     def test_train_size_grid_has_30_trials(self) -> None:
-        """A contains ten train sizes crossed with three fixed seeds."""
+        """Thực nghiệm A chứa 10 mốc kích thước mẫu nhân với 3 hạt giống cố định (30 trials)."""
         trials = self.runner.build_train_size_trials(
             self.specs["experiments"]["exp_A"]
         )
@@ -46,7 +46,7 @@ class ExperimentAContractTests(unittest.TestCase):
         self.assertTrue(all(trial["hidden_dims"] == [10] for trial in trials))
 
     def test_train_size_suite_writes_rows_and_summary(self) -> None:
-        """A writes completed rows and one summary row per train size."""
+        """Thực nghiệm A ghi nhận đầy đủ các dòng chạy thành công và một dòng tóm tắt cho mỗi kích thước mẫu."""
         experiment = {
             "sample_sizes": [200, 400],
             "multi_seeds": [42],

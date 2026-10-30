@@ -47,7 +47,7 @@ class TestT0304(unittest.TestCase):
         }
         self.runner = ExperimentRunner(self.config, self.device)
 
-        # Fake data
+        # Dữ liệu giả lập
         x = torch.ones(4, 2)
         y = torch.zeros(4, 1)
         self.loader = DataLoader(TensorDataset(x, y), batch_size=2)
