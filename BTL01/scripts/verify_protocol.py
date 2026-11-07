@@ -1,6 +1,6 @@
-"""Kiểm tra cấu hình T0102 và các bất biến toán học mà không cần huấn luyện.
+"""Verify T0102 configuration and mathematical invariants without training.
 
-Chạy trong môi trường Python của dự án. Không sinh thêm file hay dataset mới.
+Run with the project Python environment. No files or datasets are generated.
 """
 
 import re
@@ -12,13 +12,13 @@ import yaml
 
 
 class ProtocolVerifier:
-    """Kiểm tra tính hợp lệ của cấu hình baseline, thông số thực nghiệm và tính khả chuyển."""
+    """Validate baseline, experiment specifications and portable artifacts."""
 
     def __init__(self, root: Path) -> None:
-        """Đọc và giải nạp cấu hình an toàn từ YAML.
+        """Load configuration using safe YAML parsing.
 
-        Tham số:
-            root: Đường dẫn tuyệt đối tới thư mục gốc dự án chứa configs và AGENTS.md.
+        Args:
+            root: Absolute project root containing configs and AGENTS.md.
         """
         self.root = root
         self.baseline = self._load("configs/baseline.yaml")
@@ -26,43 +26,43 @@ class ProtocolVerifier:
         self.checks = 0
 
     def _load(self, relative_path: str) -> dict[str, Any]:
-        """Đọc từ điển YAML an toàn không dùng constructor tùy biến.
+        """Read a YAML mapping without custom constructors.
 
-        Tham số:
-            relative_path: Đường dẫn file cấu hình tương đối so với thư mục gốc dự án.
+        Args:
+            relative_path: Configuration path relative to the project root.
 
-        Trả về:
-            Dictionary cấu hình cấp cao nhất.
+        Returns:
+            Parsed top-level mapping.
 
-        Ngoại lệ:
-            ValueError: Nếu đối tượng YAML không phải là một mapping/dict.
+        Raises:
+            ValueError: If the top-level YAML object is not a mapping.
         """
         with (self.root / relative_path).open(encoding="utf-8") as stream:
             result = yaml.safe_load(stream)
         if not isinstance(result, dict):
-            raise ValueError(f"Kỳ vọng YAML mapping: {relative_path}")
+            raise ValueError(f"Expected YAML mapping: {relative_path}")
         return result
 
     def _check(self, condition: bool, label: str) -> None:
-        """Ghi nhận kiểm tra thành công hoặc raise ngoại lệ kèm thông báo chi tiết.
+        """Count a successful invariant or raise a descriptive error.
 
-        Tham số:
-            condition: Điều kiện cần thỏa mãn (bất biến).
-            label: Chuỗi mô tả điều kiện kiểm tra.
+        Args:
+            condition: Whether the invariant holds.
+            label: Human-readable invariant description.
 
-        Ngoại lệ:
-            ValueError: Nếu điều kiện không được thỏa mãn.
+        Raises:
+            ValueError: If the invariant fails.
         """
         if not condition:
             raise ValueError(label)
         self.checks += 1
 
     def verify(self) -> None:
-        """Kiểm tra cấu hình tĩnh, ma trận hiệp phương sai SPD và các ràng buộc tài liệu.
+        """Run static configuration, SPD and document checks.
 
-        Ngoại lệ:
-            ValueError: Nếu cấu hình hoặc ràng buộc tài liệu không thỏa mãn.
-            numpy.linalg.LinAlgError: Nếu ma trận hiệp phương sai suy biến hoặc không SPD.
+        Raises:
+            ValueError: If a configuration or document invariant fails.
+            numpy.linalg.LinAlgError: If covariance is singular or not SPD.
         """
         b, s = self.baseline, self.specs
         self._check(b["schema_version"] == s["schema_version"] == 1, "schema")
@@ -188,7 +188,7 @@ class ProtocolVerifier:
             content = (self.root / relative_path).read_text(encoding="utf-8")
             personal_path = r"(?i)(?<![a-z])(?:[a-z]:[\\/]|file:" + "/{3})"
             self._check(re.search(personal_path, content) is None,
-                        f"không chứa đường dẫn tuyệt đối cá nhân: {relative_path}")
+                        f"no personal absolute path: {relative_path}")
         print(f"PASS: {self.checks} protocol checks; YAML safe_load OK")
         print(f"det(C)={determinant:.12f}")
         print(f"eigenvalues={eigenvalues.tolist()}")
