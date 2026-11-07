@@ -50,7 +50,6 @@ Toàn bộ mã nguồn trong dự án phải được thiết kế theo **Lập 
    * **100% Modules, Classes và Methods/Functions** phải có **Docstring** theo chuẩn **Google Style** hoặc **NumPy Style** (mô tả mục đích, `Args`, `Returns`, `Raises`, kèm kích thước Tensor đầu vào/đầu ra như `Shape: (batch_size, 2)`).
    * Bắt buộc sử dụng **Type Hints** đầy đủ cho mọi tham số và giá trị trả về (ví dụ: `def forward(self, x: torch.Tensor) -> torch.Tensor:`).
    * Tuân thủ chuẩn định dạng **PEP 8**.
-   * Ngôn ngữ ưu tiên: tiếng Việt, các thuật ngữ kĩ thuật có thể giữ nguyên mẫu hoặc tiếng Anh.
 
 ---
 
