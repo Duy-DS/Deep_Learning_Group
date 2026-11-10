@@ -1,0 +1,126 @@
+# T0102: normative baseline. Experiment grids live in exp_specs.yaml.
+# Paths are relative to the project root, never to the current shell directory.
+schema_version: 1
+experiment_specs: configs/exp_specs.yaml
+
+reproducibility:
+  seed: 42
+  deterministic: true
+  deterministic_warn_only: false
+  cudnn_deterministic: true
+  cudnn_benchmark: false
+  cublas_workspace_config: ":4096:8"
+  # Seed random, numpy, torch.manual_seed and torch.cuda.manual_seed_all per run.
+  # Data RNG is independent of model initialization and DataLoader RNG.
+
+hardware:
+  device: auto
+  device_priority: [cuda, mps, cpu]
+  dtype: float32
+  num_workers: 0
+  # Explicit device=cpu remains supported; do not silently relax determinism.
+
+data:
+  input_dim: 2
+  output_dim: 1
+  sampling: uniform
+  x1_range: [-2.0, 2.0]
+  x2_range: [-4.0, 4.0]
+  mu: [0.0, 0.0]
+  cov: [[0.3, -0.5], [-0.5, 2.0]]
+  train_full_size: 2000
+  val_size: 200
+  test_size: 100
+  generation_seed: 42
+  split_strategy: independent_rng_streams
+  rng_algorithm: PCG64
+  split_stream_ids: {train: 0, val: 1, test: 2}
+  subset_seed: 42
+  subset_strategy: fixed_permutation_prefix
+  fixed_across_training_seeds: true
+  normalization: none
+  target_noise_std: 0.0
+  density_dtype: float64
+  csv_columns: [x1, x2, y]
+  csv_float_format: "%.17g"
+  train_full_path: data/train_full.csv
+  val_path: data/val.csv
+  test_path: data/test.csv
+
+model_baseline:
+  hidden_depth: 1
+  hidden_dims: [10]
+  activation: tanh
+  supported_activations: [tanh, relu, sigmoid, leaky_relu]
+  leaky_relu_negative_slope: 0.01
+  output_activation: linear
+  bias: true
+  bias_init: zeros
+  weight_init: xavier_normal
+  hidden_init_gain: 1.6666666666666667  # calculate_gain("tanh") = 5/3
+  output_init_gain: 1.0
+
+training_baseline:
+  train_size: 1000  # Default for B/C; A overrides only this field.
+  batch_size: 32
+  epochs: 1000
+  optimizer: adam
+  supported_optimizers: [adam, sgd]
+  learning_rate: 0.005
+  weight_decay: 0.0
+  adam_betas: [0.9, 0.999]
+  adam_eps: 1.0e-8
+  adam_amsgrad: false
+  sgd_momentum: 0.0
+  sgd_nesterov: false
+  loss_function: mse
+  loss_reduction: mean
+  scheduler: none
+  shuffle_train: true
+  shuffle_validation: false
+  drop_last: false
+  gradient_clipping: false
+  early_stopping:
+    enabled: true
+    patience: 50
+    min_delta: 1.0e-6
+    monitor: val_loss
+    mode: min
+  checkpoint:
+    monitor: val_loss
+    mode: min
+    save_on: strict_improvement
+    restore_best: true
+    # Checkpoint uses strict minimum; early-stopping counter uses min_delta.
+
+evaluation:
+  metrics: [mse, rmse, mae]
+  checkpoint_selection_split: validation
+  hyperparameter_selection_split: validation
+  test_policy: final_frozen_suite_only
+  aggregate: mean_std
+  std_ddof: 1
+  training_time_clock: perf_counter
+  synchronize_accelerator: true
+  training_time_includes: [training, validation, early_stopping, checkpoint_writes]
+  training_time_excludes: [data_generation, model_setup, checkpoint_reload, final_evaluation, visualization]
+
+outputs:
+  data_dir: data
+  checkpoints_dir: outputs/checkpoints
+  tables_dir: outputs/tables
+  figures_dir: outputs/figures
+  checkpoint_template: "best_model_{experiment}_{factor_name}{factor_value}_seed{seed}.pt"
+  history_template: "history_{experiment}_{factor_name}{factor_value}_seed{seed}.csv"
+  run_table_template: "runs_{experiment}.csv"
+  summary_template: "summary_{experiment}.csv"
+  manifest_template: "manifest_{experiment}_{factor_name}{factor_value}_seed{seed}.json"
+
+visualization:
+  dpi: 300
+  format: png
+  require_title: true
+  require_axis_labels: true
+  require_legend: true
+  surface_grid_size: [101, 101]
+  surface_grid_role: visualization_only
