@@ -192,3 +192,14 @@ def scale_splits(splits, feature_cols, scaler_path=None):
         joblib.dump(scaler, scaler_path)
 
     return scaled, scaler
+
+def save_splits_csv(splits, output_dir):
+    from pathlib import Path
+
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    for name, data in splits.items():
+        output_path = output_dir / f"{name}.csv"
+        data.to_csv(output_path, index=False)
+        print(f"Đã lưu: {output_path}")
