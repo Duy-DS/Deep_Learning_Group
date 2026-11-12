@@ -74,10 +74,10 @@ class LSTMModel(BaseTimeSeriesModel):
     - `univariate`:   D = 1 (chỉ PM2.5 quá khứ, dùng cho Ablation Study).
 
     Ví dụ sử dụng:
-        >>> mo_hinh = LSTMModel(lookback=96, horizon=24, in_features=15,
-        ...                     hidden_size=128, num_layers=2, dropout=0.2)
+        >>> model = LSTMModel(lookback=96, horizon=24, in_features=15,
+        ...                   hidden_size=128, num_layers=2, dropout=0.2)
         >>> x = torch.randn(32, 96, 15)   # [Batch=32, L=96, D=15]
-        >>> y = mo_hinh(x)                # → [32, 24, 1]
+        >>> y = model(x)                  # → [32, 24, 1]
         >>> assert y.shape == (32, 24, 1)
     """
 
@@ -108,7 +108,6 @@ class LSTMModel(BaseTimeSeriesModel):
         self.num_layers = num_layers
 
         # Tầng LSTM đa lớp — xử lý chuỗi thời gian đầu vào [B, L, D]
-        # batch_first=True để chiều batch luôn ở vị trí đầu tiên
         self.lstm = nn.LSTM(
             input_size=in_features,
             hidden_size=hidden_size,
@@ -118,48 +117,35 @@ class LSTMModel(BaseTimeSeriesModel):
         )
 
         # Tầng chiếu tuyến tính từ hidden state cuối → dự báo H bước
-        self.lop_chieu_tuyen_tinh = nn.Linear(hidden_size, horizon)
+        self.linear_projection = nn.Linear(hidden_size, horizon)
 
         # Khởi tạo trọng số theo phân phối đều Xavier
-        self._khoi_tao_trong_so()
+        self._init_weights()
 
-    def _khoi_tao_trong_so(self) -> None:
+    def _init_weights(self) -> None:
         """
         Khởi tạo trọng số mạng bằng phương pháp Xavier Uniform.
 
         Áp dụng Xavier cho các ma trận trọng số LSTM (weight_ih, weight_hh)
         và khởi tạo bias = 0. Giúp ổn định gradient khi bắt đầu huấn luyện.
         """
-        for ten, tham_so in self.named_parameters():
-            if "weight_ih" in ten or "weight_hh" in ten:
-                # Xavier uniform phù hợp với hàm kích hoạt tanh trong LSTM
-                nn.init.xavier_uniform_(tham_so.data)
-            elif "bias" in ten:
-                nn.init.zeros_(tham_so.data)
-                # Kỹ thuật "forget gate bias = 1" giúp LSTM nhớ dài hơn
-                # Bias LSTM có cấu trúc: [bias_i, bias_f, bias_g, bias_o]
-                # bias_f (forget gate) nằm ở vị trí [hidden_size : 2*hidden_size]
-                n = tham_so.data.size(0)
-                tham_so.data[n // 4 : n // 2].fill_(1.0)
-        nn.init.xavier_uniform_(self.lop_chieu_tuyen_tinh.weight)
-        nn.init.zeros_(self.lop_chieu_tuyen_tinh.bias)
+        for param_name, param in self.named_parameters():
+            if "weight_ih" in param_name or "weight_hh" in param_name:
+                nn.init.xavier_uniform_(param.data)
+            elif "bias" in param_name:
+                nn.init.zeros_(param.data)
+                # Forget gate bias = 1.0 giúp LSTM nhớ dài hơn
+                hidden_dim = param.data.size(0)
+                param.data[hidden_dim // 4 : hidden_dim // 2].fill_(1.0)
+        nn.init.xavier_uniform_(self.linear_projection.weight)
+        nn.init.zeros_(self.linear_projection.bias)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
         Lan truyền tiến (Forward pass) qua LSTM và lớp chiếu tuyến tính.
 
-        Luồng tính toán:
-            x [B, L, D]
-            → LSTM: trạng thái ẩn [B, L, hidden_size], lấy bước cuối cùng
-            → hidden_last [B, hidden_size]
-            → Linear: [B, H]
-            → unsqueeze(-1): [B, H, 1]
-
         Tham số:
             x (torch.Tensor): Tensor đầu vào kích thước [B, L, D].
-                - B: Kích thước batch.
-                - L: Chiều dài chuỗi lịch sử (lookback = 96 giờ).
-                - D: Số biến đầu vào (in_features).
 
         Trả về:
             torch.Tensor: Tensor dự báo PM2.5 kích thước [B, H, 1].
@@ -169,23 +155,23 @@ class LSTMModel(BaseTimeSeriesModel):
         """
         if x.size(-1) != self.in_features:
             raise ValueError(
-                f"Chiều features không khớp: nhận {x.size(-1)}, "
-                f"mong đợi {self.in_features}."
+                f"Feature dimension mismatch: received {x.size(-1)}, "
+                f"expected {self.in_features}."
             )
 
         # Lan truyền qua LSTM — lstm_out: [B, L, hidden_size]
         lstm_out, _ = self.lstm(x)
 
         # Lấy trạng thái ẩn tại bước thời gian cuối cùng: [B, hidden_size]
-        trang_thai_cuoi = lstm_out[:, -1, :]
+        last_hidden_state = lstm_out[:, -1, :]
 
         # Chiếu tuyến tính sang không gian dự báo: [B, H]
-        du_bao = self.lop_chieu_tuyen_tinh(trang_thai_cuoi)
+        predictions = self.linear_projection(last_hidden_state)
 
         # Thêm chiều kênh đầu ra để khớp chuẩn [B, H, 1]
-        return du_bao.unsqueeze(-1)
+        return predictions.unsqueeze(-1)
 
-    def dem_tham_so(self) -> int:
+    def count_parameters(self) -> int:
         """
         Đếm tổng số tham số có thể học (trainable parameters) của mô hình.
 
@@ -196,81 +182,77 @@ class LSTMModel(BaseTimeSeriesModel):
 
 
 # ---------------------------------------------------------------------------
-# Smoke test nội bộ — chạy khi gọi trực tiếp module này
+# Smoke test nội bộ
 # ---------------------------------------------------------------------------
 
-def _chay_smoke_test() -> None:
+def _run_smoke_test() -> None:
     """
     Kiểm tra nhanh tính đúng đắn của LSTMModel với tensor tổng hợp.
-
-    Kiểm tra forward pass không lỗi với tất cả 4 horizons và 2 chế độ
-    (multivariate + univariate). Không dùng dữ liệu thật dự án.
     """
     torch.manual_seed(42)
     print("[INFO] Bắt đầu smoke test LSTMModel...")
 
-    BATCH = 4
-    LOOKBACK = 96
-    IN_FEATURES_MULTI = 15   # Số biến đa biến điển hình (PM2.5 + khí tượng + mã hóa)
-    IN_FEATURES_UNI = 1      # Chỉ PM2.5
+    batch_size = 4
+    lookback = 96
+    in_features_multi = 15   # Đa biến
+    in_features_uni = 1      # Đơn biến
 
-    for H in [24, 48, 96, 192]:
+    for horizon in [24, 48, 96, 192]:
         # Kiểm thử chế độ đa biến
-        mo_hinh_multi = LSTMModel(
-            lookback=LOOKBACK, horizon=H, in_features=IN_FEATURES_MULTI
+        multi_model = LSTMModel(
+            lookback=lookback, horizon=horizon, in_features=in_features_multi
         )
-        x_multi = torch.randn(BATCH, LOOKBACK, IN_FEATURES_MULTI)
-        y_multi = mo_hinh_multi(x_multi)
+        x_multi = torch.randn(batch_size, lookback, in_features_multi)
+        y_multi = multi_model(x_multi)
 
-        assert y_multi.shape == (BATCH, H, 1), (
-            f"[FAIL] Multivariate H={H}: shape sai {y_multi.shape}, mong đợi {(BATCH, H, 1)}"
+        assert y_multi.shape == (batch_size, horizon, 1), (
+            f"[FAIL] Multivariate H={horizon}: wrong shape {y_multi.shape}"
         )
         print(
-            f"[INFO] Multivariate H={H:3d}: input {tuple(x_multi.shape)} "
+            f"[INFO] Multivariate H={horizon:3d}: input {tuple(x_multi.shape)} "
             f"→ output {tuple(y_multi.shape)} | "
-            f"Params={mo_hinh_multi.dem_tham_so():,} → PASS"
+            f"Params={multi_model.count_parameters():,} → PASS"
         )
 
         # Kiểm thử chế độ đơn biến (Ablation)
-        mo_hinh_uni = LSTMModel(
-            lookback=LOOKBACK, horizon=H, in_features=IN_FEATURES_UNI
+        uni_model = LSTMModel(
+            lookback=lookback, horizon=horizon, in_features=in_features_uni
         )
-        x_uni = torch.randn(BATCH, LOOKBACK, IN_FEATURES_UNI)
-        y_uni = mo_hinh_uni(x_uni)
+        x_uni = torch.randn(batch_size, lookback, in_features_uni)
+        y_uni = uni_model(x_uni)
 
-        assert y_uni.shape == (BATCH, H, 1), (
-            f"[FAIL] Univariate H={H}: shape sai {y_uni.shape}"
+        assert y_uni.shape == (batch_size, horizon, 1), (
+            f"[FAIL] Univariate H={horizon}: wrong shape {y_uni.shape}"
         )
         print(
-            f"[INFO] Univariate   H={H:3d}: input {tuple(x_uni.shape)} "
+            f"[INFO] Univariate   H={horizon:3d}: input {tuple(x_uni.shape)} "
             f"→ output {tuple(y_uni.shape)} | "
-            f"Params={mo_hinh_uni.dem_tham_so():,} → PASS"
+            f"Params={uni_model.count_parameters():,} → PASS"
         )
 
-    # Kiểm thử gradient chảy qua mạng (backprop)
-    mo_hinh_test = LSTMModel(lookback=LOOKBACK, horizon=24, in_features=IN_FEATURES_MULTI)
-    x_test = torch.randn(BATCH, LOOKBACK, IN_FEATURES_MULTI, requires_grad=False)
-    y_test = mo_hinh_test(x_test)
+    # Kiểm thử gradient lan truyền ngược (backpropagation)
+    test_model = LSTMModel(lookback=lookback, horizon=24, in_features=in_features_multi)
+    x_test = torch.randn(batch_size, lookback, in_features_multi, requires_grad=False)
+    y_test = test_model(x_test)
     loss = y_test.mean()
     loss.backward()
-    # Kiểm tra gradient không bị None sau backward
-    for ten, tham_so in mo_hinh_test.named_parameters():
-        if tham_so.requires_grad:
-            assert tham_so.grad is not None, f"[FAIL] Gradient None tại tham số: {ten}"
+
+    for param_name, param in test_model.named_parameters():
+        if param.requires_grad:
+            assert param.grad is not None, f"[FAIL] Gradient None at: {param_name}"
     print("[INFO] Kiểm thử gradient backpropagation: PASS")
 
-    # Kiểm thử lỗi khi shape không khớp
+    # Kiểm thử ValueError khi kích thước features không khớp
     try:
-        mo_hinh_err = LSTMModel(lookback=96, horizon=24, in_features=15)
-        x_sai = torch.randn(4, 96, 10)   # D=10 ≠ 15
-        mo_hinh_err(x_sai)
-        print("[FAIL] Phải ném ValueError khi shape sai!")
-    except ValueError as loi:
-        print(f"[INFO] Kiểm thử ValueError (shape sai): '{loi}' → PASS")
+        err_model = LSTMModel(lookback=96, horizon=24, in_features=15)
+        wrong_x = torch.randn(4, 96, 10)
+        err_model(wrong_x)
+        print("[FAIL] Phải ném ValueError khi sai kích thước features!")
+    except ValueError as err:
+        print(f"[INFO] Kiểm thử ValueError (features sai): '{err}' → PASS")
 
     print("[SUCCESS] Toàn bộ smoke test LSTMModel: PASS. Sẵn sàng tích hợp vào training_loop.py.")
 
 
 if __name__ == "__main__":
-    _chay_smoke_test()
-
+    _run_smoke_test()

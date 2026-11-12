@@ -77,7 +77,7 @@ class MetricsCalculator:
 
     Ví dụ sử dụng:
         >>> calc = MetricsCalculator()
-        >>> mse, mae = calc.compute(y_pred=pred_tensor, y_true=true_tensor)
+        >>> metrics = calc.compute(y_pred=pred_tensor, y_true=true_tensor)
         >>> contract = calc.summarize_multi_seed(
         ...     experiment_id="EXP01",
         ...     model_name="LSTM",
@@ -97,11 +97,6 @@ class MetricsCalculator:
         """
         Tính MSE và MAE giữa tensor dự báo và tensor thực tế.
 
-        Cả hai tensor phải có cùng kích thước [B, H, 1] trong đó:
-        - B: Kích thước batch.
-        - H: Khung dự báo (Forecast Horizon) ∈ {24, 48, 96, 192}.
-        - 1: Kênh đầu ra (nồng độ PM2.5).
-
         Tham số:
             y_pred (torch.Tensor): Tensor dự báo kích thước [B, H, 1].
             y_true (torch.Tensor): Tensor giá trị thực kích thước [B, H, 1].
@@ -114,14 +109,13 @@ class MetricsCalculator:
         """
         if y_pred.shape != y_true.shape:
             raise ValueError(
-                f"Kích thước tensor không khớp: y_pred={y_pred.shape}, "
-                f"y_true={y_true.shape}. Yêu cầu cùng shape [B, H, 1]."
+                f"Tensor shape mismatch: y_pred={y_pred.shape}, "
+                f"y_true={y_true.shape}. Expected shape [B, H, 1]."
             )
 
-        # Tính sai lệch bình phương (Squared Error) và sai lệch tuyệt đối (Absolute Error)
-        sai_lech = y_pred - y_true
-        mse = torch.mean(sai_lech ** 2).item()
-        mae = torch.mean(torch.abs(sai_lech)).item()
+        diff = y_pred - y_true
+        mse = torch.mean(diff ** 2).item()
+        mae = torch.mean(torch.abs(diff)).item()
 
         return {"mse": mse, "mae": mae}
 
@@ -140,15 +134,14 @@ class MetricsCalculator:
         Trả về:
             Dict[str, float]: Từ điển chứa 'mse' và 'mae'.
         """
-        pred_t = torch.from_numpy(y_pred.astype(np.float32))
-        true_t = torch.from_numpy(y_true.astype(np.float32))
+        pred_tensor = torch.from_numpy(y_pred.astype(np.float32))
+        true_tensor = torch.from_numpy(y_true.astype(np.float32))
 
-        # Chuẩn hóa về [B, H, 1] nếu đầu vào là [B, H]
-        if pred_t.dim() == 2:
-            pred_t = pred_t.unsqueeze(-1)
-            true_t = true_t.unsqueeze(-1)
+        if pred_tensor.dim() == 2:
+            pred_tensor = pred_tensor.unsqueeze(-1)
+            true_tensor = true_tensor.unsqueeze(-1)
 
-        return self.compute(pred_t, true_t)
+        return self.compute(pred_tensor, true_tensor)
 
     def summarize_multi_seed(
         self,
@@ -165,44 +158,30 @@ class MetricsCalculator:
         """
         Tổng hợp kết quả từ nhiều lần chạy (multi-seed) thành mean ± std.
 
-        Nhận danh sách MSE và MAE từ 3 lần chạy với seeds khác nhau,
-        tính mean và std, rồi đóng gói vào ExperimentMetricsContract.
-
         Tham số:
-            experiment_id (str): Mã thực nghiệm (ví dụ: 'EXP01').
-            model_name (str): Tên kiến trúc ('LSTM', 'DLinear', ...).
-            station_id (str): Tên trạm quan trắc hoặc 'ALL_36_STATIONS'.
-            horizon (int): Khung dự báo H ∈ {24, 48, 96, 192}.
+            experiment_id (str): Mã thực nghiệm.
+            model_name (str): Tên kiến trúc.
+            station_id (str): Tên trạm quan trắc.
+            horizon (int): Khung dự báo H.
             mse_per_seed (List[float]): Danh sách MSE từ từng seed.
             mae_per_seed (List[float]): Danh sách MAE từ từng seed.
-            checkpoint_path (str): Đường dẫn trọng số tốt nhất (.pth).
+            checkpoint_path (str): Đường dẫn trọng số .pth tốt nhất.
             seeds (List[int], optional): Danh sách seeds đã dùng.
-                Mặc định [42, 1024, 2026].
-            extra_notes (str, optional): Ghi chú kỹ thuật bổ sung.
+            extra_notes (str, optional): Ghi chú bổ sung.
 
         Trả về:
-            ExperimentMetricsContract: Hợp đồng kết quả đã điền đầy đủ.
-
-        Ngoại lệ:
-            ValueError: Nếu danh sách MSE/MAE không có ít nhất 3 phần tử.
+            ExperimentMetricsContract: Hợp đồng kết quả Pydantic v2.
         """
         if seeds is None:
             seeds = [42, 1024, 2026]
 
         if len(mse_per_seed) < 3:
-            raise ValueError(
-                f"Phải có ít nhất 3 giá trị MSE (đủ 3 seeds). "
-                f"Nhận được: {len(mse_per_seed)}."
-            )
+            raise ValueError(f"At least 3 MSE values required, got: {len(mse_per_seed)}.")
         if len(mae_per_seed) < 3:
-            raise ValueError(
-                f"Phải có ít nhất 3 giá trị MAE (đủ 3 seeds). "
-                f"Nhận được: {len(mae_per_seed)}."
-            )
+            raise ValueError(f"At least 3 MAE values required, got: {len(mae_per_seed)}.")
 
-        # Tính mean và std theo chuẩn báo cáo khoa học (ddof=0 vì dùng toàn bộ seeds)
-        mse_arr = np.array(mse_per_seed, dtype=np.float64)
-        mae_arr = np.array(mae_per_seed, dtype=np.float64)
+        mse_array = np.array(mse_per_seed, dtype=np.float64)
+        mae_array = np.array(mae_per_seed, dtype=np.float64)
 
         contract = ExperimentMetricsContract(
             experiment_id=experiment_id,
@@ -212,10 +191,10 @@ class MetricsCalculator:
             seeds=seeds,
             mse_per_seed=mse_per_seed,
             mae_per_seed=mae_per_seed,
-            mse_mean=float(np.mean(mse_arr)),
-            mse_std=float(np.std(mse_arr, ddof=0)),
-            mae_mean=float(np.mean(mae_arr)),
-            mae_std=float(np.std(mae_arr, ddof=0)),
+            mse_mean=float(np.mean(mse_array)),
+            mse_std=float(np.std(mse_array, ddof=0)),
+            mae_mean=float(np.mean(mae_array)),
+            mae_std=float(np.std(mae_array, ddof=0)),
             checkpoint_path=checkpoint_path,
             extra_notes=extra_notes,
         )
@@ -225,12 +204,6 @@ class MetricsCalculator:
     def format_report_row(self, contract: ExperimentMetricsContract) -> str:
         """
         Định dạng kết quả thực nghiệm thành dòng bảng Markdown để ghi vào docs/.
-
-        Tham số:
-            contract (ExperimentMetricsContract): Hợp đồng kết quả đã điền đầy đủ.
-
-        Trả về:
-            str: Dòng bảng Markdown theo chuẩn báo cáo dự án.
         """
         return (
             f"| {contract.model_name} | H={contract.horizon} | "
@@ -241,13 +214,10 @@ class MetricsCalculator:
     def print_summary(self, contract: ExperimentMetricsContract) -> None:
         """
         In tóm tắt kết quả thực nghiệm ra terminal theo định dạng chuẩn.
-
-        Tham số:
-            contract (ExperimentMetricsContract): Hợp đồng kết quả.
         """
-        print(f"[INFO] Mô hình     : {contract.model_name}")
-        print(f"[INFO] Trạm        : {contract.station_id}")
-        print(f"[INFO] Horizon (H) : {contract.horizon} giờ")
+        print(f"[INFO] Model       : {contract.model_name}")
+        print(f"[INFO] Station     : {contract.station_id}")
+        print(f"[INFO] Horizon (H) : {contract.horizon} hours")
         print(f"[INFO] Seeds       : {contract.seeds}")
         print(f"[INFO] MSE         : {contract.mse_mean:.6f} ± {contract.mse_std:.6f}")
         print(f"[INFO] MAE         : {contract.mae_mean:.6f} ± {contract.mae_std:.6f}")
@@ -255,41 +225,36 @@ class MetricsCalculator:
 
 
 # ---------------------------------------------------------------------------
-# Smoke test nội bộ — chạy khi gọi trực tiếp module này
+# Smoke test nội bộ
 # ---------------------------------------------------------------------------
 
-def _chay_smoke_test() -> None:
+def _run_smoke_test() -> None:
     """
     Kiểm tra nhanh tính đúng đắn của MetricsCalculator bằng tensor tổng hợp.
-
-    Sử dụng giá trị tính sẵn để xác minh MSE và MAE khớp kết quả kỳ vọng.
-    Không dùng dữ liệu thật của dự án, đảm bảo tái lập hoàn toàn với seed=42.
     """
     torch.manual_seed(42)
     calc = MetricsCalculator()
 
     print("[INFO] Bắt đầu smoke test MetricsCalculator...")
 
-    # Kiểm thử 1: tensor kích thước [4, 24, 1]
-    B, H = 4, 24
-    y_true = torch.ones(B, H, 1)   # Tất cả đều là 1.0
-    y_pred = torch.zeros(B, H, 1)  # Tất cả đều là 0.0
-    # Kỳ vọng: MSE = mean((0-1)^2) = 1.0 ; MAE = mean(|0-1|) = 1.0
-    ket_qua = calc.compute(y_pred, y_true)
-    assert abs(ket_qua["mse"] - 1.0) < 1e-6, f"MSE sai: {ket_qua['mse']}"
-    assert abs(ket_qua["mae"] - 1.0) < 1e-6, f"MAE sai: {ket_qua['mae']}"
-    print(f"[INFO] Kiểm thử 1 (MSE=1.0, MAE=1.0): MSE={ket_qua['mse']:.6f}, MAE={ket_qua['mae']:.6f} → PASS")
+    # Test 1: Shape [4, 24, 1]
+    batch_size, horizon = 4, 24
+    y_true = torch.ones(batch_size, horizon, 1)
+    y_pred = torch.zeros(batch_size, horizon, 1)
+    res1 = calc.compute(y_pred, y_true)
+    assert abs(res1["mse"] - 1.0) < 1e-6, f"MSE error: {res1['mse']}"
+    assert abs(res1["mae"] - 1.0) < 1e-6, f"MAE error: {res1['mae']}"
+    print(f"[INFO] Test 1 (MSE=1.0, MAE=1.0): MSE={res1['mse']:.6f}, MAE={res1['mae']:.6f} → PASS")
 
-    # Kiểm thử 2: tensor ngẫu nhiên với shape [8, 96, 1]
+    # Test 2: Tensor ngẫu nhiên với shape [8, 96, 1]
     y_true2 = torch.randn(8, 96, 1)
-    y_pred2 = y_true2 + 0.1  # Lệch cố định 0.1
-    # Kỳ vọng: MSE ≈ 0.01 ; MAE ≈ 0.1
-    ket_qua2 = calc.compute(y_pred2, y_true2)
-    assert abs(ket_qua2["mse"] - 0.01) < 1e-5, f"MSE sai: {ket_qua2['mse']}"
-    assert abs(ket_qua2["mae"] - 0.1) < 1e-5, f"MAE sai: {ket_qua2['mae']}"
-    print(f"[INFO] Kiểm thử 2 (lệch +0.1, MSE≈0.01, MAE≈0.1): MSE={ket_qua2['mse']:.6f}, MAE={ket_qua2['mae']:.6f} → PASS")
+    y_pred2 = y_true2 + 0.1
+    res2 = calc.compute(y_pred2, y_true2)
+    assert abs(res2["mse"] - 0.01) < 1e-5, f"MSE error: {res2['mse']}"
+    assert abs(res2["mae"] - 0.1) < 1e-5, f"MAE error: {res2['mae']}"
+    print(f"[INFO] Test 2 (diff +0.1, MSE≈0.01, MAE≈0.1): MSE={res2['mse']:.6f}, MAE={res2['mae']:.6f} → PASS")
 
-    # Kiểm thử 3: Tổng hợp multi-seed và đóng gói ExperimentMetricsContract
+    # Test 3: Multi-seed aggregation
     contract = calc.summarize_multi_seed(
         experiment_id="EXP_SMOKE",
         model_name="LSTM",
@@ -299,26 +264,22 @@ def _chay_smoke_test() -> None:
         mae_per_seed=[0.250, 0.260, 0.240],
         checkpoint_path="checkpoints/lstm_h24_seed42_best.pth",
     )
-    assert abs(contract.mse_mean - 0.1) < 1e-9, f"MSE mean sai: {contract.mse_mean}"
-    assert abs(contract.mae_mean - 0.25) < 1e-9, f"MAE mean sai: {contract.mae_mean}"
-    print(f"[INFO] Kiểm thử 3 (ExperimentMetricsContract): MSE={contract.mse_mean:.4f}±{contract.mse_std:.4f}, MAE={contract.mae_mean:.4f}±{contract.mae_std:.4f} → PASS")
+    assert abs(contract.mse_mean - 0.1) < 1e-9, f"MSE mean error: {contract.mse_mean}"
+    assert abs(contract.mae_mean - 0.25) < 1e-9, f"MAE mean error: {contract.mae_mean}"
+    print(f"[INFO] Test 3 (ExperimentMetricsContract): MSE={contract.mse_mean:.4f}±{contract.mse_std:.4f}, MAE={contract.mae_mean:.4f}±{contract.mae_std:.4f} → PASS")
 
-    # Kiểm thử 4: Pydantic schema validation — đảm bảo contract hợp lệ
+    # Test 4: Pydantic schema validation
     contract_dict = contract.model_dump()
     assert "mse_mean" in contract_dict
     assert "mae_mean" in contract_dict
-    print("[INFO] Kiểm thử 4 (Pydantic schema validation): PASS")
+    print("[INFO] Test 4 (Pydantic schema validation): PASS")
 
-    # In bảng Markdown mẫu
-    dong_bang = calc.format_report_row(contract)
-    print(f"[INFO] Mẫu dòng bảng Markdown: {dong_bang}")
-
-    # In tóm tắt chuẩn
+    table_row = calc.format_report_row(contract)
+    print(f"[INFO] Sample Markdown row: {table_row}")
     calc.print_summary(contract)
 
     print("[SUCCESS] Toàn bộ smoke test MetricsCalculator: PASS. Sẵn sàng tích hợp vào WP02 và WP03.")
 
 
 if __name__ == "__main__":
-    _chay_smoke_test()
-
+    _run_smoke_test()
