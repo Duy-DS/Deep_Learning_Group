@@ -81,7 +81,7 @@ class MovingAverageBlock(nn.Module):
         """
         super().__init__()
         if kernel_size % 2 == 0:
-            raise ValueError(f"kernel_size phải là số lẻ, nhận được: {kernel_size}")
+            raise ValueError(f"kernel_size must be odd, got: {kernel_size}")
 
         self.kernel_size = kernel_size
         self.avg = nn.AvgPool1d(kernel_size=kernel_size, stride=1, padding=0)
@@ -96,19 +96,15 @@ class MovingAverageBlock(nn.Module):
         Trả về:
             torch.Tensor: Tensor thành phần Trend có cùng kích thước [Batch, Lookback, In_Features].
         """
-        # Đệm hai đầu để sau khi avg-pool chiều dài chuỗi vẫn giữ nguyên L
         padding_size = (self.kernel_size - 1) // 2
 
-        # Lấy giá trị biên đầu và cuối để đệm (tránh discontinuity)
-        dau_chuoi = x[:, 0:1, :].repeat(1, padding_size, 1)
-        cuoi_chuoi = x[:, -1:, :].repeat(1, padding_size, 1)
-        x_padded = torch.cat([dau_chuoi, x, cuoi_chuoi], dim=1)
+        front_padding = x[:, 0:1, :].repeat(1, padding_size, 1)
+        end_padding = x[:, -1:, :].repeat(1, padding_size, 1)
+        x_padded = torch.cat([front_padding, x, end_padding], dim=1)
 
-        # Chuyển đổi [B, L_padded, D] → [B, D, L_padded] để đưa vào AvgPool1d
         x_permuted = x_padded.permute(0, 2, 1)
         trend = self.avg(x_permuted)
 
-        # Đổi lại về hình dạng ban đầu [B, L, D]
         return trend.permute(0, 2, 1)
 
 
@@ -141,9 +137,7 @@ class SeriesDecompositionBlock(nn.Module):
             x (torch.Tensor): Tensor đầu vào [Batch, Lookback, In_Features].
 
         Trả về:
-            Tuple[torch.Tensor, torch.Tensor]:
-                - seasonal: Thành phần mùa vụ [Batch, Lookback, In_Features].
-                - trend: Thành phần xu hướng [Batch, Lookback, In_Features].
+            Tuple[torch.Tensor, torch.Tensor]: (seasonal, trend).
         """
         trend = self.moving_avg(x)
         seasonal = x - trend
@@ -207,20 +201,19 @@ class DLinearModel(BaseTimeSeriesModel):
         self.decomposition = SeriesDecompositionBlock(kernel_size=kernel_size)
 
         # Hai lớp ánh xạ tuyến tính độc lập theo trục thời gian: L → H
-        # Áp dụng song song trên từng biến đặc trưng
         self.linear_seasonal = nn.Linear(lookback, horizon)
         self.linear_trend = nn.Linear(lookback, horizon)
 
-        # Lớp chiếu từ D đặc trưng về 1 kênh mục tiêu PM2.5 (nếu là bài toán đa biến)
+        # Lớp chiếu từ D đặc trưng về 1 kênh mục tiêu PM2.5
         if in_features > 1:
-            self.chieu_pm25 = nn.Linear(in_features, 1)
+            self.projection_pm25 = nn.Linear(in_features, 1)
         else:
-            self.chieu_pm25 = nn.Identity()
+            self.projection_pm25 = nn.Identity()
 
         # Khởi tạo trọng số
-        self._khoi_tao_trong_so()
+        self._init_weights()
 
-    def _khoi_tao_trong_so(self) -> None:
+    def _init_weights(self) -> None:
         """
         Khởi tạo trọng số các tầng Linear theo phân phối Xavier Uniform.
         """
@@ -230,9 +223,9 @@ class DLinearModel(BaseTimeSeriesModel):
         nn.init.xavier_uniform_(self.linear_trend.weight)
         nn.init.zeros_(self.linear_trend.bias)
 
-        if isinstance(self.chieu_pm25, nn.Linear):
-            nn.init.xavier_uniform_(self.chieu_pm25.weight)
-            nn.init.zeros_(self.chieu_pm25.bias)
+        if isinstance(self.projection_pm25, nn.Linear):
+            nn.init.xavier_uniform_(self.projection_pm25.weight)
+            nn.init.zeros_(self.projection_pm25.bias)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
@@ -249,37 +242,36 @@ class DLinearModel(BaseTimeSeriesModel):
         """
         if x.size(-1) != self.in_features:
             raise ValueError(
-                f"Chiều features không khớp: nhận {x.size(-1)}, "
-                f"mong đợi {self.in_features}."
+                f"Feature dimension mismatch: received {x.size(-1)}, "
+                f"expected {self.in_features}."
             )
 
-        # 1. Phân tách Seasonal và Trend: mỗi tensor có shape [B, L, D]
+        # 1. Phân tách Seasonal và Trend: [B, L, D]
         seasonal, trend = self.decomposition(x)
 
-        # 2. Đổi chiều [B, L, D] → [B, D, L] để áp dụng Linear trên trục thời gian L
+        # 2. Đổi chiều [B, L, D] → [B, D, L]
         seasonal = seasonal.permute(0, 2, 1)
         trend = trend.permute(0, 2, 1)
 
-        # 3. Dự báo độc lập hai thành phần sang khung thời gian H: [B, D, H]
+        # 3. Dự báo độc lập hai thành phần sang khung H: [B, D, H]
         seasonal_output = self.linear_seasonal(seasonal)
         trend_output = self.linear_trend(trend)
 
         # 4. Cộng hai thành phần dự báo: [B, D, H]
-        tong_hop = seasonal_output + trend_output
+        combined = seasonal_output + trend_output
 
         # 5. Đổi lại chiều [B, D, H] → [B, H, D]
-        tong_hop = tong_hop.permute(0, 2, 1)
+        combined = combined.permute(0, 2, 1)
 
         # 6. Chiếu từ D biến về 1 kênh nồng độ PM2.5: [B, H, 1]
-        du_bao = self.chieu_pm25(tong_hop)
+        predictions = self.projection_pm25(combined)
 
-        # Nếu là mô hình đơn biến (in_features=1), đảm bảo shape đầu ra đủ 3 chiều [B, H, 1]
-        if du_bao.dim() == 2:
-            du_bao = du_bao.unsqueeze(-1)
+        if predictions.dim() == 2:
+            predictions = predictions.unsqueeze(-1)
 
-        return du_bao
+        return predictions
 
-    def dem_tham_so(self) -> int:
+    def count_parameters(self) -> int:
         """
         Đếm tổng số tham số có thể học (trainable parameters) của mô hình.
 
@@ -290,86 +282,83 @@ class DLinearModel(BaseTimeSeriesModel):
 
 
 # ---------------------------------------------------------------------------
-# Smoke test nội bộ — chạy khi gọi trực tiếp module này
+# Smoke test nội bộ
 # ---------------------------------------------------------------------------
 
-def _chay_smoke_test() -> None:
+def _run_smoke_test() -> None:
     """
     Kiểm tra nhanh tính đúng đắn của DLinearModel với tensor tổng hợp.
-
-    Kiểm tra forward pass trên 4 khung dự báo H ∈ {24, 48, 96, 192},
-    cả 2 chế độ Multivariate và Univariate, cùng kiểm thử lan truyền gradient.
     """
     torch.manual_seed(42)
     print("[INFO] Bắt đầu smoke test DLinearModel...")
 
-    BATCH = 4
-    LOOKBACK = 96
-    IN_FEATURES_MULTI = 15   # Đa biến
-    IN_FEATURES_UNI = 1      # Đơn biến
+    batch_size = 4
+    lookback = 96
+    in_features_multi = 15   # Đa biến
+    in_features_uni = 1      # Đơn biến
 
-    for H in [24, 48, 96, 192]:
+    for horizon in [24, 48, 96, 192]:
         # Kiểm thử chế độ đa biến
-        mo_hinh_multi = DLinearModel(
-            lookback=LOOKBACK, horizon=H, in_features=IN_FEATURES_MULTI, kernel_size=25
+        multi_model = DLinearModel(
+            lookback=lookback, horizon=horizon, in_features=in_features_multi, kernel_size=25
         )
-        x_multi = torch.randn(BATCH, LOOKBACK, IN_FEATURES_MULTI)
-        y_multi = mo_hinh_multi(x_multi)
+        x_multi = torch.randn(batch_size, lookback, in_features_multi)
+        y_multi = multi_model(x_multi)
 
-        assert y_multi.shape == (BATCH, H, 1), (
-            f"[FAIL] Multivariate H={H}: shape sai {y_multi.shape}, mong đợi {(BATCH, H, 1)}"
+        assert y_multi.shape == (batch_size, horizon, 1), (
+            f"[FAIL] Multivariate H={horizon}: wrong shape {y_multi.shape}"
         )
         print(
-            f"[INFO] Multivariate H={H:3d}: input {tuple(x_multi.shape)} "
+            f"[INFO] Multivariate H={horizon:3d}: input {tuple(x_multi.shape)} "
             f"→ output {tuple(y_multi.shape)} | "
-            f"Params={mo_hinh_multi.dem_tham_so():,} → PASS"
+            f"Params={multi_model.count_parameters():,} → PASS"
         )
 
         # Kiểm thử chế độ đơn biến (Ablation)
-        mo_hinh_uni = DLinearModel(
-            lookback=LOOKBACK, horizon=H, in_features=IN_FEATURES_UNI, kernel_size=25
+        uni_model = DLinearModel(
+            lookback=lookback, horizon=horizon, in_features=in_features_uni, kernel_size=25
         )
-        x_uni = torch.randn(BATCH, LOOKBACK, IN_FEATURES_UNI)
-        y_uni = mo_hinh_uni(x_uni)
+        x_uni = torch.randn(batch_size, lookback, in_features_uni)
+        y_uni = uni_model(x_uni)
 
-        assert y_uni.shape == (BATCH, H, 1), (
-            f"[FAIL] Univariate H={H}: shape sai {y_uni.shape}"
+        assert y_uni.shape == (batch_size, horizon, 1), (
+            f"[FAIL] Univariate H={horizon}: wrong shape {y_uni.shape}"
         )
         print(
-            f"[INFO] Univariate   H={H:3d}: input {tuple(x_uni.shape)} "
+            f"[INFO] Univariate   H={horizon:3d}: input {tuple(x_uni.shape)} "
             f"→ output {tuple(y_uni.shape)} | "
-            f"Params={mo_hinh_uni.dem_tham_so():,} → PASS"
+            f"Params={uni_model.count_parameters():,} → PASS"
         )
 
     # Kiểm thử lan truyền gradient (backpropagation)
-    mo_hinh_test = DLinearModel(lookback=LOOKBACK, horizon=24, in_features=IN_FEATURES_MULTI)
-    x_test = torch.randn(BATCH, LOOKBACK, IN_FEATURES_MULTI)
-    y_test = mo_hinh_test(x_test)
+    test_model = DLinearModel(lookback=lookback, horizon=24, in_features=in_features_multi)
+    x_test = torch.randn(batch_size, lookback, in_features_multi)
+    y_test = test_model(x_test)
     loss = y_test.mean()
     loss.backward()
 
-    for ten, tham_so in mo_hinh_test.named_parameters():
-        if tham_so.requires_grad:
-            assert tham_so.grad is not None, f"[FAIL] Gradient None tại: {ten}"
+    for param_name, param in test_model.named_parameters():
+        if param.requires_grad:
+            assert param.grad is not None, f"[FAIL] Gradient None at: {param_name}"
     print("[INFO] Kiểm thử gradient backpropagation: PASS")
 
     # Kiểm thử bẫy lỗi kernel_size chẵn
     try:
         DLinearModel(lookback=96, horizon=24, in_features=15, kernel_size=24)
         print("[FAIL] Phải ném ValueError khi kernel_size là số chẵn!")
-    except ValueError as loi:
-        print(f"[INFO] Kiểm thử ValueError (kernel_size chẵn): '{loi}' → PASS")
+    except ValueError as err:
+        print(f"[INFO] Kiểm thử ValueError (kernel_size chẵn): '{err}' → PASS")
 
     # Kiểm thử bẫy lỗi sai số chiều features
     try:
-        m_err = DLinearModel(lookback=96, horizon=24, in_features=15)
-        m_err(torch.randn(4, 96, 8))
+        err_model = DLinearModel(lookback=96, horizon=24, in_features=15)
+        err_model(torch.randn(4, 96, 8))
         print("[FAIL] Phải ném ValueError khi in_features không khớp!")
-    except ValueError as loi:
-        print(f"[INFO] Kiểm thử ValueError (features sai): '{loi}' → PASS")
+    except ValueError as err:
+        print(f"[INFO] Kiểm thử ValueError (features sai): '{err}' → PASS")
 
     print("[SUCCESS] Toàn bộ smoke test DLinearModel: PASS. Sẵn sàng tích hợp vào training_loop.py.")
 
 
 if __name__ == "__main__":
-    _chay_smoke_test()
+    _run_smoke_test()
