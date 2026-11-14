@@ -1,0 +1,3 @@
+﻿model,mode,horizon,best_epoch,global_test_mse,global_test_rmse,global_test_mae,checkpoint,log_file
+informer,multivariate,24,1,0.969892,0.984831,0.570348,outputs/checkpoints/global/informer_multivariate_H24_pretrained.pt,outputs/logs/pretrain_informer_multivariate_H24.csv
+patchtst,multivariate,24,3,0.681299,0.825409,0.52402,outputs/checkpoints/global/patchtst_multivariate_H24_pretrained.pt,outputs/logs/pretrain_patchtst_multivariate_H24.csv
