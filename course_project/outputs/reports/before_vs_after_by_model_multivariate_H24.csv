@@ -1,0 +1,5 @@
+﻿model,mode,horizon,mean_before_mse,mean_after_mse,avg_mse_gain_pct,mean_before_rmse,mean_after_rmse,avg_rmse_gain_pct,mean_before_mae,mean_after_mae,avg_mae_gain_pct,stations_improved
+lstm,multivariate,24,1.004922,1.016651,-1.384,0.997114,1.00336,-0.68,0.619977,0.625159,-0.872,1/12
+dlinear,multivariate,24,0.653126,0.650766,0.369,0.804726,0.803252,0.185,0.529403,0.52581,0.707,6/12
+informer,multivariate,24,0.971067,0.97409,-0.51,0.979367,0.981293,-0.25,0.570432,0.570686,-0.058,8/12
+patchtst,multivariate,24,0.681299,0.682174,-0.185,0.821213,0.821846,-0.092,0.52402,0.523466,0.121,0/12
