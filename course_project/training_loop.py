@@ -1,21 +1,23 @@
 """
-Pipeline huấn luyện toàn cục (Global Pre-training) cho 4 mô hình dự báo PM2.5 Bắc Kinh
+T0301 — Pipeline huấn luyện toàn cục (Global Pre-training) cho dự báo PM2.5 Bắc Kinh
 trên dữ liệu 12 trạm quan trắc.
-Hỗ trợ:
+- Tái sử dụng hoàn toàn pipeline tiền xử lý và tạo cửa sổ của WP01
+  (src/data_pipeline/preprocess.py & src/data_pipeline/dataset.py).
 - Huấn luyện đa hạt giống (3 seeds mặc định: 42, 1024, 2026) và tổng hợp mean ± std.
-- Đo thời gian huấn luyện thực tế (train_time_sec) và VRAM đỉnh (peak_vram_mb).
-- Tăng tốc với train_stride, Mixed Precision (AMP) và truyền dữ liệu bất đồng bộ.
+- Hỗ trợ đầy đủ Ablation Studies: multivariate vs. univariate, H in {24, 48, 96, 192},
+  và biến thể informer_full (Full Attention O(L^2)).
 """
+
+from __future__ import annotations
 
 import argparse
 import gc
-import os
+import inspect
 import random
 import time
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Literal, Optional, Sequence, Tuple
 
-import joblib
 import numpy as np
 import pandas as pd
 import torch
@@ -23,45 +25,46 @@ import torch.nn as nn
 from sklearn.preprocessing import StandardScaler
 from torch.utils.data import DataLoader, TensorDataset
 
+from src.data_pipeline.dataset import make_sliding_windows
+from src.data_pipeline.preprocess import (
+    TARGET_COL,
+    chronological_split,
+    clean_missing_values,
+    encode_features,
+    load_pm25,
+    scale_splits,
+)
 from src.models.dlinear import DLinearModel
 from src.models.informer import InformerModel
 from src.models.lstm import LSTMModel
 from src.models.patchtst import PatchTSTModel
 
-STATIONS_12 = [
-    "Aotizhongxin",
-    "Changping",
-    "Dingling",
-    "Dongsi",
-    "Guanyuan",
-    "Gucheng",
-    "Huairou",
-    "Nongzhanguan",
-    "Shunyi",
-    "Tiantan",
-    "Wanliu",
-    "Wanshouxigong",
+DEFAULT_MODELS: List[str] = ["lstm", "dlinear", "informer", "patchtst"]
+ALL_SUPPORTED_MODELS: List[str] = [
+    "lstm",
+    "dlinear",
+    "informer",
+    "patchtst",
+    "informer_full",
 ]
 
-TARGET_COL = "PM2.5"
-FEATURE_COLS_MULTIVARIATE = [
-    "PM2.5",
-    "PM10",
-    "SO2",
-    "NO2",
-    "CO",
-    "O3",
-    "TEMP",
-    "PRES",
-    "DEW",
-    "RAIN",
-    "WSPM",
+CANONICAL_MULTIVARIATE_COLS: List[str] = [
+    "pm2.5",
+    "pm10",
+    "so2",
+    "no2",
+    "co",
+    "o3",
+    "temp",
+    "pres",
+    "dewp",
+    "rain",
+    "wspm",
     "hour_sin",
     "hour_cos",
     "month_sin",
     "month_cos",
 ]
-FEATURE_COLS_UNIVARIATE = ["PM2.5"]
 
 
 def set_seed(seed: int) -> None:
@@ -74,135 +77,62 @@ def set_seed(seed: int) -> None:
         torch.cuda.manual_seed_all(seed)
 
 
-def get_feature_columns(mode: str) -> List[str]:
-    """Trả về danh sách cột đặc trưng theo chế độ multivariate hoặc univariate."""
-    if mode == "multivariate":
-        return list(FEATURE_COLS_MULTIVARIATE)
-    if mode == "univariate":
-        return list(FEATURE_COLS_UNIVARIATE)
-    raise ValueError(f"Chế độ feature_mode không hợp lệ: {mode}")
+def resolve_data_dir(data_dir: str | Path) -> Path:
+    """Tự động định vị thư mục chứa các file CSV PRSA."""
+    path = Path(data_dir)
+    if path.is_file() or any(path.glob("*.csv")):
+        return path
+    nested = path / "PRSA_Data_20130301-20170228"
+    if nested.exists() and any(nested.glob("*.csv")):
+        return nested
+    return path
 
 
-def preprocess_station_df(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Làm sạch dữ liệu chuỗi thời gian cho một trạm:
-    sắp xếp thời gian, nội suy tuyến tính + forward fill và tạo đặc trưng chu kỳ sin/cos.
-    """
-    df = df.copy()
-    df.columns = [c.strip() for c in df.columns]
-    if "DEWP" in df.columns and "DEW" not in df.columns:
-        df = df.rename(columns={"DEWP": "DEW"})
-    if {"year", "month", "day", "hour"}.issubset(df.columns):
-        df["datetime"] = pd.to_datetime(df[["year", "month", "day", "hour"]])
-        df = df.sort_values("datetime").reset_index(drop=True)
-    elif "datetime" in df.columns:
-        df["datetime"] = pd.to_datetime(df["datetime"])
-        df = df.sort_values("datetime").reset_index(drop=True)
-
-    numeric_cols = [
-        "PM2.5",
-        "PM10",
-        "SO2",
-        "NO2",
-        "CO",
-        "O3",
-        "TEMP",
-        "PRES",
-        "DEW",
-        "RAIN",
-        "WSPM",
-    ]
-    for col in numeric_cols:
-        if col in df.columns:
-            df[col] = pd.to_numeric(df[col], errors="coerce")
-            df[col] = df[col].interpolate(method="linear", limit_direction="both")
-            df[col] = df[col].ffill().bfill()
-
-    if "datetime" in df.columns:
-        hours = df["datetime"].dt.hour.to_numpy(dtype=np.float32)
-        months = df["datetime"].dt.month.to_numpy(dtype=np.float32)
-    else:
-        hours = df["hour"].to_numpy(dtype=np.float32)
-        months = df["month"].to_numpy(dtype=np.float32)
-
-    df["hour_sin"] = np.sin(2.0 * np.pi * hours / 24.0)
-    df["hour_cos"] = np.cos(2.0 * np.pi * hours / 24.0)
-    df["month_sin"] = np.sin(2.0 * np.pi * (months - 1.0) / 12.0)
-    df["month_cos"] = np.cos(2.0 * np.pi * (months - 1.0) / 12.0)
-
-    return df
-
-
-def split_chronological(
+def get_feature_columns(
     df: pd.DataFrame,
-    ratios: Tuple[float, float, float, float] = (0.6, 0.1, 0.1, 0.2),
-) -> Dict[str, pd.DataFrame]:
-    """Chia tuần tự theo thời gian tuyến tính 60/10/10/20 (train, train_dev, dev, test)."""
-    n = len(df)
-    n_train = int(n * ratios[0])
-    n_train_dev = int(n * (ratios[0] + ratios[1]))
-    n_dev = int(n * (ratios[0] + ratios[1] + ratios[2]))
-
-    return {
-        "train": df.iloc[:n_train].reset_index(drop=True),
-        "train_dev": df.iloc[n_train:n_train_dev].reset_index(drop=True),
-        "dev": df.iloc[n_train_dev:n_dev].reset_index(drop=True),
-        "test": df.iloc[n_dev:].reset_index(drop=True),
-    }
-
-
-def make_sliding_windows(
-    df: pd.DataFrame,
-    feature_cols: List[str],
+    mode: str = "multivariate",
     target_col: str = TARGET_COL,
-    lookback: int = 96,
-    horizon: int = 24,
-    stride: int = 1,
-) -> Tuple[np.ndarray, np.ndarray]:
-    """Tạo các cặp cửa sổ trượt (X: [N, L, D], y: [N, H]) nội trạm."""
-    values_x = df[feature_cols].to_numpy(dtype=np.float32)
-    values_y = df[target_col].to_numpy(dtype=np.float32)
+) -> List[str]:
+    """
+    Xác định danh sách cột đặc trưng từ DataFrame đã qua WP01 encode_features().
+    Luôn đặt target_col ('pm2.5') ở vị trí đầu tiên (index=0).
+    """
+    if mode == "univariate":
+        if target_col not in df.columns:
+            raise ValueError(
+                f"Không tìm thấy cột mục tiêu '{target_col}' trong dữ liệu."
+            )
+        return [target_col]
 
-    total_len = len(df)
-    max_start = total_len - lookback - horizon + 1
-    if max_start <= 0:
-        return (
-            np.empty((0, lookback, len(feature_cols)), dtype=np.float32),
-            np.empty((0, horizon), dtype=np.float32),
-        )
+    if mode != "multivariate":
+        raise ValueError(f"Chế độ feature_mode không hợp lệ: {mode}")
 
-    indices = range(0, max_start, stride)
-    X_list = [values_x[i : i + lookback] for i in indices]
-    y_list = [values_y[i + lookback : i + lookback + horizon] for i in indices]
+    if all(col in df.columns for col in CANONICAL_MULTIVARIATE_COLS):
+        return list(CANONICAL_MULTIVARIATE_COLS)
 
-    return np.stack(X_list, axis=0), np.stack(y_list, axis=0)
-
-
-def load_and_split_stations(
-    data_dir: Path,
-    stations: List[str] = STATIONS_12,
-) -> Dict[str, Dict[str, pd.DataFrame]]:
-    """Đọc dữ liệu CSV của 12 trạm từ data/raw và chia tập theo thời gian."""
-    csv_files = sorted(data_dir.glob("*.csv"))
-    if not csv_files:
-        raise FileNotFoundError(
-            f"Không tìm thấy tệp dữ liệu CSV trong thư mục: {data_dir}"
-        )
-
-    station_splits: Dict[str, Dict[str, pd.DataFrame]] = {}
-    for station in stations:
-        matched = [f for f in csv_files if station.lower() in f.name.lower()]
-        if not matched:
-            raise FileNotFoundError(f"Không tìm thấy tệp CSV cho trạm: {station}")
-        raw_df = pd.read_csv(matched[0])
-        clean_df = preprocess_station_df(raw_df)
-        station_splits[station] = split_chronological(clean_df)
-
-    return station_splits
+    excluded = {
+        "no",
+        "year",
+        "month",
+        "day",
+        "hour",
+        "datetime",
+        "station",
+        "wd",
+        "cbwd",
+    }
+    numeric_cols = [
+        c
+        for c in df.columns
+        if c not in excluded and pd.api.types.is_numeric_dtype(df[c])
+    ]
+    if target_col in numeric_cols:
+        numeric_cols = [target_col] + [c for c in numeric_cols if c != target_col]
+    return numeric_cols
 
 
 def prepare_global_12stations_data(
-    data_dir: Path,
+    data_dir: str | Path,
     mode: str = "multivariate",
     lookback: int = 96,
     horizon: int = 24,
@@ -211,54 +141,35 @@ def prepare_global_12stations_data(
     scaler_save_path: Optional[Path] = None,
 ) -> Tuple[Dict[str, DataLoader], StandardScaler, List[str]]:
     """
-    Khớp StandardScaler duy nhất trên tập train gộp 12 trạm (chống Data Leakage),
-    sau đó tạo DataLoader cho 4 tập: train, train_dev, dev, test.
+    Gọi trực tiếp pipeline của WP01:
+    load_pm25 -> clean_missing_values -> encode_features -> chronological_split
+    -> scale_splits -> make_sliding_windows.
     """
-    feature_cols = get_feature_columns(mode)
-    station_splits = load_and_split_stations(data_dir, STATIONS_12)
+    resolved_dir = resolve_data_dir(data_dir)
+    df = load_pm25(resolved_dir)
+    df = clean_missing_values(df, target_col=TARGET_COL)
+    df = encode_features(df)
 
-    # Fit StandardScaler CHỈ trên tập train của 12 trạm
-    train_concat = pd.concat(
-        [splits["train"][feature_cols] for splits in station_splits.values()],
-        axis=0,
-        ignore_index=True,
+    feature_cols = get_feature_columns(df, mode=mode, target_col=TARGET_COL)
+    splits = chronological_split(df)
+    scaled_splits, scaler = scale_splits(
+        splits, feature_cols=feature_cols, scaler_path=scaler_save_path
     )
-    scaler = StandardScaler()
-    scaler.fit(train_concat)
-
-    if scaler_save_path is not None:
-        scaler_save_path.parent.mkdir(parents=True, exist_ok=True)
-        joblib.dump(scaler, scaler_save_path)
-
-    agg_X: Dict[str, List[np.ndarray]] = {
-        k: [] for k in ["train", "train_dev", "dev", "test"]
-    }
-    agg_y: Dict[str, List[np.ndarray]] = {
-        k: [] for k in ["train", "train_dev", "dev", "test"]
-    }
-
-    for _, splits in station_splits.items():
-        for split_name in ["train", "train_dev", "dev", "test"]:
-            scaled_df = splits[split_name].copy()
-            scaled_df[feature_cols] = scaler.transform(scaled_df[feature_cols])
-
-            current_stride = train_stride if split_name == "train" else 1
-            X, y = make_sliding_windows(
-                scaled_df,
-                feature_cols=feature_cols,
-                target_col=TARGET_COL,
-                lookback=lookback,
-                horizon=horizon,
-                stride=current_stride,
-            )
-            agg_X[split_name].append(X)
-            agg_y[split_name].append(y)
 
     use_pin_memory = torch.cuda.is_available()
+    num_workers = 4 if use_pin_memory else 0
     global_loaders: Dict[str, DataLoader] = {}
+
     for split_name in ["train", "train_dev", "dev", "test"]:
-        X_all = np.concatenate(agg_X[split_name], axis=0)
-        y_all = np.concatenate(agg_y[split_name], axis=0)
+        current_stride = train_stride if split_name == "train" else 1
+        X_all, y_all = make_sliding_windows(
+            scaled_splits[split_name],
+            feature_cols=feature_cols,
+            target_col=TARGET_COL,
+            lookback=lookback,
+            horizon=horizon,
+            stride=current_stride,
+        )
         ds = TensorDataset(torch.from_numpy(X_all), torch.from_numpy(y_all))
         global_loaders[split_name] = DataLoader(
             ds,
@@ -266,6 +177,8 @@ def prepare_global_12stations_data(
             shuffle=(split_name == "train"),
             drop_last=False,
             pin_memory=use_pin_memory,
+            num_workers=num_workers,
+            persistent_workers=(num_workers > 0),
         )
 
     return global_loaders, scaler, feature_cols
@@ -279,7 +192,7 @@ def build_model(
     device: torch.device,
 ) -> nn.Module:
     """Khởi tạo kiến trúc mô hình theo tên và chuyển sang thiết bị tính toán."""
-    name = model_name.lower()
+    name = model_name.strip().lower()
     if name == "lstm":
         model = LSTMModel(lookback=lookback, horizon=horizon, in_features=in_features)
     elif name == "dlinear":
@@ -290,6 +203,22 @@ def build_model(
         model = InformerModel(
             lookback=lookback, horizon=horizon, in_features=in_features
         )
+    elif name in {"informer_full", "informer_fullattention"}:
+        sig = inspect.signature(InformerModel.__init__)
+        kwargs: Dict[str, object] = {
+            "lookback": lookback,
+            "horizon": horizon,
+            "in_features": in_features,
+        }
+        if "attn" in sig.parameters:
+            kwargs["attn"] = "full"
+        elif "attention_type" in sig.parameters:
+            kwargs["attention_type"] = "full"
+        elif "use_probsparse" in sig.parameters:
+            kwargs["use_probsparse"] = False
+        elif "factor" in sig.parameters:
+            kwargs["factor"] = lookback
+        model = InformerModel(**kwargs)
     elif name == "patchtst":
         model = PatchTSTModel(
             lookback=lookback, horizon=horizon, in_features=in_features
@@ -309,7 +238,7 @@ def train_one_epoch(
     scaler: Optional[torch.amp.GradScaler] = None,
     max_grad_norm: float = 1.0,
 ) -> float:
-    """Huấn luyện 1 epoch với Mixed Precision (AMP) và truyền dữ liệu bất đồng bộ."""
+    """Huấn luyện 1 epoch với Mixed Precision (AMP) và Gradient Clipping."""
     model.train()
     total_loss = 0.0
     total_samples = 0
@@ -404,11 +333,11 @@ class TrainingPipeline:
         batch_size: int = 256,
         train_stride: int = 3,
         lr: float = 1e-4,
-        weight_decay: float = 1e-4,
+        weight_decay: float = 1e-3,
         epochs: int = 20,
         patience: int = 5,
         seeds: Optional[List[int]] = None,
-    ):
+    ) -> None:
         self.data_dir = data_dir
         self.output_dir = output_dir
         self.mode = mode
@@ -437,7 +366,7 @@ class TrainingPipeline:
         seed: int,
         loaders: Dict[str, DataLoader],
         in_features: int,
-    ) -> Dict[str, float]:
+    ) -> Dict[str, object]:
         """Huấn luyện một mô hình trên một hạt giống cụ thể, đo thời gian và VRAM."""
         set_seed(seed)
         model = build_model(
@@ -449,7 +378,11 @@ class TrainingPipeline:
         )
         trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
 
-        criterion = nn.MSELoss()
+        # Dùng HuberLoss khi train để giảm nhiễu gradient từ các đỉnh PM2.5 đột biến,
+        # và MSELoss khi evaluate để đo chuẩn MSE / RMSE / MAE.
+        train_criterion = nn.HuberLoss(delta=1.0)
+        eval_criterion = nn.MSELoss()
+
         optimizer = torch.optim.AdamW(
             model.parameters(), lr=self.lr, weight_decay=self.weight_decay
         )
@@ -472,7 +405,6 @@ class TrainingPipeline:
         epochs_no_improve = 0
         history_rows = []
 
-        # Bắt đầu đo VRAM đỉnh và thời gian huấn luyện thực tế
         if self.device.type == "cuda":
             torch.cuda.synchronize(self.device)
             torch.cuda.empty_cache()
@@ -483,15 +415,15 @@ class TrainingPipeline:
             train_loss = train_one_epoch(
                 model=model,
                 dataloader=loaders["train"],
-                criterion=criterion,
+                criterion=train_criterion,
                 optimizer=optimizer,
                 device=self.device,
                 scaler=grad_scaler,
             )
             train_dev_metrics = evaluate(
-                model, loaders["train_dev"], criterion, self.device
+                model, loaders["train_dev"], eval_criterion, self.device
             )
-            dev_metrics = evaluate(model, loaders["dev"], criterion, self.device)
+            dev_metrics = evaluate(model, loaders["dev"], eval_criterion, self.device)
             dev_loss = dev_metrics["loss"]
             scheduler.step(dev_loss)
             current_lr = optimizer.param_groups[0]["lr"]
@@ -499,10 +431,10 @@ class TrainingPipeline:
             history_rows.append(
                 {
                     "epoch": epoch,
-                    "train_loss": round(train_loss, 6),
-                    "train_dev_loss": round(train_dev_metrics["loss"], 6),
+                    "train_huber_loss": round(train_loss, 6),
+                    "train_dev_mse": round(train_dev_metrics["mse"], 6),
                     "train_dev_mae": round(train_dev_metrics["mae"], 6),
-                    "dev_loss": round(dev_loss, 6),
+                    "dev_mse": round(dev_loss, 6),
                     "dev_rmse": round(dev_metrics["rmse"], 6),
                     "dev_mae": round(dev_metrics["mae"], 6),
                     "lr": current_lr,
@@ -511,8 +443,8 @@ class TrainingPipeline:
 
             print(
                 f"[{model_name.upper()} | seed={seed}] Epoch {epoch:02d}/{self.epochs:02d} "
-                f"| train_loss={train_loss:.5f} | dev_loss={dev_loss:.5f} "
-                f"| dev_mae={dev_metrics['mae']:.5f} | lr={current_lr:.2e}"
+                f"| train_loss={train_loss:.5f} | train_dev_mse={train_dev_metrics['mse']:.5f} "
+                f"| dev_mse={dev_loss:.5f} | dev_mae={dev_metrics['mae']:.5f} | lr={current_lr:.2e}"
             )
 
             if dev_loss < best_dev_loss:
@@ -541,7 +473,6 @@ class TrainingPipeline:
                     )
                     break
 
-        # Chốt thời gian huấn luyện và mức VRAM cao nhất đã cấp phát
         if self.device.type == "cuda":
             torch.cuda.synchronize(self.device)
             peak_vram_mb = torch.cuda.max_memory_allocated(self.device) / (1024.0**2)
@@ -551,11 +482,14 @@ class TrainingPipeline:
 
         pd.DataFrame(history_rows).to_csv(log_csv_path, index=False)
 
-        # Nạp lại trọng số tốt nhất trên dev để đánh giá độc lập trên tập test
+        # Nạp lại trọng số tốt nhất trên dev để đánh giá độc lập trên train_dev và test
         ckpt = torch.load(seed_ckpt_path, map_location=self.device, weights_only=True)
         model.load_state_dict(ckpt["model_state_dict"])
-        test_metrics = evaluate(model, loaders["test"], criterion, self.device)
-        train_dev_final = evaluate(model, loaders["train_dev"], criterion, self.device)
+        train_dev_final = evaluate(
+            model, loaders["train_dev"], eval_criterion, self.device
+        )
+        test_metrics = evaluate(model, loaders["test"], eval_criterion, self.device)
+
         del model, optimizer, scheduler, grad_scaler
         gc.collect()
         if self.device.type == "cuda":
@@ -579,7 +513,7 @@ class TrainingPipeline:
             "checkpoint_path": str(seed_ckpt_path),
         }
 
-    def run(self, models: List[str]) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    def run(self, models: Sequence[str]) -> Tuple[pd.DataFrame, pd.DataFrame]:
         """Chạy toàn bộ các mô hình qua danh sách seeds và xuất báo cáo tổng hợp."""
         scaler_path = self.ckpt_dir / f"scaler_12stations_{self.mode}.joblib"
         loaders, _, feature_cols = prepare_global_12stations_data(
@@ -617,11 +551,11 @@ class TrainingPipeline:
                 model_runs.append(rec)
                 all_run_records.append(rec)
 
-                if rec["best_dev_loss"] < best_overall_dev_loss:
-                    best_overall_dev_loss = rec["best_dev_loss"]
-                    best_overall_ckpt_src = Path(rec["checkpoint_path"])
+                if float(rec["best_dev_loss"]) < best_overall_dev_loss:
+                    best_overall_dev_loss = float(rec["best_dev_loss"])
+                    best_overall_ckpt_src = Path(str(rec["checkpoint_path"]))
 
-            # Lưu bản checkpoint chuẩn *_pretrained.pt từ seed tốt nhất cho fine_tune.py
+            # Lưu checkpoint chuẩn *_pretrained.pt từ seed tốt nhất cho fine_tune.py
             if best_overall_ckpt_src is not None and best_overall_ckpt_src.exists():
                 canonical_ckpt = (
                     self.ckpt_dir
@@ -684,15 +618,15 @@ class TrainingPipeline:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Huấn luyện Pre-training 4 mô hình PM2.5 đa hạt giống (3 seeds)."
+        description="T0301: Huấn luyện Pre-training đa hạt giống (3 seeds) dùng WP01 pipeline."
     )
     parser.add_argument("--data-dir", type=Path, default=Path("data/raw"))
     parser.add_argument("--output-dir", type=Path, default=Path("outputs"))
     parser.add_argument(
         "--models",
         nargs="+",
-        default=["lstm", "dlinear", "informer", "patchtst"],
-        choices=["lstm", "dlinear", "informer", "patchtst"],
+        default=DEFAULT_MODELS,
+        choices=ALL_SUPPORTED_MODELS,
     )
     parser.add_argument(
         "--mode",
@@ -701,11 +635,11 @@ def parse_args() -> argparse.Namespace:
         choices=["multivariate", "univariate"],
     )
     parser.add_argument("--lookback", type=int, default=96)
-    parser.add_argument("--horizon", type=int, default=24)
+    parser.add_argument("--horizon", type=int, default=24, choices=[24, 48, 96, 192])
     parser.add_argument("--batch-size", type=int, default=256)
     parser.add_argument("--train-stride", type=int, default=3)
     parser.add_argument("--lr", type=float, default=1e-4)
-    parser.add_argument("--weight-decay", type=float, default=1e-4)
+    parser.add_argument("--weight-decay", type=float, default=1e-3)
     parser.add_argument("--epochs", type=int, default=20)
     parser.add_argument("--patience", type=int, default=5)
     parser.add_argument(
