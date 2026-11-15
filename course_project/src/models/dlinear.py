@@ -1,3 +1,5 @@
+<<<<<<< HEAD
+=======
 """
 Mô-đun định nghĩa kiến trúc mô hình DLinear Baseline dự báo nồng độ PM2.5.
 
@@ -362,3 +364,4 @@ def _run_smoke_test() -> None:
 
 if __name__ == "__main__":
     _run_smoke_test()
+>>>>>>> 93e2c62c1c7cf32501ff9845fa9a7d984c7791a0
