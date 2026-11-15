@@ -1,9 +1,10 @@
 """
 T0301 — Pipeline huấn luyện toàn cục (Global Pre-training) cho dự báo PM2.5 Bắc Kinh
 trên dữ liệu 12 trạm quan trắc.
-- Tái sử dụng hoàn toàn pipeline tiền xử lý và tạo cửa sổ của WP01
+- Tái sử dụng 100% pipeline tiền xử lý và tạo cửa sổ của WP01
   (src/data_pipeline/preprocess.py & src/data_pipeline/dataset.py).
-- Huấn luyện đa hạt giống (3 seeds mặc định: 42, 1024, 2026) và tổng hợp mean ± std.
+- Tích hợp RevINModelWrapper + HuberLoss + Warmup/CosineLR + Weight Decay mạnh
+  để triệt tiêu lệch phân phối và đảm bảo dev_loss giảm ổn định qua các epoch.
 - Hỗ trợ đầy đủ Ablation Studies: multivariate vs. univariate, H in {24, 48, 96, 192},
   và biến thể informer_full (Full Attention O(L^2)).
 """
@@ -13,10 +14,11 @@ from __future__ import annotations
 import argparse
 import gc
 import inspect
+import math
 import random
 import time
 from pathlib import Path
-from typing import Dict, List, Literal, Optional, Sequence, Tuple
+from typing import Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
 import pandas as pd
@@ -65,6 +67,63 @@ CANONICAL_MULTIVARIATE_COLS: List[str] = [
     "month_sin",
     "month_cos",
 ]
+
+
+class RevINModelWrapper(nn.Module):
+    """
+    Bọc kiến trúc dự báo với Reversible Instance Normalization (RevIN):
+    - Chuẩn hóa các kênh vật lý/ô nhiễm liên tục theo từng cửa sổ (B, L, C_cont)
+      để loại bỏ dịch chuyển phân phối giữa các năm (2013-2015 vs 2016-2017).
+    - Giữ nguyên các kênh mã hóa chu kỳ thời gian (hour_sin/cos, month_sin/cos).
+    - Giải chuẩn hóa đầu ra dự báo (B, H) theo thống kê cục bộ của kênh mục tiêu (index=0).
+    """
+
+    def __init__(
+        self,
+        backbone: nn.Module,
+        in_features: int,
+        num_continuous_features: Optional[int] = None,
+        target_idx: int = 0,
+        eps: float = 1e-5,
+    ) -> None:
+        super().__init__()
+        self.backbone = backbone
+        self.in_features = in_features
+        if num_continuous_features is None:
+            # Trong bộ 15 đặc trưng chuẩn, 11 cột đầu là biến khí tượng/ô nhiễm liên tục,
+            # 4 cột cuối là đặc trưng chu kỳ sin/cos.
+            self.num_cont = 11 if in_features >= 15 else in_features
+        else:
+            self.num_cont = min(num_continuous_features, in_features)
+
+        self.target_idx = target_idx
+        self.eps = eps
+        self.affine_weight = nn.Parameter(torch.ones(1, 1, self.num_cont))
+        self.affine_bias = nn.Parameter(torch.zeros(1, 1, self.num_cont))
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        # x: (B, L, D)
+        x_cont = x[:, :, : self.num_cont]
+        mean = x_cont.mean(dim=1, keepdim=True).detach()
+        stdev = torch.sqrt(
+            torch.var(x_cont, dim=1, keepdim=True, unbiased=False) + self.eps
+        ).detach()
+
+        x_cont_norm = ((x_cont - mean) / stdev) * self.affine_weight + self.affine_bias
+
+        if self.num_cont < x.size(-1):
+            x_in = torch.cat([x_cont_norm, x[:, :, self.num_cont :]], dim=-1)
+        else:
+            x_in = x_cont_norm
+
+        y_norm = self.backbone(x_in).squeeze(-1)  # (B, H)
+
+        idx = self.target_idx
+        y_unscaled = (y_norm - self.affine_bias[:, :, idx]) / (
+            self.affine_weight[:, :, idx] + self.eps
+        )
+        y_out = y_unscaled * stdev[:, :, idx] + mean[:, :, idx]
+        return y_out
 
 
 def set_seed(seed: int) -> None:
@@ -136,8 +195,8 @@ def prepare_global_12stations_data(
     mode: str = "multivariate",
     lookback: int = 96,
     horizon: int = 24,
-    batch_size: int = 256,
-    train_stride: int = 3,
+    batch_size: int = 512,
+    train_stride: int = 6,
     scaler_save_path: Optional[Path] = None,
 ) -> Tuple[Dict[str, DataLoader], StandardScaler, List[str]]:
     """
@@ -184,49 +243,101 @@ def prepare_global_12stations_data(
     return global_loaders, scaler, feature_cols
 
 
+def _instantiate_with_regularization(
+    cls: type[nn.Module],
+    base_kwargs: Dict[str, object],
+    dropout: float = 0.3,
+) -> nn.Module:
+    """Truyền an toàn các tham số điều chuẩn (dropout) nếu kiến trúc hỗ trợ."""
+    sig = inspect.signature(cls.__init__)
+    kwargs = dict(base_kwargs)
+    if "dropout" in sig.parameters:
+        kwargs["dropout"] = dropout
+    return cls(**kwargs)
+
+
 def build_model(
     model_name: str,
     lookback: int,
     horizon: int,
     in_features: int,
     device: torch.device,
+    dropout: float = 0.3,
 ) -> nn.Module:
-    """Khởi tạo kiến trúc mô hình theo tên và chuyển sang thiết bị tính toán."""
+    """
+    Khởi tạo kiến trúc mô hình và bọc RevINModelWrapper cho các kiến trúc nhạy cảm
+    với dịch chuyển phân phối (LSTM, Informer) để đảm bảo hội tụ ổn định.
+    """
     name = model_name.strip().lower()
+    base_kwargs: Dict[str, object] = {
+        "lookback": lookback,
+        "horizon": horizon,
+        "in_features": in_features,
+    }
+
     if name == "lstm":
-        model = LSTMModel(lookback=lookback, horizon=horizon, in_features=in_features)
-    elif name == "dlinear":
-        model = DLinearModel(
-            lookback=lookback, horizon=horizon, in_features=in_features
+        backbone = _instantiate_with_regularization(
+            LSTMModel, base_kwargs, dropout=dropout
         )
+        model: nn.Module = RevINModelWrapper(
+            backbone=backbone, in_features=in_features, target_idx=0
+        )
+    elif name == "dlinear":
+        # DLinear đã có phân rã trung bình trượt cục bộ (Trend/Seasonal)
+        model = DLinearModel(**base_kwargs)
     elif name == "informer":
-        model = InformerModel(
-            lookback=lookback, horizon=horizon, in_features=in_features
+        backbone = _instantiate_with_regularization(
+            InformerModel, base_kwargs, dropout=dropout
+        )
+        model = RevINModelWrapper(
+            backbone=backbone, in_features=in_features, target_idx=0
         )
     elif name in {"informer_full", "informer_fullattention"}:
         sig = inspect.signature(InformerModel.__init__)
-        kwargs: Dict[str, object] = {
-            "lookback": lookback,
-            "horizon": horizon,
-            "in_features": in_features,
-        }
+        full_kwargs = dict(base_kwargs)
+        if "dropout" in sig.parameters:
+            full_kwargs["dropout"] = dropout
         if "attn" in sig.parameters:
-            kwargs["attn"] = "full"
+            full_kwargs["attn"] = "full"
         elif "attention_type" in sig.parameters:
-            kwargs["attention_type"] = "full"
+            full_kwargs["attention_type"] = "full"
         elif "use_probsparse" in sig.parameters:
-            kwargs["use_probsparse"] = False
+            full_kwargs["use_probsparse"] = False
         elif "factor" in sig.parameters:
-            kwargs["factor"] = lookback
-        model = InformerModel(**kwargs)
+            full_kwargs["factor"] = lookback
+        backbone = InformerModel(**full_kwargs)
+        model = RevINModelWrapper(
+            backbone=backbone, in_features=in_features, target_idx=0
+        )
     elif name == "patchtst":
-        model = PatchTSTModel(
-            lookback=lookback, horizon=horizon, in_features=in_features
+        # PatchTSTModel đã tích hợp sẵn RevIN + FlashAttention
+        model = _instantiate_with_regularization(
+            PatchTSTModel, base_kwargs, dropout=dropout
         )
     else:
         raise ValueError(f"Kiến trúc mô hình không được hỗ trợ: {model_name}")
 
     return model.to(device)
+
+
+def build_warmup_cosine_scheduler(
+    optimizer: torch.optim.Optimizer,
+    total_epochs: int,
+    warmup_epochs: int = 2,
+    min_lr_ratio: float = 0.05,
+) -> torch.optim.lr_scheduler.LambdaLR:
+    """Lịch tốc độ học tăng ấm tuyến tính (Warmup) rồi giảm mượt theo hàm Cosine."""
+    warmup = max(1, min(warmup_epochs, max(1, total_epochs - 1)))
+
+    def lr_lambda(epoch_idx: int) -> float:
+        # epoch_idx bắt đầu từ 0
+        if epoch_idx < warmup:
+            return float(epoch_idx + 1) / float(warmup)
+        progress = float(epoch_idx - warmup) / float(max(1, total_epochs - warmup))
+        cosine_decay = 0.5 * (1.0 + math.cos(math.pi * min(1.0, progress)))
+        return min_lr_ratio + (1.0 - min_lr_ratio) * cosine_decay
+
+    return torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lr_lambda)
 
 
 def train_one_epoch(
@@ -330,12 +441,13 @@ class TrainingPipeline:
         mode: str = "multivariate",
         lookback: int = 96,
         horizon: int = 24,
-        batch_size: int = 256,
-        train_stride: int = 3,
-        lr: float = 1e-4,
-        weight_decay: float = 1e-3,
+        batch_size: int = 512,
+        train_stride: int = 6,
+        lr: float = 5e-5,
+        weight_decay: float = 1e-2,
+        dropout: float = 0.3,
         epochs: int = 20,
-        patience: int = 5,
+        patience: int = 6,
         seeds: Optional[List[int]] = None,
     ) -> None:
         self.data_dir = data_dir
@@ -347,6 +459,7 @@ class TrainingPipeline:
         self.train_stride = train_stride
         self.lr = lr
         self.weight_decay = weight_decay
+        self.dropout = dropout
         self.epochs = epochs
         self.patience = patience
         self.seeds = seeds if seeds is not None else [42, 1024, 2026]
@@ -375,19 +488,23 @@ class TrainingPipeline:
             horizon=self.horizon,
             in_features=in_features,
             device=self.device,
+            dropout=self.dropout,
         )
         trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
 
-        # Dùng HuberLoss khi train để giảm nhiễu gradient từ các đỉnh PM2.5 đột biến,
-        # và MSELoss khi evaluate để đo chuẩn MSE / RMSE / MAE.
+        # DLinear dùng lr nhỉnh hơn vì mạng tuyến tính ít tham số
+        effective_lr = (
+            max(self.lr, 2e-4) if model_name.lower() == "dlinear" else self.lr
+        )
+
         train_criterion = nn.HuberLoss(delta=1.0)
         eval_criterion = nn.MSELoss()
 
         optimizer = torch.optim.AdamW(
-            model.parameters(), lr=self.lr, weight_decay=self.weight_decay
+            model.parameters(), lr=effective_lr, weight_decay=self.weight_decay
         )
-        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-            optimizer, mode="min", factor=0.5, patience=2
+        scheduler = build_warmup_cosine_scheduler(
+            optimizer=optimizer, total_epochs=self.epochs, warmup_epochs=2
         )
         grad_scaler = torch.amp.GradScaler("cuda", enabled=(self.device.type == "cuda"))
 
@@ -412,6 +529,7 @@ class TrainingPipeline:
         t_start = time.perf_counter()
 
         for epoch in range(1, self.epochs + 1):
+            current_lr = optimizer.param_groups[0]["lr"]
             train_loss = train_one_epoch(
                 model=model,
                 dataloader=loaders["train"],
@@ -425,8 +543,7 @@ class TrainingPipeline:
             )
             dev_metrics = evaluate(model, loaders["dev"], eval_criterion, self.device)
             dev_loss = dev_metrics["loss"]
-            scheduler.step(dev_loss)
-            current_lr = optimizer.param_groups[0]["lr"]
+            scheduler.step()
 
             history_rows.append(
                 {
@@ -458,6 +575,7 @@ class TrainingPipeline:
                         "lookback": self.lookback,
                         "horizon": self.horizon,
                         "in_features": in_features,
+                        "dropout": self.dropout,
                         "seed": seed,
                         "best_epoch": best_epoch,
                         "best_dev_loss": best_dev_loss,
@@ -482,7 +600,6 @@ class TrainingPipeline:
 
         pd.DataFrame(history_rows).to_csv(log_csv_path, index=False)
 
-        # Nạp lại trọng số tốt nhất trên dev để đánh giá độc lập trên train_dev và test
         ckpt = torch.load(seed_ckpt_path, map_location=self.device, weights_only=True)
         model.load_state_dict(ckpt["model_state_dict"])
         train_dev_final = evaluate(
@@ -528,7 +645,7 @@ class TrainingPipeline:
         in_features = len(feature_cols)
         print(
             f"Thiết bị: {self.device} | Mode: {self.mode} (D={in_features}) "
-            f"| L={self.lookback}, H={self.horizon} | Seeds: {self.seeds}"
+            f"| L={self.lookback}, H={self.horizon} | Stride={self.train_stride} | Seeds: {self.seeds}"
         )
 
         all_run_records = []
@@ -555,7 +672,6 @@ class TrainingPipeline:
                     best_overall_dev_loss = float(rec["best_dev_loss"])
                     best_overall_ckpt_src = Path(str(rec["checkpoint_path"]))
 
-            # Lưu checkpoint chuẩn *_pretrained.pt từ seed tốt nhất cho fine_tune.py
             if best_overall_ckpt_src is not None and best_overall_ckpt_src.exists():
                 canonical_ckpt = (
                     self.ckpt_dir
@@ -636,12 +752,13 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--lookback", type=int, default=96)
     parser.add_argument("--horizon", type=int, default=24, choices=[24, 48, 96, 192])
-    parser.add_argument("--batch-size", type=int, default=256)
-    parser.add_argument("--train-stride", type=int, default=3)
-    parser.add_argument("--lr", type=float, default=1e-4)
-    parser.add_argument("--weight-decay", type=float, default=1e-3)
+    parser.add_argument("--batch-size", type=int, default=512)
+    parser.add_argument("--train-stride", type=int, default=6)
+    parser.add_argument("--lr", type=float, default=5e-5)
+    parser.add_argument("--weight-decay", type=float, default=1e-2)
+    parser.add_argument("--dropout", type=float, default=0.3)
     parser.add_argument("--epochs", type=int, default=20)
-    parser.add_argument("--patience", type=int, default=5)
+    parser.add_argument("--patience", type=int, default=6)
     parser.add_argument(
         "--seeds",
         nargs="+",
@@ -664,6 +781,7 @@ if __name__ == "__main__":
         train_stride=args.train_stride,
         lr=args.lr,
         weight_decay=args.weight_decay,
+        dropout=args.dropout,
         epochs=args.epochs,
         patience=args.patience,
         seeds=args.seeds,

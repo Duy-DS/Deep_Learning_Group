@@ -2,9 +2,8 @@
 T0304 — Fine-Tuning mô hình Pre-trained cho từng trạm quan trắc PM2.5 Bắc Kinh:
 - Sử dụng trực tiếp WP01 pipeline (load_pm25, clean_missing_values, encode_features,
   chronological_split, scale_splits, make_sliding_windows).
-- Đánh giá hiệu năng Trước (Zero-shot) và Sau khi Fine-tuning trên từng trạm (train_dev, dev, test).
-- Tích hợp Mixed Precision (AMP), HuberLoss chống nhiễu đỉnh, đo thời gian và VRAM đỉnh.
-- Lưu bộ trọng số riêng từng trạm cùng bảng báo cáo mức cải thiện.
+- Kế thừa RevINModelWrapper từ training_loop.py, đóng băng backbone mặc định để tránh
+  quá khớp trên dữ liệu đơn trạm và đảm bảo dev_loss giảm ổn định.
 """
 
 from __future__ import annotations
@@ -49,10 +48,7 @@ def load_and_scale_with_wp01(
     mode: str,
     scaler_path: Path,
 ) -> Tuple[Dict[str, pd.DataFrame], StandardScaler, List[str]]:
-    """
-    Nạp dữ liệu 12 trạm bằng WP01 pipeline, nạp Global StandardScaler từ T0301
-    và chuẩn hóa cả 4 tập (train, train_dev, dev, test).
-    """
+    """Nạp dữ liệu 12 trạm bằng WP01 pipeline và chuẩn hóa bằng Global StandardScaler."""
     resolved_dir = resolve_data_dir(data_dir)
     df = load_pm25(resolved_dir)
     df = clean_missing_values(df, target_col=TARGET_COL)
@@ -90,7 +86,7 @@ def build_single_station_loaders(
     feature_cols: List[str],
     lookback: int = 96,
     horizon: int = 24,
-    stride: int = 1,
+    stride: int = 6,
     batch_size: int = 256,
     use_pin_memory: bool = False,
 ) -> Dict[str, DataLoader]:
@@ -101,6 +97,7 @@ def build_single_station_loaders(
     for split_name in ["train", "train_dev", "dev", "test"]:
         st_df = scaled_splits[split_name]
         st_df = st_df[st_df["station"] == station].reset_index(drop=True)
+        current_stride = stride if split_name == "train" else 1
 
         X, y = make_sliding_windows(
             st_df,
@@ -108,7 +105,7 @@ def build_single_station_loaders(
             target_col=TARGET_COL,
             lookback=lookback,
             horizon=horizon,
-            stride=stride,
+            stride=current_stride,
         )
         ds = TensorDataset(torch.from_numpy(X), torch.from_numpy(y))
         loaders[split_name] = DataLoader(
@@ -126,12 +123,13 @@ def build_single_station_loaders(
 def configure_trainable_layers(
     model: nn.Module,
     model_name: str,
-    freeze_backbone: bool = False,
+    freeze_backbone: bool = True,
 ) -> None:
     """
     Cấu hình các lớp được phép cập nhật khi Fine-tuning:
+    - freeze_backbone=True : Giữ nguyên bộ trích xuất đặc trưng nền 12 trạm, chỉ tinh chỉnh
+      lớp dự báo đầu ra (head/fc/projection) và hệ số hiệu chỉnh RevIN của trạm.
     - freeze_backbone=False: Tinh chỉnh toàn bộ mạng với learning rate nhỏ.
-    - freeze_backbone=True : Đóng băng encoder/backbone, chỉ tinh chỉnh lớp dự báo đầu ra.
     """
     for param in model.parameters():
         param.requires_grad = True
@@ -143,12 +141,15 @@ def configure_trainable_layers(
         param.requires_grad = False
 
     head_keywords = {
-        "lstm": ("fc", "head", "proj", "linear"),
+        "lstm": ("fc", "head", "proj", "linear", "revin", "affine"),
         "dlinear": ("linear_seasonal", "linear_trend", "linear"),
-        "informer": ("decoder", "projection", "proj", "head"),
-        "informer_full": ("decoder", "projection", "proj", "head"),
-        "patchtst": ("head", "projection", "proj", "linear"),
-    }.get(model_name.strip().lower(), ("head", "fc", "projection", "decoder"))
+        "informer": ("decoder", "projection", "proj", "head", "revin", "affine"),
+        "informer_full": ("decoder", "projection", "proj", "head", "revin", "affine"),
+        "patchtst": ("head", "projection", "proj", "linear", "revin", "affine"),
+    }.get(
+        model_name.strip().lower(),
+        ("head", "fc", "projection", "decoder", "revin", "affine"),
+    )
 
     unfrozen = 0
     for param_name, param in model.named_parameters():
@@ -182,10 +183,10 @@ def finetune_single_station(
     horizon: int = 24,
     mode: str = "multivariate",
     epochs: int = 12,
-    lr: float = 5e-5,
-    weight_decay: float = 1e-3,
-    patience: int = 3,
-    freeze_backbone: bool = False,
+    lr: float = 3e-5,
+    weight_decay: float = 1e-2,
+    patience: int = 4,
+    freeze_backbone: bool = True,
     station_ckpt_dir: str | Path = "outputs/checkpoints/stations",
     seed: int = 42,
     device: Optional[torch.device] = None,
@@ -209,6 +210,7 @@ def finetune_single_station(
 
     state_dict, ckpt_meta = extract_state_dict(pretrained_ckpt, device)
     ckpt_in_features = int(ckpt_meta.get("in_features", in_features))
+    ckpt_dropout = float(ckpt_meta.get("dropout", 0.3))
     if ckpt_in_features != in_features:
         raise ValueError(
             f"Lệch số đặc trưng đầu vào giữa Scaler ({in_features}) và "
@@ -221,10 +223,10 @@ def finetune_single_station(
         horizon=horizon,
         in_features=in_features,
         device=device,
+        dropout=ckpt_dropout,
     )
     model.load_state_dict(state_dict)
 
-    # 1. Đánh giá Zero-shot TRƯỚC Fine-tuning trên train_dev, dev, test
     train_criterion = nn.HuberLoss(delta=1.0)
     eval_criterion = nn.MSELoss()
 
@@ -246,6 +248,7 @@ def finetune_single_station(
                 "lookback": lookback,
                 "horizon": horizon,
                 "in_features": in_features,
+                "dropout": ckpt_dropout,
                 "seed": seed,
                 "best_epoch": epoch_idx,
                 "best_dev_loss": dev_loss_val,
@@ -256,7 +259,6 @@ def finetune_single_station(
 
     _save_station_ckpt(epoch_idx=0, dev_loss_val=best_dev_loss)
 
-    # 2. Thiết lập lớp huấn luyện, Optimizer, Scheduler & AMP GradScaler
     configure_trainable_layers(
         model, model_name=model_name, freeze_backbone=freeze_backbone
     )
@@ -302,7 +304,6 @@ def finetune_single_station(
         peak_vram_mb = 0.0
     finetune_time_sec = time.perf_counter() - t_start
 
-    # 3. Nạp lại checkpoint tốt nhất và đánh giá SAU Fine-tuning
     best_state_dict, _ = extract_state_dict(ft_ckpt_path, device)
     model.load_state_dict(best_state_dict)
 
@@ -374,19 +375,17 @@ def run_fine_tuning_pipeline(
     mode: Literal["multivariate", "univariate"] = "multivariate",
     lookback: int = 96,
     horizon: int = 24,
-    stride: int = 1,
+    stride: int = 6,
     batch_size: int = 256,
     epochs: int = 12,
-    lr: float = 5e-5,
-    weight_decay: float = 1e-3,
-    patience: int = 3,
-    freeze_backbone: bool = False,
+    lr: float = 3e-5,
+    weight_decay: float = 1e-2,
+    patience: int = 4,
+    freeze_backbone: bool = True,
     output_root: str | Path = "outputs",
     seed: int = 42,
 ) -> Dict[str, object]:
-    """
-    Chạy Fine-tuning toàn bộ các mô hình trên từng trạm và xuất bảng đối chứng Trước vs. Sau.
-    """
+    """Chạy Fine-tuning toàn bộ các mô hình trên từng trạm và xuất bảng đối chứng."""
     set_seed(seed)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     use_pin_memory = device.type == "cuda"
@@ -580,13 +579,17 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--lookback", type=int, default=96)
     parser.add_argument("--horizon", type=int, default=24, choices=[24, 48, 96, 192])
-    parser.add_argument("--stride", type=int, default=1)
+    parser.add_argument("--stride", type=int, default=6)
     parser.add_argument("--batch-size", type=int, default=256)
     parser.add_argument("--epochs", type=int, default=12)
-    parser.add_argument("--lr", type=float, default=5e-5)
-    parser.add_argument("--weight-decay", type=float, default=1e-3)
-    parser.add_argument("--patience", type=int, default=3)
-    parser.add_argument("--freeze-backbone", action="store_true")
+    parser.add_argument("--lr", type=float, default=3e-5)
+    parser.add_argument("--weight-decay", type=float, default=1e-2)
+    parser.add_argument("--patience", type=int, default=4)
+    parser.add_argument(
+        "--unfreeze-backbone",
+        action="store_true",
+        help="Mở khóa toàn bộ backbone (mặc định đóng băng backbone để chống overfit).",
+    )
     parser.add_argument("--output-root", type=str, default="outputs")
     parser.add_argument("--seed", type=int, default=42)
     return parser.parse_args()
@@ -607,7 +610,7 @@ if __name__ == "__main__":
         lr=args.lr,
         weight_decay=args.weight_decay,
         patience=args.patience,
-        freeze_backbone=args.freeze_backbone,
+        freeze_backbone=(not args.unfreeze_backbone),
         output_root=args.output_root,
         seed=args.seed,
     )
