@@ -1,5 +1,3 @@
-<<<<<<< HEAD
-=======
 """
 Mô-đun định nghĩa các kiến trúc mô hình LSTM Baseline dự báo nồng độ PM2.5.
 
@@ -19,6 +17,7 @@ import torch.nn as nn
 # ---------------------------------------------------------------------------
 # Lớp cơ sở (nhúng lại từ AGENTS.md để module độc lập)
 # ---------------------------------------------------------------------------
+
 
 class BaseTimeSeriesModel(nn.Module):
     """
@@ -53,12 +52,15 @@ class BaseTimeSeriesModel(nn.Module):
         Trả về:
             torch.Tensor: Tensor dự báo kích thước [Batch, Horizon, 1].
         """
-        raise NotImplementedError("Các lớp con bắt buộc phải định nghĩa phương thức forward().")
+        raise NotImplementedError(
+            "Các lớp con bắt buộc phải định nghĩa phương thức forward()."
+        )
 
 
 # ---------------------------------------------------------------------------
 # Mô hình LSTM Baseline
 # ---------------------------------------------------------------------------
+
 
 class LSTMModel(BaseTimeSeriesModel):
     """
@@ -187,6 +189,7 @@ class LSTMModel(BaseTimeSeriesModel):
 # Smoke test nội bộ
 # ---------------------------------------------------------------------------
 
+
 def _run_smoke_test() -> None:
     """
     Kiểm tra nhanh tính đúng đắn của LSTMModel với tensor tổng hợp.
@@ -196,8 +199,8 @@ def _run_smoke_test() -> None:
 
     batch_size = 4
     lookback = 96
-    in_features_multi = 15   # Đa biến
-    in_features_uni = 1      # Đơn biến
+    in_features_multi = 15  # Đa biến
+    in_features_uni = 1  # Đơn biến
 
     for horizon in [24, 48, 96, 192]:
         # Kiểm thử chế độ đa biến
@@ -253,9 +256,10 @@ def _run_smoke_test() -> None:
     except ValueError as err:
         print(f"[INFO] Kiểm thử ValueError (features sai): '{err}' → PASS")
 
-    print("[SUCCESS] Toàn bộ smoke test LSTMModel: PASS. Sẵn sàng tích hợp vào training_loop.py.")
+    print(
+        "[SUCCESS] Toàn bộ smoke test LSTMModel: PASS. Sẵn sàng tích hợp vào training_loop.py."
+    )
 
 
 if __name__ == "__main__":
     _run_smoke_test()
->>>>>>> 93e2c62c1c7cf32501ff9845fa9a7d984c7791a0
