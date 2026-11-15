@@ -1,5 +1,5 @@
-﻿model,mode,horizon,mean_before_mse,mean_after_mse,avg_mse_gain_pct,mean_before_rmse,mean_after_rmse,avg_rmse_gain_pct,mean_before_mae,mean_after_mae,avg_mae_gain_pct,stations_improved
-lstm,multivariate,24,1.004922,1.016651,-1.384,0.997114,1.00336,-0.68,0.619977,0.625159,-0.872,1/12
-dlinear,multivariate,24,0.653126,0.650766,0.369,0.804726,0.803252,0.185,0.529403,0.52581,0.707,6/12
-informer,multivariate,24,0.971067,0.97409,-0.51,0.979367,0.981293,-0.25,0.570432,0.570686,-0.058,8/12
-patchtst,multivariate,24,0.681299,0.682174,-0.185,0.821213,0.821846,-0.092,0.52402,0.523466,0.121,0/12
+﻿model,mode,horizon,mean_before_mse,mean_after_mse,avg_mse_gain_pct,mean_before_rmse,mean_after_rmse,avg_rmse_gain_pct,mean_before_mae,mean_after_mae,avg_mae_gain_pct,mean_finetune_time_sec,total_finetune_time_sec,peak_vram_max_mb,stations_improved
+lstm,multivariate,24,1.019728,1.019307,0.06,1.005156,1.004905,0.03,0.658881,0.657771,0.199,23.533,282.396,147.32,1/12
+dlinear,multivariate,24,0.665697,0.662768,0.525,0.813016,0.811056,0.264,0.54349,0.539992,0.712,1.688,20.254,15.63,6/12
+informer,multivariate,24,0.716131,0.711932,0.51,0.842018,0.839688,0.258,0.524828,0.522299,0.511,91.823,1101.872,431.15,7/12
+patchtst,multivariate,24,0.674727,0.671425,0.517,0.817647,0.815585,0.26,0.527046,0.524034,0.611,337.643,4051.716,1477.77,5/12
