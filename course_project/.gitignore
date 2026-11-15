@@ -7,18 +7,21 @@ __pycache__/
 .ipynb_checkpoints/
 */.ipynb_checkpoints/*
 
-# Virtual environments
+# Virtual environments & temporary runs/logs
 .venv/
 venv/
 env/
+runs/
+wandb/
 
 # Model weights & Checkpoints (tránh làm phình to repo Git)
 *.pth
 *.pt
 *.onnx
+checkpoints/
+weights/
 
 # Scikit-learn / Joblib / Pickle models
-# Bỏ comment nếu muốn ignore toàn bộ pickle lớn:
 # *.pkl
 # *.joblib
 
@@ -28,3 +31,10 @@ Thumbs.db
 
 # Temporary & intermediate output caches
 .pytest_cache/
+
+# Cho phép Git theo dõi các báo cáo trong docs
+!docs/
+!docs/reports/*.md
+!docs/dev-logs/*.md
+!docs/experiences/*.md
+!docs/bug-fixes/*.md
