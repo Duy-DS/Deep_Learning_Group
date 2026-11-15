@@ -1,0 +1,13 @@
+model,mode,horizon,seed,trainable_params,best_epoch,best_dev_loss,train_dev_mse,train_dev_mae,test_mse,test_rmse,test_mae,train_time_sec,peak_vram_mb,checkpoint_path
+lstm,univariate,24,42,202266,19,1.03781,0.811074,0.552988,0.810546,0.900303,0.583574,409.821,264.52,outputs/checkpoints/global/lstm_univariate_H24_seed42_pretrained.pt
+lstm,univariate,24,1024,202266,7,1.04389,0.874162,0.587,0.835846,0.914246,0.599333,265.055,264.52,outputs/checkpoints/global/lstm_univariate_H24_seed1024_pretrained.pt
+lstm,univariate,24,2026,202266,13,1.040273,0.845715,0.563479,0.825775,0.908722,0.590192,386.895,264.52,outputs/checkpoints/global/lstm_univariate_H24_seed2026_pretrained.pt
+dlinear,univariate,24,42,4656,20,0.933911,0.693517,0.541564,0.706578,0.840582,0.552021,7.573,8.98,outputs/checkpoints/global/dlinear_univariate_H24_seed42_pretrained.pt
+dlinear,univariate,24,1024,4656,20,0.930955,0.688466,0.537106,0.703326,0.838645,0.548963,7.6,8.98,outputs/checkpoints/global/dlinear_univariate_H24_seed1024_pretrained.pt
+dlinear,univariate,24,2026,4656,20,0.929277,0.689859,0.535643,0.703548,0.838778,0.547338,7.572,8.98,outputs/checkpoints/global/dlinear_univariate_H24_seed2026_pretrained.pt
+informer,univariate,24,42,464387,12,1.035985,0.759873,0.503713,0.781614,0.884089,0.543404,1520.44,823.55,outputs/checkpoints/global/informer_univariate_H24_seed42_pretrained.pt
+informer,univariate,24,1024,464387,14,1.005894,0.744447,0.501077,0.752884,0.867689,0.535396,1699.781,823.55,outputs/checkpoints/global/informer_univariate_H24_seed1024_pretrained.pt
+informer,univariate,24,2026,464387,12,1.012431,0.755917,0.49683,0.773179,0.879306,0.539031,1535.185,823.55,outputs/checkpoints/global/informer_univariate_H24_seed2026_pretrained.pt
+patchtst,univariate,24,42,85787,19,0.934037,0.760847,0.516648,0.747063,0.864328,0.5464,70.255,55.23,outputs/checkpoints/global/patchtst_univariate_H24_seed42_pretrained.pt
+patchtst,univariate,24,1024,85787,18,0.933248,0.754221,0.513629,0.750527,0.86633,0.548204,70.243,55.23,outputs/checkpoints/global/patchtst_univariate_H24_seed1024_pretrained.pt
+patchtst,univariate,24,2026,85787,20,0.929567,0.764424,0.515114,0.755495,0.869192,0.548917,70.23,55.23,outputs/checkpoints/global/patchtst_univariate_H24_seed2026_pretrained.pt

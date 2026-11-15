@@ -1,0 +1,16 @@
+model,mode,horizon,seed,trainable_params,best_epoch,best_dev_loss,train_dev_mse,train_dev_mae,test_mse,test_rmse,test_mae,train_time_sec,peak_vram_mb,checkpoint_path
+lstm,multivariate,192,42,231126,6,1.421415,1.44919,0.784539,1.424023,1.193324,0.797051,246.489,275.36,outputs/checkpoints/global/lstm_multivariate_H192_seed42_pretrained.pt
+lstm,multivariate,192,1024,231126,6,1.439813,1.448643,0.789845,1.379551,1.174543,0.793087,244.361,275.36,outputs/checkpoints/global/lstm_multivariate_H192_seed1024_pretrained.pt
+lstm,multivariate,192,2026,231126,5,1.463051,1.467422,0.791942,1.371942,1.171299,0.788728,223.877,275.36,outputs/checkpoints/global/lstm_multivariate_H192_seed2026_pretrained.pt
+dlinear,multivariate,192,42,37264,20,1.240801,1.317919,0.796099,1.209685,1.099857,0.752177,21.927,32.21,outputs/checkpoints/global/dlinear_multivariate_H192_seed42_pretrained.pt
+dlinear,multivariate,192,1024,37264,20,1.242149,1.365431,0.805823,1.244436,1.115543,0.764895,21.982,32.21,outputs/checkpoints/global/dlinear_multivariate_H192_seed1024_pretrained.pt
+dlinear,multivariate,192,2026,37264,20,1.256005,1.392992,0.825435,1.253222,1.119474,0.774987,22.003,32.21,outputs/checkpoints/global/dlinear_multivariate_H192_seed2026_pretrained.pt
+informer,multivariate,192,42,467991,2,1.464567,1.59095,0.796373,1.40358,1.184728,0.79086,1136.293,1485.18,outputs/checkpoints/global/informer_multivariate_H192_seed42_pretrained.pt
+informer,multivariate,192,1024,467991,2,1.49935,1.638247,0.808659,1.462751,1.209442,0.80605,1136.45,1485.18,outputs/checkpoints/global/informer_multivariate_H192_seed1024_pretrained.pt
+informer,multivariate,192,2026,467991,3,1.463605,1.532701,0.779454,1.347566,1.160847,0.777112,1278.664,1485.18,outputs/checkpoints/global/informer_multivariate_H192_seed2026_pretrained.pt
+patchtst,multivariate,192,42,204269,18,1.377584,1.502983,0.754609,1.397335,1.182089,0.775555,937.23,807.74,outputs/checkpoints/global/patchtst_multivariate_H192_seed42_pretrained.pt
+patchtst,multivariate,192,1024,204269,19,1.362063,1.495477,0.750997,1.389582,1.178806,0.773795,937.445,807.74,outputs/checkpoints/global/patchtst_multivariate_H192_seed1024_pretrained.pt
+patchtst,multivariate,192,2026,204269,20,1.380767,1.49946,0.755149,1.386703,1.177584,0.775593,936.923,807.74,outputs/checkpoints/global/patchtst_multivariate_H192_seed2026_pretrained.pt
+informer_full,multivariate,192,42,467991,2,1.464615,1.577977,0.790927,1.392857,1.180193,0.788805,1405.881,1867.07,outputs/checkpoints/global/informer_full_multivariate_H192_seed42_pretrained.pt
+informer_full,multivariate,192,1024,467991,2,1.4892,1.621932,0.803139,1.44956,1.203977,0.802273,1406.515,1867.07,outputs/checkpoints/global/informer_full_multivariate_H192_seed1024_pretrained.pt
+informer_full,multivariate,192,2026,467991,3,1.489195,1.512266,0.772932,1.343519,1.159103,0.774704,1580.916,1867.07,outputs/checkpoints/global/informer_full_multivariate_H192_seed2026_pretrained.pt
