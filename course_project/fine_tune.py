@@ -1,9 +1,10 @@
 """
 T0304 — Fine-Tuning mô hình Pre-trained cho từng trạm quan trắc PM2.5 Bắc Kinh:
-- Nạp trọng số nền (từ T0301) và Global StandardScaler.
+- Sử dụng trực tiếp WP01 pipeline (load_pm25, clean_missing_values, encode_features,
+  chronological_split, scale_splits, make_sliding_windows).
 - Đánh giá hiệu năng Trước (Zero-shot) và Sau khi Fine-tuning trên từng trạm (train_dev, dev, test).
-- Tích hợp Mixed Precision (AMP), đo thời gian huấn luyện và VRAM đỉnh.
-- Lưu 48 bộ trọng số riêng (4 mô hình x 12 trạm) cùng bảng báo cáo mức cải thiện.
+- Tích hợp Mixed Precision (AMP), HuberLoss chống nhiễu đỉnh, đo thời gian và VRAM đỉnh.
+- Lưu bộ trọng số riêng từng trạm cùng bảng báo cáo mức cải thiện.
 """
 
 from __future__ import annotations
@@ -29,140 +30,82 @@ from src.data_pipeline.preprocess import (
     clean_missing_values,
     encode_features,
     load_pm25,
+    scale_splits,
 )
 from training_loop import (
+    ALL_SUPPORTED_MODELS,
+    DEFAULT_MODELS,
     build_model,
     evaluate,
+    get_feature_columns,
+    resolve_data_dir,
     set_seed,
     train_one_epoch,
 )
 
-ALL_MODELS: List[Literal["lstm", "dlinear", "informer", "patchtst"]] = [
-    "lstm",
-    "dlinear",
-    "informer",
-    "patchtst",
-]
-CANONICAL_COL_MAP: Dict[str, str] = {
-    "pm2.5": "PM2.5",
-    "pm25": "PM2.5",
-    "pm10": "PM10",
-    "so2": "SO2",
-    "no2": "NO2",
-    "co": "CO",
-    "o3": "O3",
-    "temp": "TEMP",
-    "pres": "PRES",
-    "dewp": "DEW",
-    "dew": "DEW",
-    "rain": "RAIN",
-    "wspm": "WSPM",
-}
 
-
-def normalize_column_names(df: pd.DataFrame) -> pd.DataFrame:
-    """Chuẩn hóa tên cột từ chữ thường (preprocess.py) sang chữ hoa chuẩn của Scaler."""
-    df = df.copy()
-    rename_map: Dict[str, str] = {}
-    for col in df.columns:
-        clean_c = str(col).strip()
-        lower_c = clean_c.lower()
-        if lower_c in CANONICAL_COL_MAP:
-            target_name = CANONICAL_COL_MAP[lower_c]
-            if target_name not in df.columns or clean_c == target_name:
-                rename_map[col] = target_name
-        elif clean_c != col:
-            rename_map[col] = clean_c
-    return df.rename(columns=rename_map)
-
-
-def sort_station_df(df: pd.DataFrame) -> pd.DataFrame:
-    """Sắp xếp dữ liệu của một trạm theo đúng trình tự thời gian tuyến tính."""
-    df = normalize_column_names(df)
-    if "datetime" in df.columns:
-        df["datetime"] = pd.to_datetime(df["datetime"])
-        return df.sort_values("datetime").reset_index(drop=True)
-    if {"year", "month", "day", "hour"}.issubset(df.columns):
-        df["datetime"] = pd.to_datetime(df[["year", "month", "day", "hour"]])
-        return df.sort_values("datetime").reset_index(drop=True)
-    return df.reset_index(drop=True)
-
-
-def infer_default_feature_columns(
-    df: pd.DataFrame,
-    mode: str = "multivariate",
-    target_col: str = TARGET_COL,
-) -> List[str]:
-    """Xác định danh sách cột đặc trưng nếu chưa có sẵn feature_names_in_ từ Scaler."""
-    if mode == "univariate":
-        return [target_col]
-
-    excluded = {"No", "year", "month", "day", "hour", "datetime", "station", "wd"}
-    numeric_cols = [
-        c
-        for c in df.columns
-        if c not in excluded and pd.api.types.is_numeric_dtype(df[c])
-    ]
-    if target_col in numeric_cols:
-        numeric_cols = [target_col] + [c for c in numeric_cols if c != target_col]
-    return numeric_cols
-
-
-def load_or_fit_global_scaler(
-    df: pd.DataFrame,
+def load_and_scale_with_wp01(
+    data_dir: str | Path,
     mode: str,
-    scaler_path: str | Path,
-) -> Tuple[StandardScaler, List[str]]:
+    scaler_path: Path,
+) -> Tuple[Dict[str, pd.DataFrame], StandardScaler, List[str]]:
     """
-    Nạp Global StandardScaler đã lưu ở bước Pre-training (T0301) và lấy chính xác
-    danh sách cột đặc trưng đã dùng khi fit. Nếu chưa tồn tại, tự khớp trên tập train (60%).
+    Nạp dữ liệu 12 trạm bằng WP01 pipeline, nạp Global StandardScaler từ T0301
+    và chuẩn hóa cả 4 tập (train, train_dev, dev, test).
     """
-    scaler_file = Path(scaler_path)
-    if scaler_file.exists():
-        scaler: StandardScaler = joblib.load(scaler_file)
-        if hasattr(scaler, "feature_names_in_"):
-            feature_cols = [str(c) for c in scaler.feature_names_in_]
+    resolved_dir = resolve_data_dir(data_dir)
+    df = load_pm25(resolved_dir)
+    df = clean_missing_values(df, target_col=TARGET_COL)
+    df = encode_features(df)
+
+    feature_cols = get_feature_columns(df, mode=mode, target_col=TARGET_COL)
+    splits = chronological_split(df)
+
+    if scaler_path.exists():
+        scaler: StandardScaler = joblib.load(scaler_path)
+        if (
+            hasattr(scaler, "feature_names_in_")
+            and list(scaler.feature_names_in_) != feature_cols
+        ):
+            scaled_splits, scaler = scale_splits(
+                splits, feature_cols=feature_cols, scaler_path=scaler_path
+            )
         else:
-            feature_cols = infer_default_feature_columns(df, mode=mode)
-        return scaler, feature_cols
+            scaled_splits = {}
+            for split_name in ["train", "train_dev", "dev", "test"]:
+                part = splits[split_name].copy()
+                part[feature_cols] = scaler.transform(part[feature_cols])
+                scaled_splits[split_name] = part
+    else:
+        scaled_splits, scaler = scale_splits(
+            splits, feature_cols=feature_cols, scaler_path=scaler_path
+        )
 
-    feature_cols = infer_default_feature_columns(df, mode=mode)
-    train_frames = []
-    for _, s_df in df.groupby("station", sort=True):
-        splits = chronological_split(sort_station_df(s_df))
-        train_frames.append(splits["train"][feature_cols])
-
-    scaler = StandardScaler()
-    scaler.fit(pd.concat(train_frames, axis=0, ignore_index=True))
-    scaler_file.parent.mkdir(parents=True, exist_ok=True)
-    joblib.dump(scaler, scaler_file)
-    return scaler, feature_cols
+    return scaled_splits, scaler, feature_cols
 
 
 def build_single_station_loaders(
-    station_df: pd.DataFrame,
+    scaled_splits: Dict[str, pd.DataFrame],
+    station: str,
     feature_cols: List[str],
-    scaler: StandardScaler,
     lookback: int = 96,
     horizon: int = 24,
     stride: int = 1,
     batch_size: int = 256,
     use_pin_memory: bool = False,
 ) -> Dict[str, DataLoader]:
-    """Tạo bộ DataLoader (train, train_dev, dev, test) cho riêng 1 trạm."""
-    sorted_df = sort_station_df(station_df)
-    splits = chronological_split(sorted_df)
-    resolved_target = "PM2.5" if "PM2.5" in sorted_df.columns else TARGET_COL
-
+    """Tạo bộ DataLoader (train, train_dev, dev, test) cho riêng 1 trạm từ dữ liệu đã scale."""
+    num_workers = 4 if use_pin_memory else 0
     loaders: Dict[str, DataLoader] = {}
+
     for split_name in ["train", "train_dev", "dev", "test"]:
-        scaled_df = splits[split_name].copy()
-        scaled_df[feature_cols] = scaler.transform(scaled_df[feature_cols])
+        st_df = scaled_splits[split_name]
+        st_df = st_df[st_df["station"] == station].reset_index(drop=True)
 
         X, y = make_sliding_windows(
-            scaled_df,
+            st_df,
             feature_cols=feature_cols,
-            target_col=resolved_target,
+            target_col=TARGET_COL,
             lookback=lookback,
             horizon=horizon,
             stride=stride,
@@ -174,6 +117,8 @@ def build_single_station_loaders(
             shuffle=(split_name == "train"),
             drop_last=False,
             pin_memory=use_pin_memory,
+            num_workers=num_workers,
+            persistent_workers=(num_workers > 0),
         )
     return loaders
 
@@ -201,6 +146,7 @@ def configure_trainable_layers(
         "lstm": ("fc", "head", "proj", "linear"),
         "dlinear": ("linear_seasonal", "linear_trend", "linear"),
         "informer": ("decoder", "projection", "proj", "head"),
+        "informer_full": ("decoder", "projection", "proj", "head"),
         "patchtst": ("head", "projection", "proj", "linear"),
     }.get(model_name.strip().lower(), ("head", "fc", "projection", "decoder"))
 
@@ -218,7 +164,7 @@ def configure_trainable_layers(
 def extract_state_dict(
     ckpt_path: Path, device: torch.device
 ) -> Tuple[Dict[str, torch.Tensor], Dict[str, object]]:
-    """Trích xuất an toàn model_state_dict từ checkpoint của training_loop hoặc state_dict thuần."""
+    """Trích xuất an toàn model_state_dict từ checkpoint của training_loop."""
     raw_obj = torch.load(ckpt_path, map_location=device, weights_only=True)
     if isinstance(raw_obj, dict) and "model_state_dict" in raw_obj:
         meta = {k: v for k, v in raw_obj.items() if k != "model_state_dict"}
@@ -227,7 +173,7 @@ def extract_state_dict(
 
 
 def finetune_single_station(
-    model_name: Literal["lstm", "dlinear", "informer", "patchtst"],
+    model_name: str,
     station: str,
     station_loaders: Dict[str, DataLoader],
     pretrained_ckpt: str | Path,
@@ -237,7 +183,7 @@ def finetune_single_station(
     mode: str = "multivariate",
     epochs: int = 12,
     lr: float = 5e-5,
-    weight_decay: float = 1e-4,
+    weight_decay: float = 1e-3,
     patience: int = 3,
     freeze_backbone: bool = False,
     station_ckpt_dir: str | Path = "outputs/checkpoints/stations",
@@ -279,10 +225,14 @@ def finetune_single_station(
     model.load_state_dict(state_dict)
 
     # 1. Đánh giá Zero-shot TRƯỚC Fine-tuning trên train_dev, dev, test
-    criterion = nn.MSELoss()
-    before_train_dev = evaluate(model, station_loaders["train_dev"], criterion, device)
-    before_dev = evaluate(model, station_loaders["dev"], criterion, device)
-    before_test = evaluate(model, station_loaders["test"], criterion, device)
+    train_criterion = nn.HuberLoss(delta=1.0)
+    eval_criterion = nn.MSELoss()
+
+    before_train_dev = evaluate(
+        model, station_loaders["train_dev"], eval_criterion, device
+    )
+    before_dev = evaluate(model, station_loaders["dev"], eval_criterion, device)
+    before_test = evaluate(model, station_loaders["test"], eval_criterion, device)
 
     best_dev_loss = before_dev["loss"]
     best_epoch = 0
@@ -327,12 +277,12 @@ def finetune_single_station(
         _ = train_one_epoch(
             model=model,
             dataloader=station_loaders["train"],
-            criterion=criterion,
+            criterion=train_criterion,
             optimizer=optimizer,
             device=device,
             scaler=grad_scaler,
         )
-        dev_metrics = evaluate(model, station_loaders["dev"], criterion, device)
+        dev_metrics = evaluate(model, station_loaders["dev"], eval_criterion, device)
         scheduler.step(dev_metrics["loss"])
 
         if dev_metrics["loss"] < best_dev_loss:
@@ -356,9 +306,11 @@ def finetune_single_station(
     best_state_dict, _ = extract_state_dict(ft_ckpt_path, device)
     model.load_state_dict(best_state_dict)
 
-    after_train_dev = evaluate(model, station_loaders["train_dev"], criterion, device)
-    after_dev = evaluate(model, station_loaders["dev"], criterion, device)
-    after_test = evaluate(model, station_loaders["test"], criterion, device)
+    after_train_dev = evaluate(
+        model, station_loaders["train_dev"], eval_criterion, device
+    )
+    after_dev = evaluate(model, station_loaders["dev"], eval_criterion, device)
+    after_test = evaluate(model, station_loaders["test"], eval_criterion, device)
 
     mse_gain_pct = (
         ((before_test["mse"] - after_test["mse"]) / before_test["mse"]) * 100.0
@@ -377,7 +329,7 @@ def finetune_single_station(
     )
 
     print(
-        f"  [{model_name:<8} | {station:<14}] "
+        f"  [{model_name:<13} | {station:<14}] "
         f"MSE: {before_test['mse']:.4f} -> {after_test['mse']:.4f} ({mse_gain_pct:+.2f}%) | "
         f"RMSE: {before_test['rmse']:.4f} -> {after_test['rmse']:.4f} ({rmse_gain_pct:+.2f}%) | "
         f"MAE: {before_test['mae']:.4f} -> {after_test['mae']:.4f} ({mae_gain_pct:+.2f}%) "
@@ -415,20 +367,9 @@ def finetune_single_station(
     }
 
 
-def resolve_data_dir(data_dir: str | Path) -> Path:
-    """Tự động tìm thư mục chứa các file CSV PRSA nếu người dùng truyền thư mục cha data/raw."""
-    path = Path(data_dir)
-    if any(path.glob("*.csv")):
-        return path
-    nested = path / "PRSA_Data_20130301-20170228"
-    if nested.exists() and any(nested.glob("*.csv")):
-        return nested
-    return path
-
-
 def run_fine_tuning_pipeline(
     data_dir: str | Path = "data/raw",
-    models: Sequence[Literal["lstm", "dlinear", "informer", "patchtst"]] = ALL_MODELS,
+    models: Sequence[str] = DEFAULT_MODELS,
     stations: Optional[Sequence[str]] = None,
     mode: Literal["multivariate", "univariate"] = "multivariate",
     lookback: int = 96,
@@ -437,15 +378,14 @@ def run_fine_tuning_pipeline(
     batch_size: int = 256,
     epochs: int = 12,
     lr: float = 5e-5,
-    weight_decay: float = 1e-4,
+    weight_decay: float = 1e-3,
     patience: int = 3,
     freeze_backbone: bool = False,
     output_root: str | Path = "outputs",
     seed: int = 42,
 ) -> Dict[str, object]:
     """
-    Chạy Fine-tuning toàn bộ các mô hình (mặc định 4 mô hình) trên từng trạm (mặc định 12 trạm)
-    và xuất bảng đối chứng Trước vs. Sau.
+    Chạy Fine-tuning toàn bộ các mô hình trên từng trạm và xuất bảng đối chứng Trước vs. Sau.
     """
     set_seed(seed)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -459,30 +399,19 @@ def run_fine_tuning_pipeline(
     report_dir.mkdir(parents=True, exist_ok=True)
 
     scaler_path = global_ckpt_dir / f"scaler_12stations_{mode}.joblib"
-    resolved_dir = resolve_data_dir(data_dir)
-
-    df = load_pm25(resolved_dir)
-    df = clean_missing_values(df, target_col=TARGET_COL)
-    df = encode_features(df)
-    df = normalize_column_names(df)
-
-    scaler, feature_cols = load_or_fit_global_scaler(
-        df, mode=mode, scaler_path=scaler_path
+    scaled_splits, _, feature_cols = load_and_scale_with_wp01(
+        data_dir=data_dir, mode=mode, scaler_path=scaler_path
     )
-    # Đảm bảo tương thích ngược nếu scaler được fit với tên cột DEWP
-    if "DEWP" in feature_cols and "DEWP" not in df.columns and "DEW" in df.columns:
-        df = df.rename(columns={"DEW": "DEWP"})
-
     in_features = len(feature_cols)
 
-    all_stations = sorted(df["station"].dropna().unique().tolist())
+    all_stations = sorted(scaled_splits["train"]["station"].dropna().unique().tolist())
     target_stations = list(stations) if stations is not None else all_stations
 
     per_station_loaders: Dict[str, Dict[str, DataLoader]] = {
         st: build_single_station_loaders(
-            station_df=df[df["station"] == st],
+            scaled_splits=scaled_splits,
+            station=st,
             feature_cols=feature_cols,
-            scaler=scaler,
             lookback=lookback,
             horizon=horizon,
             stride=stride,
@@ -499,12 +428,12 @@ def run_fine_tuning_pipeline(
         pretrained_ckpt = (
             global_ckpt_dir / f"{model_name}_{mode}_H{horizon}_pretrained.pt"
         )
-        print("\n" + "=" * 84)
+        print("\n" + "=" * 88)
         print(
             f"[FINE-TUNE TỪNG TRẠM] Model={model_name.upper()} | Mode={mode} (D={in_features}) | "
-            f"H={horizon} | Số trạm={len(target_stations)}"
+            f"H={horizon} | Số trạm={len(target_stations)} | freeze_backbone={freeze_backbone}"
         )
-        print("=" * 84)
+        print("=" * 88)
 
         model_records: List[Dict[str, object]] = []
         for st in target_stations:
@@ -536,6 +465,7 @@ def run_fine_tuning_pipeline(
                 "model": model_name,
                 "mode": mode,
                 "horizon": horizon,
+                "freeze_backbone": freeze_backbone,
                 "mean_before_mse": round(
                     float(df_m["before_mse"].to_numpy().mean()), 6
                 ),
@@ -590,6 +520,7 @@ def run_fine_tuning_pipeline(
                     "mode": mode,
                     "lookback": lookback,
                     "horizon": horizon,
+                    "stride": stride,
                     "batch_size": batch_size,
                     "epochs": epochs,
                     "lr": lr,
@@ -626,10 +557,15 @@ def run_fine_tuning_pipeline(
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="T0304: Fine-tuning mô hình theo từng trạm"
+        description="T0304: Fine-tuning mô hình theo từng trạm dùng WP01 pipeline."
     )
     parser.add_argument("--data-dir", type=str, default="data/raw")
-    parser.add_argument("--models", nargs="+", default=ALL_MODELS, choices=ALL_MODELS)
+    parser.add_argument(
+        "--models",
+        nargs="+",
+        default=DEFAULT_MODELS,
+        choices=ALL_SUPPORTED_MODELS,
+    )
     parser.add_argument(
         "--stations",
         nargs="*",
@@ -648,7 +584,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--batch-size", type=int, default=256)
     parser.add_argument("--epochs", type=int, default=12)
     parser.add_argument("--lr", type=float, default=5e-5)
-    parser.add_argument("--weight-decay", type=float, default=1e-4)
+    parser.add_argument("--weight-decay", type=float, default=1e-3)
     parser.add_argument("--patience", type=int, default=3)
     parser.add_argument("--freeze-backbone", action="store_true")
     parser.add_argument("--output-root", type=str, default="outputs")
