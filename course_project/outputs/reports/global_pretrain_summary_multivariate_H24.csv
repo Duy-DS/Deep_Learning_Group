@@ -1,3 +1,5 @@
-﻿model,mode,horizon,best_epoch,global_test_mse,global_test_rmse,global_test_mae,checkpoint,log_file
-informer,multivariate,24,1,0.969892,0.984831,0.570348,outputs/checkpoints/global/informer_multivariate_H24_pretrained.pt,outputs/logs/pretrain_informer_multivariate_H24.csv
-patchtst,multivariate,24,3,0.681299,0.825409,0.52402,outputs/checkpoints/global/patchtst_multivariate_H24_pretrained.pt,outputs/logs/pretrain_patchtst_multivariate_H24.csv
+model,mode,horizon,num_seeds,seeds,trainable_params,mse_mean,mse_std,mse_mean_std,rmse_mean,rmse_std,rmse_mean_std,mae_mean,mae_std,mae_mean_std,train_time_mean_sec,train_time_std_sec,peak_vram_mean_mb,peak_vram_max_mb
+lstm,multivariate,24,3,"42,1024,2026",209432,1.002371,0.015847,1.002371 ± 0.015847,1.001164,0.007903,1.001164 ± 0.007903,0.648931,0.009065,0.648931 ± 0.009065,230.914,0.709,146.52,146.52
+dlinear,multivariate,24,3,"42,1024,2026",4672,0.672,0.008633,0.672000 ± 0.008633,0.819745,0.005257,0.819745 ± 0.005257,0.540623,0.005172,0.540623 ± 0.005172,40.269,5.154,15.61,15.61
+informer,multivariate,24,3,"42,1024,2026",467969,0.714215,0.012297,0.714215 ± 0.012297,0.845092,0.007281,0.845092 ± 0.007281,0.529133,0.004892,0.529133 ± 0.004892,818.334,1.826,426.18,426.68
+patchtst,multivariate,24,3,"42,1024,2026",434856,0.689759,0.014147,0.689759 ± 0.014147,0.830488,0.008526,0.830488 ± 0.008526,0.537466,0.010912,0.537466 ± 0.010912,5000.859,421.485,1476.1,1476.1

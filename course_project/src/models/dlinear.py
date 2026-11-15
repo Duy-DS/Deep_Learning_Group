@@ -1,5 +1,3 @@
-<<<<<<< HEAD
-=======
 """
 Mô-đun định nghĩa kiến trúc mô hình DLinear Baseline dự báo nồng độ PM2.5.
 
@@ -24,6 +22,7 @@ import torch.nn as nn
 # ---------------------------------------------------------------------------
 # Lớp cơ sở (kế thừa hợp đồng kiến trúc từ AGENTS.md)
 # ---------------------------------------------------------------------------
+
 
 class BaseTimeSeriesModel(nn.Module):
     """
@@ -58,12 +57,15 @@ class BaseTimeSeriesModel(nn.Module):
         Trả về:
             torch.Tensor: Tensor dự báo kích thước [Batch, Horizon, 1].
         """
-        raise NotImplementedError("Các lớp con bắt buộc phải định nghĩa phương thức forward().")
+        raise NotImplementedError(
+            "Các lớp con bắt buộc phải định nghĩa phương thức forward()."
+        )
 
 
 # ---------------------------------------------------------------------------
 # Tầng trích xuất xu hướng bằng trung bình trượt (Moving Average Block)
 # ---------------------------------------------------------------------------
+
 
 class MovingAverageBlock(nn.Module):
     """
@@ -114,6 +116,7 @@ class MovingAverageBlock(nn.Module):
 # Tầng phân tách chuỗi thời gian (Series Decomposition Block)
 # ---------------------------------------------------------------------------
 
+
 class SeriesDecompositionBlock(nn.Module):
     """
     Khối phân tách chuỗi thời gian thành hai thành phần độc lập:
@@ -149,6 +152,7 @@ class SeriesDecompositionBlock(nn.Module):
 # ---------------------------------------------------------------------------
 # Mô hình DLinear Baseline chính
 # ---------------------------------------------------------------------------
+
 
 class DLinearModel(BaseTimeSeriesModel):
     """
@@ -287,6 +291,7 @@ class DLinearModel(BaseTimeSeriesModel):
 # Smoke test nội bộ
 # ---------------------------------------------------------------------------
 
+
 def _run_smoke_test() -> None:
     """
     Kiểm tra nhanh tính đúng đắn của DLinearModel với tensor tổng hợp.
@@ -296,13 +301,16 @@ def _run_smoke_test() -> None:
 
     batch_size = 4
     lookback = 96
-    in_features_multi = 15   # Đa biến
-    in_features_uni = 1      # Đơn biến
+    in_features_multi = 15  # Đa biến
+    in_features_uni = 1  # Đơn biến
 
     for horizon in [24, 48, 96, 192]:
         # Kiểm thử chế độ đa biến
         multi_model = DLinearModel(
-            lookback=lookback, horizon=horizon, in_features=in_features_multi, kernel_size=25
+            lookback=lookback,
+            horizon=horizon,
+            in_features=in_features_multi,
+            kernel_size=25,
         )
         x_multi = torch.randn(batch_size, lookback, in_features_multi)
         y_multi = multi_model(x_multi)
@@ -318,7 +326,10 @@ def _run_smoke_test() -> None:
 
         # Kiểm thử chế độ đơn biến (Ablation)
         uni_model = DLinearModel(
-            lookback=lookback, horizon=horizon, in_features=in_features_uni, kernel_size=25
+            lookback=lookback,
+            horizon=horizon,
+            in_features=in_features_uni,
+            kernel_size=25,
         )
         x_uni = torch.randn(batch_size, lookback, in_features_uni)
         y_uni = uni_model(x_uni)
@@ -333,7 +344,9 @@ def _run_smoke_test() -> None:
         )
 
     # Kiểm thử lan truyền gradient (backpropagation)
-    test_model = DLinearModel(lookback=lookback, horizon=24, in_features=in_features_multi)
+    test_model = DLinearModel(
+        lookback=lookback, horizon=24, in_features=in_features_multi
+    )
     x_test = torch.randn(batch_size, lookback, in_features_multi)
     y_test = test_model(x_test)
     loss = y_test.mean()
@@ -359,9 +372,10 @@ def _run_smoke_test() -> None:
     except ValueError as err:
         print(f"[INFO] Kiểm thử ValueError (features sai): '{err}' → PASS")
 
-    print("[SUCCESS] Toàn bộ smoke test DLinearModel: PASS. Sẵn sàng tích hợp vào training_loop.py.")
+    print(
+        "[SUCCESS] Toàn bộ smoke test DLinearModel: PASS. Sẵn sàng tích hợp vào training_loop.py."
+    )
 
 
 if __name__ == "__main__":
     _run_smoke_test()
->>>>>>> 93e2c62c1c7cf32501ff9845fa9a7d984c7791a0
