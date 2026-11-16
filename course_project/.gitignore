@@ -1,0 +1,39 @@
+# Cache và bytecode Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Trọng số mô hình và artifact huấn luyện
+*.pth
+*.pt
+*.onnx
+*.ckpt
+*.h5
+checkpoints/
+weights/
+outputs/checkpoints/
+
+# Dữ liệu và kết quả dạng bảng (chỉ giữ .gitkeep trong thư mục dữ liệu)
+data/raw/*
+!data/raw/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+*.csv
+*.parquet
+*.feather
+
+# Môi trường cục bộ và cache công cụ
+.venv/
+venv/
+env/
+.env
+.ipynb_checkpoints/
+.ignore/
+
+# Bằng chứng Markdown luôn được phép theo dõi bằng Git
+!docs/
+!docs/bug-fixes/*.md
+!docs/dev-logs/*.md
+!docs/reports/*.md
+!docs/experiences/*.md
