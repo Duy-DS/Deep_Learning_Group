@@ -27,7 +27,7 @@ data/processed/*
 *.onnx
 
 # Program outputs & artifacts (Ignore generated files but preserve directory structure)
-outputs/*
+outputs/**
 !outputs/**/
 !**/.gitkeep
 
