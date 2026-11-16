@@ -11,13 +11,13 @@ Tính năng:
 """
 
 from __future__ import annotations
-
+from training_loop import apply_yaml_config
 import argparse
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence
 
 import pandas as pd
-
+import yaml
 from fine_tune import run_fine_tuning_pipeline
 from training_loop import DEFAULT_MODELS, TrainingPipeline
 
@@ -535,7 +535,21 @@ def parse_args() -> argparse.Namespace:
         help="Bắt buộc chạy lại từ đầu kể cả khi đã có file CSV kết quả.",
     )
     parser.set_defaults(skip_existing=True)
-    return parser.parse_args()
+    apply_yaml_config(parser, ["paths", "data", "pretrain", "ablation"])
+    pre_args, _ = parser.parse_known_args()
+    if Path(pre_args.config).exists():
+        with open(pre_args.config, "r", encoding="utf-8") as f:
+            ft_cfg = (yaml.safe_load(f) or {}).get("finetune", {})
+        parser.set_defaults(
+            ft_batch_size=ft_cfg.get("batch_size", 256),
+            ft_epochs=ft_cfg.get("epochs", 12),
+            ft_lr=ft_cfg.get("lr", 3e-5),
+        )
+
+    args = parser.parse_args()
+    args.data_dir = Path(args.data_dir)
+    args.output_dir = Path(args.output_dir)
+    return args
 
 
 if __name__ == "__main__":

@@ -10,7 +10,7 @@ trên dữ liệu 12 trạm quan trắc.
 """
 
 from __future__ import annotations
-
+import yaml
 import argparse
 import gc
 import inspect
@@ -134,6 +134,23 @@ def set_seed(seed: int) -> None:
     if torch.cuda.is_available():
         torch.cuda.manual_seed(seed)
         torch.cuda.manual_seed_all(seed)
+
+
+def apply_yaml_config(parser: argparse.ArgumentParser, sections: list[str]) -> None:
+    parser.add_argument("--config", type=str, default="configs/default.yaml")
+    pre_args, _ = parser.parse_known_args()
+    cfg_path = Path(pre_args.config)
+    if not cfg_path.exists():
+        return
+    with open(cfg_path, "r", encoding="utf-8") as f:
+        cfg = yaml.safe_load(f) or {}
+
+    merged: dict = {}
+    for sec in sections:
+        merged.update(cfg.get(sec, {}))
+
+    valid_dests = {action.dest for action in parser._actions}
+    parser.set_defaults(**{k: v for k, v in merged.items() if k in valid_dests})
 
 
 def resolve_data_dir(data_dir: str | Path) -> Path:
@@ -750,6 +767,7 @@ def parse_args() -> argparse.Namespace:
         default="multivariate",
         choices=["multivariate", "univariate"],
     )
+
     parser.add_argument("--lookback", type=int, default=96)
     parser.add_argument("--horizon", type=int, default=24, choices=[24, 48, 96, 192])
     parser.add_argument("--batch-size", type=int, default=512)
@@ -766,7 +784,11 @@ def parse_args() -> argparse.Namespace:
         default=[42, 1024, 2026],
         help="Danh sách hạt giống ngẫu nhiên (mặc định 3 seeds: 42 1024 2026).",
     )
-    return parser.parse_args()
+    apply_yaml_config(parser, ["paths", "data", "pretrain"])
+    args = parser.parse_args()
+    args.data_dir = Path(args.data_dir)
+    args.output_dir = Path(args.output_dir)
+    return args
 
 
 if __name__ == "__main__":

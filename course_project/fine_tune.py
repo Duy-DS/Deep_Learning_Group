@@ -7,7 +7,7 @@ T0304 — Fine-Tuning mô hình Pre-trained cho từng trạm quan trắc PM2.5 
 """
 
 from __future__ import annotations
-
+from training_loop import apply_yaml_config
 import argparse
 import gc
 import json
@@ -592,6 +592,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--output-root", type=str, default="outputs")
     parser.add_argument("--seed", type=int, default=42)
+    apply_yaml_config(parser, ["paths", "data", "finetune"])
     return parser.parse_args()
 
 
