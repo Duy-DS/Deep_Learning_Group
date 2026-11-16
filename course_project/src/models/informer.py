@@ -5,6 +5,8 @@ Tuân thủ hợp đồng kiến trúc BaseTimeSeriesModel [B, L, D] -> [B, H, 1
 """
 
 import math
+from typing import Optional
+
 import numpy as np
 import torch
 import torch.nn as nn

@@ -1,8 +1,9 @@
 """
 T0304 — Fine-Tuning mô hình Pre-trained cho từng trạm quan trắc PM2.5 Bắc Kinh:
-- Nạp trọng số nền (từ T0301) và Global StandardScaler.
-- Đánh giá hiệu năng Trước (Zero-shot) và Sau khi Fine-tuning trên từng trạm.
-- Lưu 48 bộ trọng số riêng (4 mô hình x 12 trạm) cùng bảng báo cáo mức cải thiện.
+- Sử dụng trực tiếp WP01 pipeline (load_pm25, clean_missing_values, encode_features,
+  chronological_split, scale_splits, make_sliding_windows).
+- Kế thừa RevINModelWrapper từ training_loop.py, đóng băng backbone mặc định để tránh
+  quá khớp trên dữ liệu đơn trạm và đảm bảo dev_loss giảm ổn định.
 """
 
 from __future__ import annotations
@@ -10,8 +11,9 @@ from __future__ import annotations
 import argparse
 import gc
 import json
+import time
 from pathlib import Path
-from typing import Dict, List, Literal, Optional, Sequence
+from typing import Dict, List, Literal, Optional, Sequence, Tuple
 
 import joblib
 import pandas as pd
@@ -20,87 +22,90 @@ import torch.nn as nn
 from sklearn.preprocessing import StandardScaler
 from torch.utils.data import DataLoader, TensorDataset
 
-# Tương thích linh hoạt các cấu trúc thư mục trong repository
-try:
-    from src.data_pipeline.preprocess import (
-        TARGET_COL,
-        chronological_split,
-        clean_missing_values,
-        encode_features,
-        load_pm25,
-    )
-    from src.data_pipeline.dataset import make_sliding_windows
-except ImportError:
-    from src.data_pipeline.preprocess import (
-        TARGET_COL,
-        chronological_split,
-        clean_missing_values,
-        encode_features,
-        load_pm25,
-    )
-    from src.data_pipeline.dataset import make_sliding_windows
-# Kế thừa trực tiếp từ T0301 (training_loop.py)
+from src.data_pipeline.dataset import make_sliding_windows
+from src.data_pipeline.preprocess import (
+    TARGET_COL,
+    chronological_split,
+    clean_missing_values,
+    encode_features,
+    load_pm25,
+    scale_splits,
+)
 from training_loop import (
-    ALL_MODELS,
+    ALL_SUPPORTED_MODELS,
+    DEFAULT_MODELS,
     build_model,
     evaluate,
     get_feature_columns,
+    resolve_data_dir,
     set_seed,
-    sort_station_df,
     train_one_epoch,
 )
 
 
-def load_global_scaler(
-    df: pd.DataFrame,
-    feature_cols: List[str],
-    scaler_path: str | Path,
-) -> StandardScaler:
-    """
-    Nạp Global StandardScaler đã lưu ở bước Pre-training (T0301).
-    Nếu chưa tồn tại, tự động khớp trên tập train (60%) gộp của 12 trạm.
-    """
-    scaler_file = Path(scaler_path)
-    if scaler_file.exists():
-        return joblib.load(scaler_file)
+def load_and_scale_with_wp01(
+    data_dir: str | Path,
+    mode: str,
+    scaler_path: Path,
+) -> Tuple[Dict[str, pd.DataFrame], StandardScaler, List[str]]:
+    """Nạp dữ liệu 12 trạm bằng WP01 pipeline và chuẩn hóa bằng Global StandardScaler."""
+    resolved_dir = resolve_data_dir(data_dir)
+    df = load_pm25(resolved_dir)
+    df = clean_missing_values(df, target_col=TARGET_COL)
+    df = encode_features(df)
 
-    train_frames = []
-    for _, s_df in df.groupby("station", sort=True):
-        splits = chronological_split(sort_station_df(s_df.copy()))
-        train_frames.append(splits["train"][feature_cols])
+    feature_cols = get_feature_columns(df, mode=mode, target_col=TARGET_COL)
+    splits = chronological_split(df)
 
-    scaler = StandardScaler()
-    scaler.fit(pd.concat(train_frames, axis=0, ignore_index=True))
-    scaler_file.parent.mkdir(parents=True, exist_ok=True)
-    joblib.dump(scaler, scaler_file)
-    return scaler
+    if scaler_path.exists():
+        scaler: StandardScaler = joblib.load(scaler_path)
+        if (
+            hasattr(scaler, "feature_names_in_")
+            and list(scaler.feature_names_in_) != feature_cols
+        ):
+            scaled_splits, scaler = scale_splits(
+                splits, feature_cols=feature_cols, scaler_path=scaler_path
+            )
+        else:
+            scaled_splits = {}
+            for split_name in ["train", "train_dev", "dev", "test"]:
+                part = splits[split_name].copy()
+                part[feature_cols] = scaler.transform(part[feature_cols])
+                scaled_splits[split_name] = part
+    else:
+        scaled_splits, scaler = scale_splits(
+            splits, feature_cols=feature_cols, scaler_path=scaler_path
+        )
+
+    return scaled_splits, scaler, feature_cols
 
 
 def build_single_station_loaders(
-    station_df: pd.DataFrame,
+    scaled_splits: Dict[str, pd.DataFrame],
+    station: str,
     feature_cols: List[str],
-    scaler: StandardScaler,
     lookback: int = 96,
     horizon: int = 24,
-    stride: int = 1,
-    batch_size: int = 64,
+    stride: int = 6,
+    batch_size: int = 256,
+    use_pin_memory: bool = False,
 ) -> Dict[str, DataLoader]:
-    """Tạo bộ DataLoader (train, train_dev, dev, test) cho riêng 1 trạm."""
-    sorted_df = sort_station_df(station_df.copy())
-    splits = chronological_split(sorted_df)
-
+    """Tạo bộ DataLoader (train, train_dev, dev, test) cho riêng 1 trạm từ dữ liệu đã scale."""
+    num_workers = 4 if use_pin_memory else 0
     loaders: Dict[str, DataLoader] = {}
+
     for split_name in ["train", "train_dev", "dev", "test"]:
-        scaled_df = splits[split_name].copy()
-        scaled_df[feature_cols] = scaler.transform(scaled_df[feature_cols])
+        st_df = scaled_splits[split_name]
+        st_df = st_df[st_df["station"] == station].reset_index(drop=True)
+        current_stride = stride if split_name == "train" else 1
 
         X, y = make_sliding_windows(
-            scaled_df,
+            st_df,
             feature_cols=feature_cols,
             target_col=TARGET_COL,
             lookback=lookback,
             horizon=horizon,
-            stride=stride,
+            stride=current_stride,
         )
         ds = TensorDataset(torch.from_numpy(X), torch.from_numpy(y))
         loaders[split_name] = DataLoader(
@@ -108,6 +113,9 @@ def build_single_station_loaders(
             batch_size=batch_size,
             shuffle=(split_name == "train"),
             drop_last=False,
+            pin_memory=use_pin_memory,
+            num_workers=num_workers,
+            persistent_workers=(num_workers > 0),
         )
     return loaders
 
@@ -115,12 +123,13 @@ def build_single_station_loaders(
 def configure_trainable_layers(
     model: nn.Module,
     model_name: str,
-    freeze_backbone: bool = False,
+    freeze_backbone: bool = True,
 ) -> None:
     """
     Cấu hình các lớp được phép cập nhật khi Fine-tuning:
+    - freeze_backbone=True : Giữ nguyên bộ trích xuất đặc trưng nền 12 trạm, chỉ tinh chỉnh
+      lớp dự báo đầu ra (head/fc/projection) và hệ số hiệu chỉnh RevIN của trạm.
     - freeze_backbone=False: Tinh chỉnh toàn bộ mạng với learning rate nhỏ.
-    - freeze_backbone=True : Đóng băng encoder/backbone, chỉ tinh chỉnh lớp dự báo đầu ra.
     """
     for param in model.parameters():
         param.requires_grad = True
@@ -132,11 +141,15 @@ def configure_trainable_layers(
         param.requires_grad = False
 
     head_keywords = {
-        "lstm": ("fc", "head", "proj", "linear"),
+        "lstm": ("fc", "head", "proj", "linear", "revin", "affine"),
         "dlinear": ("linear_seasonal", "linear_trend", "linear"),
-        "informer": ("decoder", "projection", "proj", "head"),
-        "patchtst": ("head", "projection", "proj", "linear"),
-    }.get(model_name.strip().lower(), ("head", "fc", "projection", "decoder"))
+        "informer": ("decoder", "projection", "proj", "head", "revin", "affine"),
+        "informer_full": ("decoder", "projection", "proj", "head", "revin", "affine"),
+        "patchtst": ("head", "projection", "proj", "linear", "revin", "affine"),
+    }.get(
+        model_name.strip().lower(),
+        ("head", "fc", "projection", "decoder", "revin", "affine"),
+    )
 
     unfrozen = 0
     for param_name, param in model.named_parameters():
@@ -149,8 +162,19 @@ def configure_trainable_layers(
             param.requires_grad = True
 
 
+def extract_state_dict(
+    ckpt_path: Path, device: torch.device
+) -> Tuple[Dict[str, torch.Tensor], Dict[str, object]]:
+    """Trích xuất an toàn model_state_dict từ checkpoint của training_loop."""
+    raw_obj = torch.load(ckpt_path, map_location=device, weights_only=True)
+    if isinstance(raw_obj, dict) and "model_state_dict" in raw_obj:
+        meta = {k: v for k, v in raw_obj.items() if k != "model_state_dict"}
+        return raw_obj["model_state_dict"], meta
+    return raw_obj, {}
+
+
 def finetune_single_station(
-    model_name: Literal["lstm", "dlinear", "informer", "patchtst"],
+    model_name: str,
     station: str,
     station_loaders: Dict[str, DataLoader],
     pretrained_ckpt: str | Path,
@@ -158,17 +182,20 @@ def finetune_single_station(
     lookback: int = 96,
     horizon: int = 24,
     mode: str = "multivariate",
-    epochs: int = 15,
-    lr: float = 1e-4,
+    epochs: int = 12,
+    lr: float = 3e-5,
+    weight_decay: float = 1e-2,
     patience: int = 4,
-    freeze_backbone: bool = False,
+    freeze_backbone: bool = True,
     station_ckpt_dir: str | Path = "outputs/checkpoints/stations",
+    seed: int = 42,
     device: Optional[torch.device] = None,
 ) -> Dict[str, object]:
     """
     Nạp trọng số nền của 1 mô hình, đo Zero-shot (Trước), Fine-tune trên 1 trạm
     và đo lại (Sau) để lưu trọng số trạm cùng mức cải thiện.
     """
+    set_seed(seed)
     pretrained_ckpt = Path(pretrained_ckpt)
     if not pretrained_ckpt.exists():
         raise FileNotFoundError(
@@ -181,55 +208,110 @@ def finetune_single_station(
     out_dir.mkdir(parents=True, exist_ok=True)
     ft_ckpt_path = out_dir / f"{model_name}_{mode}_H{horizon}_finetuned.pt"
 
+    state_dict, ckpt_meta = extract_state_dict(pretrained_ckpt, device)
+    ckpt_in_features = int(ckpt_meta.get("in_features", in_features))
+    ckpt_dropout = float(ckpt_meta.get("dropout", 0.3))
+    if ckpt_in_features != in_features:
+        raise ValueError(
+            f"Lệch số đặc trưng đầu vào giữa Scaler ({in_features}) và "
+            f"Checkpoint {pretrained_ckpt.name} ({ckpt_in_features})."
+        )
+
     model = build_model(
         model_name=model_name,
         lookback=lookback,
         horizon=horizon,
         in_features=in_features,
-    ).to(device)
-    model.load_state_dict(torch.load(pretrained_ckpt, map_location=device))
+        device=device,
+        dropout=ckpt_dropout,
+    )
+    model.load_state_dict(state_dict)
 
-    criterion = nn.MSELoss()
-    before_train_dev = evaluate(model, station_loaders["train_dev"], criterion, device)
-    before_dev = evaluate(model, station_loaders["dev"], criterion, device)
-    before_test = evaluate(model, station_loaders["test"], criterion, device)
+    train_criterion = nn.HuberLoss(delta=1.0)
+    eval_criterion = nn.MSELoss()
+
+    before_train_dev = evaluate(
+        model, station_loaders["train_dev"], eval_criterion, device
+    )
+    before_dev = evaluate(model, station_loaders["dev"], eval_criterion, device)
+    before_test = evaluate(model, station_loaders["test"], eval_criterion, device)
 
     best_dev_loss = before_dev["loss"]
     best_epoch = 0
-    torch.save(model.state_dict(), ft_ckpt_path)
 
-    # 2. Thiết lập lớp huấn luyện & Optimizer
+    def _save_station_ckpt(epoch_idx: int, dev_loss_val: float) -> None:
+        torch.save(
+            {
+                "model_name": model_name,
+                "station": station,
+                "mode": mode,
+                "lookback": lookback,
+                "horizon": horizon,
+                "in_features": in_features,
+                "dropout": ckpt_dropout,
+                "seed": seed,
+                "best_epoch": epoch_idx,
+                "best_dev_loss": dev_loss_val,
+                "model_state_dict": model.state_dict(),
+            },
+            ft_ckpt_path,
+        )
+
+    _save_station_ckpt(epoch_idx=0, dev_loss_val=best_dev_loss)
+
     configure_trainable_layers(
         model, model_name=model_name, freeze_backbone=freeze_backbone
     )
     trainable_params = [p for p in model.parameters() if p.requires_grad]
-    optimizer = torch.optim.AdamW(trainable_params, lr=lr, weight_decay=1e-5)
+    optimizer = torch.optim.AdamW(trainable_params, lr=lr, weight_decay=weight_decay)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, mode="min", factor=0.5, patience=2
+        optimizer, mode="min", factor=0.5, patience=1
     )
+    grad_scaler = torch.amp.GradScaler("cuda", enabled=(device.type == "cuda"))
+
+    if device.type == "cuda":
+        torch.cuda.synchronize(device)
+        torch.cuda.reset_peak_memory_stats(device)
+    t_start = time.perf_counter()
 
     epochs_no_improve = 0
     for epoch in range(1, epochs + 1):
         _ = train_one_epoch(
-            model, station_loaders["train"], criterion, optimizer, device
+            model=model,
+            dataloader=station_loaders["train"],
+            criterion=train_criterion,
+            optimizer=optimizer,
+            device=device,
+            scaler=grad_scaler,
         )
-        dev_metrics = evaluate(model, station_loaders["dev"], criterion, device)
+        dev_metrics = evaluate(model, station_loaders["dev"], eval_criterion, device)
         scheduler.step(dev_metrics["loss"])
 
         if dev_metrics["loss"] < best_dev_loss:
             best_dev_loss = dev_metrics["loss"]
             best_epoch = epoch
             epochs_no_improve = 0
-            torch.save(model.state_dict(), ft_ckpt_path)
+            _save_station_ckpt(epoch_idx=best_epoch, dev_loss_val=best_dev_loss)
         else:
             epochs_no_improve += 1
             if epochs_no_improve >= patience:
                 break
 
-    model.load_state_dict(torch.load(ft_ckpt_path, map_location=device))
-    after_train_dev = evaluate(model, station_loaders["train_dev"], criterion, device)
-    after_dev = evaluate(model, station_loaders["dev"], criterion, device)
-    after_test = evaluate(model, station_loaders["test"], criterion, device)
+    if device.type == "cuda":
+        torch.cuda.synchronize(device)
+        peak_vram_mb = torch.cuda.max_memory_allocated(device) / (1024.0**2)
+    else:
+        peak_vram_mb = 0.0
+    finetune_time_sec = time.perf_counter() - t_start
+
+    best_state_dict, _ = extract_state_dict(ft_ckpt_path, device)
+    model.load_state_dict(best_state_dict)
+
+    after_train_dev = evaluate(
+        model, station_loaders["train_dev"], eval_criterion, device
+    )
+    after_dev = evaluate(model, station_loaders["dev"], eval_criterion, device)
+    after_test = evaluate(model, station_loaders["test"], eval_criterion, device)
 
     mse_gain_pct = (
         ((before_test["mse"] - after_test["mse"]) / before_test["mse"]) * 100.0
@@ -248,15 +330,15 @@ def finetune_single_station(
     )
 
     print(
-        f"  [{model_name:<8} | {station:<14}] "
+        f"  [{model_name:<13} | {station:<14}] "
         f"MSE: {before_test['mse']:.4f} -> {after_test['mse']:.4f} ({mse_gain_pct:+.2f}%) | "
         f"RMSE: {before_test['rmse']:.4f} -> {after_test['rmse']:.4f} ({rmse_gain_pct:+.2f}%) | "
         f"MAE: {before_test['mae']:.4f} -> {after_test['mae']:.4f} ({mae_gain_pct:+.2f}%) "
-        f"[best_ep={best_epoch}]"
+        f"[best_ep={best_epoch}, {finetune_time_sec:.2f}s]"
     )
 
-    del model, optimizer
-    if torch.cuda.is_available():
+    del model, optimizer, scheduler, grad_scaler
+    if device.type == "cuda":
         torch.cuda.empty_cache()
 
     return {
@@ -266,6 +348,8 @@ def finetune_single_station(
         "horizon": horizon,
         "freeze_backbone": freeze_backbone,
         "best_epoch": best_epoch,
+        "finetune_time_sec": round(finetune_time_sec, 3),
+        "peak_vram_mb": round(peak_vram_mb, 2),
         "before_train_dev_rmse": round(before_train_dev["rmse"], 6),
         "after_train_dev_rmse": round(after_train_dev["rmse"], 6),
         "before_dev_rmse": round(before_dev["rmse"], 6),
@@ -285,27 +369,26 @@ def finetune_single_station(
 
 
 def run_fine_tuning_pipeline(
-    data_dir: str | Path = "data/raw/PRSA_Data_20130301-20170228",
-    models: Sequence[Literal["lstm", "dlinear", "informer", "patchtst"]] = ALL_MODELS,
+    data_dir: str | Path = "data/raw",
+    models: Sequence[str] = DEFAULT_MODELS,
     stations: Optional[Sequence[str]] = None,
     mode: Literal["multivariate", "univariate"] = "multivariate",
     lookback: int = 96,
     horizon: int = 24,
-    stride: int = 1,
-    batch_size: int = 64,
-    epochs: int = 15,
-    lr: float = 1e-4,
+    stride: int = 6,
+    batch_size: int = 256,
+    epochs: int = 12,
+    lr: float = 3e-5,
+    weight_decay: float = 1e-2,
     patience: int = 4,
-    freeze_backbone: bool = False,
+    freeze_backbone: bool = True,
     output_root: str | Path = "outputs",
     seed: int = 42,
 ) -> Dict[str, object]:
-    """
-    Chạy Fine-tuning toàn bộ các mô hình (mặc định 4 mô hình) trên từng trạm (mặc định 12 trạm)
-    và xuất bảng đối chứng Trước vs. Sau.
-    """
+    """Chạy Fine-tuning toàn bộ các mô hình trên từng trạm và xuất bảng đối chứng."""
     set_seed(seed)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    use_pin_memory = device.type == "cuda"
 
     output_root = Path(output_root)
     global_ckpt_dir = output_root / "checkpoints" / "global"
@@ -315,27 +398,24 @@ def run_fine_tuning_pipeline(
     report_dir.mkdir(parents=True, exist_ok=True)
 
     scaler_path = global_ckpt_dir / f"scaler_12stations_{mode}.joblib"
-
-    df = load_pm25(data_dir)
-    df = clean_missing_values(df, target_col=TARGET_COL)
-    df = encode_features(df)
-
-    feature_cols = get_feature_columns(df, mode=mode, target_col=TARGET_COL)
+    scaled_splits, _, feature_cols = load_and_scale_with_wp01(
+        data_dir=data_dir, mode=mode, scaler_path=scaler_path
+    )
     in_features = len(feature_cols)
-    scaler = load_global_scaler(df, feature_cols=feature_cols, scaler_path=scaler_path)
 
-    all_stations = sorted(df["station"].dropna().unique().tolist())
+    all_stations = sorted(scaled_splits["train"]["station"].dropna().unique().tolist())
     target_stations = list(stations) if stations is not None else all_stations
 
     per_station_loaders: Dict[str, Dict[str, DataLoader]] = {
         st: build_single_station_loaders(
-            station_df=df[df["station"] == st],
+            scaled_splits=scaled_splits,
+            station=st,
             feature_cols=feature_cols,
-            scaler=scaler,
             lookback=lookback,
             horizon=horizon,
             stride=stride,
             batch_size=batch_size,
+            use_pin_memory=use_pin_memory,
         )
         for st in target_stations
     }
@@ -347,12 +427,12 @@ def run_fine_tuning_pipeline(
         pretrained_ckpt = (
             global_ckpt_dir / f"{model_name}_{mode}_H{horizon}_pretrained.pt"
         )
-        print("\n" + "=" * 80)
+        print("\n" + "=" * 88)
         print(
-            f"[FINE-TUNE TỪNG TRẠM] Model={model_name.upper()} | Mode={mode} | "
-            f"H={horizon} | Số trạm={len(target_stations)}"
+            f"[FINE-TUNE TỪNG TRẠM] Model={model_name.upper()} | Mode={mode} (D={in_features}) | "
+            f"H={horizon} | Số trạm={len(target_stations)} | freeze_backbone={freeze_backbone}"
         )
-        print("=" * 80)
+        print("=" * 88)
 
         model_records: List[Dict[str, object]] = []
         for st in target_stations:
@@ -367,9 +447,11 @@ def run_fine_tuning_pipeline(
                 mode=mode,
                 epochs=epochs,
                 lr=lr,
+                weight_decay=weight_decay,
                 patience=patience,
                 freeze_backbone=freeze_backbone,
                 station_ckpt_dir=station_ckpt_dir,
+                seed=seed,
                 device=device,
             )
             model_records.append(rec)
@@ -382,6 +464,7 @@ def run_fine_tuning_pipeline(
                 "model": model_name,
                 "mode": mode,
                 "horizon": horizon,
+                "freeze_backbone": freeze_backbone,
                 "mean_before_mse": round(
                     float(df_m["before_mse"].to_numpy().mean()), 6
                 ),
@@ -405,6 +488,15 @@ def run_fine_tuning_pipeline(
                 "avg_mae_gain_pct": round(
                     float(df_m["mae_improvement_pct"].to_numpy().mean()), 3
                 ),
+                "mean_finetune_time_sec": round(
+                    float(df_m["finetune_time_sec"].to_numpy().mean()), 3
+                ),
+                "total_finetune_time_sec": round(
+                    float(df_m["finetune_time_sec"].to_numpy().sum()), 3
+                ),
+                "peak_vram_max_mb": round(
+                    float(df_m["peak_vram_mb"].to_numpy().max()), 2
+                ),
                 "stations_improved": f"{win_count}/{len(target_stations)}",
             }
         )
@@ -427,8 +519,11 @@ def run_fine_tuning_pipeline(
                     "mode": mode,
                     "lookback": lookback,
                     "horizon": horizon,
+                    "stride": stride,
+                    "batch_size": batch_size,
                     "epochs": epochs,
                     "lr": lr,
+                    "weight_decay": weight_decay,
                     "freeze_backbone": freeze_backbone,
                     "seed": seed,
                 },
@@ -440,12 +535,16 @@ def run_fine_tuning_pipeline(
             indent=2,
         )
 
-    print("\n" + "=" * 90)
+    print("\n" + "=" * 96)
     print(f"TỔNG HỢP TRƯỚC VS. SAU FINE-TUNING (MODE={mode}, H={horizon})")
-    print("=" * 90)
+    print("=" * 96)
     print(summary_df.to_string(index=False))
-    print(f"\n[SAVED] Chi tiết từng trạm (48 dòng): {detail_csv}")
-    print(f"[SAVED] Tổng hợp theo mô hình (4 dòng): {summary_csv}")
+    print(
+        f"\n[SAVED] Chi tiết từng trạm ({len(all_station_records)} dòng): {detail_csv}"
+    )
+    print(
+        f"[SAVED] Tổng hợp theo mô hình ({len(model_summary_records)} dòng): {summary_csv}"
+    )
 
     return {
         "model_summary": model_summary_records,
@@ -457,12 +556,15 @@ def run_fine_tuning_pipeline(
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="T0304: Fine-tuning mô hình theo từng trạm"
+        description="T0304: Fine-tuning mô hình theo từng trạm dùng WP01 pipeline."
     )
+    parser.add_argument("--data-dir", type=str, default="data/raw")
     parser.add_argument(
-        "--data-dir", type=str, default="data/raw/PRSA_Data_20130301-20170228"
+        "--models",
+        nargs="+",
+        default=DEFAULT_MODELS,
+        choices=ALL_SUPPORTED_MODELS,
     )
-    parser.add_argument("--models", nargs="+", default=ALL_MODELS, choices=ALL_MODELS)
     parser.add_argument(
         "--stations",
         nargs="*",
@@ -477,12 +579,17 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--lookback", type=int, default=96)
     parser.add_argument("--horizon", type=int, default=24, choices=[24, 48, 96, 192])
-    parser.add_argument("--stride", type=int, default=1)
-    parser.add_argument("--batch-size", type=int, default=64)
-    parser.add_argument("--epochs", type=int, default=15)
-    parser.add_argument("--lr", type=float, default=1e-4)
+    parser.add_argument("--stride", type=int, default=6)
+    parser.add_argument("--batch-size", type=int, default=256)
+    parser.add_argument("--epochs", type=int, default=12)
+    parser.add_argument("--lr", type=float, default=3e-5)
+    parser.add_argument("--weight-decay", type=float, default=1e-2)
     parser.add_argument("--patience", type=int, default=4)
-    parser.add_argument("--freeze-backbone", action="store_true")
+    parser.add_argument(
+        "--unfreeze-backbone",
+        action="store_true",
+        help="Mở khóa toàn bộ backbone (mặc định đóng băng backbone để chống overfit).",
+    )
     parser.add_argument("--output-root", type=str, default="outputs")
     parser.add_argument("--seed", type=int, default=42)
     return parser.parse_args()
@@ -501,8 +608,9 @@ if __name__ == "__main__":
         batch_size=args.batch_size,
         epochs=args.epochs,
         lr=args.lr,
+        weight_decay=args.weight_decay,
         patience=args.patience,
-        freeze_backbone=args.freeze_backbone,
+        freeze_backbone=(not args.unfreeze_backbone),
         output_root=args.output_root,
         seed=args.seed,
     )

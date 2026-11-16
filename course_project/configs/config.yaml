@@ -1,0 +1,74 @@
+# Cấu hình chuẩn của dự án dự báo PM2.5 tại Bắc Kinh.
+
+project:
+  name: "DL-PM25-BJ"
+  task_code: "BPM25"
+  seeds: [42, 1024, 2026]
+  device: "cpu"
+
+data:
+  raw_dir: "data/raw"
+  processed_dir: "data/processed"
+  num_stations: 12
+  split_ratios: [0.6, 0.1, 0.1, 0.2]
+  lookback: 96
+  horizons: [24, 48, 96, 192]
+  num_features: 15
+  # Hợp đồng D=15 theo yêu cầu; pipeline PRSA hiện có thể sinh thêm cột `ir`.
+  feature_names:
+    - "pm2.5"
+    - "dewp"
+    - "temp"
+    - "pres"
+    - "iws"
+    - "is"
+    - "hour_sin"
+    - "hour_cos"
+    - "month_sin"
+    - "month_cos"
+    - "wind_NW"
+    - "wind_SE"
+    - "wind_cv"
+    - "wind_NE"
+    - "wind_Unknown"
+  target_col: "PM2.5" # Pipeline hiện chuẩn hóa tên cột thành pm2.5.
+
+models:
+  lstm:
+    hidden_size: 128
+    num_layers: 2
+    dropout: 0.2
+  dlinear:
+    kernel_size: 25
+  informer:
+    factor: 5
+    d_model: 128
+    n_heads: 4
+    e_layers: 2
+    d_layers: 1
+    d_ff: 256
+    dropout: 0.15
+  patchtst:
+    patch_len: 16
+    stride: 8
+    d_model: 128
+    n_heads: 16
+    e_layers: 3
+    d_ff: 256
+    dropout: 0.2
+
+training:
+  batch_size: 64
+  epochs: 20
+  learning_rate: 0.001
+  patience: 5
+  checkpoints_dir: "outputs/checkpoints"
+  logs_dir: "outputs/logs"
+
+xai:
+  shap:
+    background_samples: 100
+    nsamples: 100
+  integrated_gradients:
+    n_steps: 50
+    spike_threshold: 150.0

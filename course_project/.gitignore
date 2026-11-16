@@ -4,7 +4,7 @@ __pycache__/
 *$py.class
 .pytest_cache/
 
-# Trọng số mô hình & Artifacts nặng (Tuyệt đối không đẩy lên Git)
+# Trọng số mô hình & artifacts nặng (không đẩy lên Git)
 *.pth
 *.pt
 *.onnx
@@ -12,30 +12,38 @@ __pycache__/
 *.h5
 checkpoints/
 weights/
+outputs/checkpoints/
 
-# Môi trường ảo & Biến môi trường
+# Dữ liệu raw/processed (chỉ giữ .gitkeep trong hai thư mục chuẩn)
+data/raw/*
+!data/raw/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+*.csv
+*.parquet
+*.feather
+
+# Môi trường cục bộ
 venv/
 .venv/
 env/
 .env
 
-# Jupyter Notebook checkpoints
+# Notebook, log tạm, hệ điều hành và IDE
 .ipynb_checkpoints/
 */.ipynb_checkpoints/*
-
-# Thư mục log tạm của trình huấn luyện (TensorBoard / WandB)
 runs/
 wandb/
 lightning_logs/
-
-# Hệ điều hành & IDE
 .DS_Store
 Thumbs.db
 .vscode/
 .idea/
+.ignore/
 
-# BẢO VỆ HỆ THỐNG BẰNG CHỨNG: Luôn cho phép Git theo dõi toàn bộ thư mục docs/
+# Bằng chứng Markdown và thư mục docs luôn được phép theo dõi
 !docs/
 !docs/**/
 !docs/**/*.md
 !docs/**/.gitkeep
+!docs/**/*.yaml
