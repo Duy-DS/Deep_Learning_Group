@@ -178,3 +178,4 @@ Hai mô hình này được thiết kế để giải quyết câu hỏi nghiên
 
 **Q4: Hàm `get_target_layer()` được thiết kế để làm gì?**
 * *Trả lời:* Lớp trừu tượng `BaseEmotionModel` bắt buộc hàm này để trả về tầng tích chập (`Conv2d`) cuối cùng. Tầng này chứa đặc trưng không gian giàu ngữ nghĩa nhất, phục vụ cho Thành viên 5 móc hook (forward/backward hook) để tính gradient và vẽ bản đồ nhiệt **Grad-CAM**, trực quan hóa vùng khuôn mặt mà mô hình chú ý khi đưa ra dự đoán.
+
