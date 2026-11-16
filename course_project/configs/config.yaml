@@ -4,17 +4,18 @@ project:
   name: "DL-PM25-BJ"
   task_code: "BPM25"
   seeds: [42, 1024, 2026]
-  device: "cpu"
+  device: "cpu" # Có thể đổi thành "auto" để ứng dụng tự chọn thiết bị.
 
 data:
   raw_dir: "data/raw"
   processed_dir: "data/processed"
   num_stations: 12
+  # Chia tuần tự: train / train_dev / dev / test.
   split_ratios: [0.6, 0.1, 0.1, 0.2]
   lookback: 96
   horizons: [24, 48, 96, 192]
   num_features: 15
-  # Hợp đồng D=15 theo yêu cầu; pipeline PRSA hiện có thể sinh thêm cột `ir`.
+  # Danh sách cột sau mã hóa của pipeline PRSA; danh sách 15 chiều theo hợp đồng dự án.
   feature_names:
     - "pm2.5"
     - "dewp"
@@ -31,7 +32,7 @@ data:
     - "wind_cv"
     - "wind_NE"
     - "wind_Unknown"
-  target_col: "PM2.5" # Pipeline hiện chuẩn hóa tên cột thành pm2.5.
+  target_col: "PM2.5" # Yêu cầu chuẩn; pipeline hiện chuẩn hóa tên cột thành pm2.5.
 
 models:
   lstm:

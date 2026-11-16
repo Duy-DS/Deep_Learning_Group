@@ -198,10 +198,11 @@ class PatchTST(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
-        Args:
-            x: Tensor đầu vào kích thước (B, lookback, in_features)
-        Returns:
-            out: Tensor dự báo kích thước (B, horizon) cho biến mục tiêu PM2.5
+        Tham số:
+            x: Tensor đầu vào kích thước [B, lookback, in_features].
+
+        Trả về:
+            Tensor dự báo PM2.5 kích thước [B, horizon, 1].
         """
         B, L, D = x.shape
 
@@ -244,7 +245,7 @@ class PatchTST(nn.Module):
         if self.use_revin:
             out = self.revin.denormalize_target(out, mean, stdev)
 
-        return out
+        return out.unsqueeze(-1)
 
 
 # Alias đảm bảo tương thích với mọi cách đặt tên trong build_model()

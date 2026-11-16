@@ -116,14 +116,21 @@ class RevINModelWrapper(nn.Module):
         else:
             x_in = x_cont_norm
 
-        y_norm = self.backbone(x_in).squeeze(-1)  # (B, H)
+        y_norm = self.backbone(x_in)
+        if y_norm.ndim == 3 and y_norm.shape[-1] == 1:
+            y_norm = y_norm.squeeze(-1)
+        elif y_norm.ndim != 2:
+            raise ValueError(
+                "Backbone phải trả đầu ra [B, H] hoặc [B, H, 1]; "
+                f"nhận được {tuple(y_norm.shape)}."
+            )
 
         idx = self.target_idx
         y_unscaled = (y_norm - self.affine_bias[:, :, idx]) / (
             self.affine_weight[:, :, idx] + self.eps
         )
         y_out = y_unscaled * stdev[:, :, idx] + mean[:, :, idx]
-        return y_out
+        return y_out.unsqueeze(-1)
 
 
 def set_seed(seed: int) -> None:
