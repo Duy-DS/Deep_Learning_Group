@@ -22,7 +22,7 @@ from torch.utils.data import DataLoader
 import yaml
 
 from src.data.dataset import get_dataloaders
-from src.models.baseline import SmallCNN
+from src.models import LargeCNN, MediumCNN, SmallCNN
 from src.train.mlflow_logger import MLflowLogger
 from src.train.utils import count_parameters, get_device, seed_everything
 
@@ -100,6 +100,18 @@ class Trainer:
         """Khởi tạo kiến trúc mô hình tương ứng với tham số architecture."""
         if self.architecture == "SmallCNN":
             return SmallCNN(
+                num_classes=7,
+                in_channels=self.in_channels,
+                dropout=self.dropout,
+            )
+        elif self.architecture == "MediumCNN":
+            return MediumCNN(
+                num_classes=7,
+                in_channels=self.in_channels,
+                dropout=self.dropout,
+            )
+        elif self.architecture == "LargeCNN":
+            return LargeCNN(
                 num_classes=7,
                 in_channels=self.in_channels,
                 dropout=self.dropout,
