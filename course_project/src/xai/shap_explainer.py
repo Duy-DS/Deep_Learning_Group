@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, List
+from pathlib import Path
+from typing import Any, Dict, List, Mapping, Optional
 
 import numpy as np
 import shap
 import torch
 import torch.nn as nn
+import yaml
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -84,6 +86,8 @@ class SHAPExplainer:
         background_data: torch.Tensor,
         feature_names: List[str],
         device: str = "cpu",
+        lookback: Optional[int] = None,
+        nsamples: int = 100,
     ) -> None:
         """Khởi tạo bộ giải thích và kiểm tra hợp đồng tensor.
 
@@ -92,10 +96,12 @@ class SHAPExplainer:
             background_data: Tensor tham chiếu [N, 96, D] chỉ lấy từ tập Train.
             feature_names: Tên D biến theo đúng thứ tự chiều cuối.
             device: Thiết bị thực thi, ví dụ ``"cpu"`` hoặc ``"cuda"``.
+            lookback: Độ dài chuỗi đầu vào; mặc định lấy từ dữ liệu nền.
+            nsamples: Số mẫu xấp xỉ SHAP dùng cho mỗi lần giải thích.
 
         Raises:
             TypeError: Nếu mô hình, tensor hoặc tên biến không đúng kiểu.
-            ValueError: Nếu dữ liệu nền rỗng, sai chiều hoặc số biến không khớp.
+            ValueError: Nếu dữ liệu nền rỗng, sai chiều hoặc cấu hình không hợp lệ.
         """
         if not isinstance(model, nn.Module):
             raise TypeError("model phải là một thể hiện của torch.nn.Module.")
@@ -105,6 +111,10 @@ class SHAPExplainer:
             raise ValueError("background_data phải có dạng [N>0, L, D].")
         if not feature_names or len(feature_names) != background_data.shape[2]:
             raise ValueError("Số feature_names phải khớp chiều D của dữ liệu nền.")
+        if lookback is not None and lookback != background_data.shape[1]:
+            raise ValueError("lookback cấu hình phải khớp chiều L của dữ liệu nền.")
+        if nsamples <= 0:
+            raise ValueError("nsamples phải là số nguyên dương.")
         if any(not isinstance(name, str) or not name for name in feature_names):
             raise ValueError("Mỗi tên biến phải là chuỗi không rỗng.")
         if not torch.isfinite(background_data).all():
@@ -114,7 +124,66 @@ class SHAPExplainer:
         self.model = model.to(self.device)
         self.background_data = background_data.detach().to(self.device)
         self.feature_names = list(feature_names)
+        self.lookback = int(lookback or background_data.shape[1])
+        self.nsamples = int(nsamples)
         self._last_target_horizon_idx = 0
+
+    @classmethod
+    def from_config(
+        cls,
+        model: nn.Module,
+        background_data: torch.Tensor,
+        config_path: str | Path,
+        feature_names: Optional[List[str]] = None,
+        device: Optional[str] = None,
+    ) -> "SHAPExplainer":
+        """Khởi tạo bộ giải thích từ tệp YAML cấu hình dự án.
+
+        Đọc cấu hình chuẩn duy nhất ``default.yaml``; tên biến luôn lấy từ
+        cấu hình nếu không truyền riêng.
+
+        Args:
+            model: Mô hình PyTorch đã nạp trọng số.
+            background_data: Tensor [N, L, D] lấy duy nhất từ tập Train.
+            config_path: Đường dẫn tệp YAML cấu hình.
+            feature_names: Tên biến theo thứ tự tensor; ưu tiên hơn YAML.
+            device: Thiết bị tùy chọn; nếu bỏ trống sẽ lấy từ cấu hình.
+
+        Returns:
+            Một ``SHAPExplainer`` có tham số khớp cấu hình.
+
+        Raises:
+            FileNotFoundError: Nếu không tìm thấy tệp YAML.
+            ValueError: Nếu cấu hình thiếu lookback hoặc tên biến không hợp lệ.
+        """
+        path = Path(config_path).expanduser().resolve()
+        if not path.is_file():
+            raise FileNotFoundError(f"Không tìm thấy tệp cấu hình: {path}")
+        with path.open("r", encoding="utf-8") as config_file:
+            config: Mapping[str, Any] = yaml.safe_load(config_file) or {}
+
+        data_config = config.get("data", {})
+        project_config = config.get("project", {})
+        xai_config = config.get("xai", {}).get("shap", {})
+        if "lookback" not in data_config:
+            raise ValueError("Cấu hình data.lookback không tồn tại.")
+        configured_names = feature_names or data_config.get(
+            "canonical_multivariate_cols", data_config.get("feature_names")
+        )
+        if not configured_names:
+            raise ValueError("Cấu hình thiếu danh sách feature_names.")
+
+        configured_device = device or project_config.get("device", "cpu")
+        if configured_device == "auto":
+            configured_device = "cuda" if torch.cuda.is_available() else "cpu"
+        return cls(
+            model=model,
+            background_data=background_data,
+            feature_names=list(configured_names),
+            device=str(configured_device),
+            lookback=int(data_config["lookback"]),
+            nsamples=int(xai_config.get("nsamples", 100)),
+        )
 
     def compute_shap_values(
         self, test_samples: torch.Tensor, target_horizon_idx: int = 0
@@ -149,7 +218,9 @@ class SHAPExplainer:
         wrapped_model = _HorizonModel(self.model, target_horizon_idx).to(self.device)
         wrapped_model.eval()
         explainer = shap.GradientExplainer(wrapped_model, self.background_data)
-        raw_values: Any = explainer.shap_values(test_samples.detach().to(self.device))
+        raw_values: Any = explainer.shap_values(
+            test_samples.detach().to(self.device), nsamples=self.nsamples
+        )
 
         # Chuẩn hóa định dạng danh sách một đầu ra giữa các phiên bản SHAP.
         if isinstance(raw_values, (list, tuple)):

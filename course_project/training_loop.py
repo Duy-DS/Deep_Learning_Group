@@ -28,6 +28,7 @@ from sklearn.preprocessing import StandardScaler
 from torch.utils.data import DataLoader, TensorDataset
 
 from src.data_pipeline.dataset import make_sliding_windows
+from src.configuration import ProjectConfiguration
 from src.data_pipeline.preprocess import (
     TARGET_COL,
     chronological_split,
@@ -480,6 +481,64 @@ class TrainingPipeline:
         self.log_dir.mkdir(parents=True, exist_ok=True)
         self.report_dir.mkdir(parents=True, exist_ok=True)
 
+    @classmethod
+    def from_configuration(
+        cls,
+        configuration: ProjectConfiguration,
+        overrides: Optional[Dict[str, object]] = None,
+    ) -> "TrainingPipeline":
+        """Tạo pipeline từ YAML, cho phép CLI ghi đè tường minh.
+
+        Args:
+            configuration: Cấu hình dự án đã nạp.
+            overrides: Các giá trị CLI khác ``None`` cần ưu tiên hơn YAML.
+
+        Returns:
+            Pipeline huấn luyện đã khởi tạo theo cấu hình hợp nhất.
+
+        Raises:
+            KeyError: Nếu thiếu nhóm hoặc khóa cấu hình bắt buộc.
+        """
+        paths = configuration.section("paths")
+        data_config = configuration.section("data")
+        pretrain_config = configuration.section("pretrain")
+        parameters: Dict[str, object] = {
+            "data_dir": Path(paths["data_dir"]),
+            "output_dir": Path(paths["output_dir"]),
+            "models": pretrain_config["models"],
+            "mode": data_config["mode"],
+            "lookback": data_config["lookback"],
+            "horizon": data_config["horizon"],
+            "batch_size": pretrain_config["batch_size"],
+            "train_stride": data_config["train_stride"],
+            "lr": pretrain_config["lr"],
+            "weight_decay": pretrain_config["weight_decay"],
+            "dropout": pretrain_config["dropout"],
+            "epochs": pretrain_config["epochs"],
+            "patience": pretrain_config["patience"],
+            "seeds": pretrain_config["seeds"],
+        }
+        for key, value in (overrides or {}).items():
+            if value is not None and key in parameters:
+                parameters[key] = value
+        pipeline = cls(
+            data_dir=Path(parameters["data_dir"]),
+            output_dir=Path(parameters["output_dir"]),
+            mode=str(parameters["mode"]),
+            lookback=int(parameters["lookback"]),
+            horizon=int(parameters["horizon"]),
+            batch_size=int(parameters["batch_size"]),
+            train_stride=int(parameters["train_stride"]),
+            lr=float(parameters["lr"]),
+            weight_decay=float(parameters["weight_decay"]),
+            dropout=float(parameters["dropout"]),
+            epochs=int(parameters["epochs"]),
+            patience=int(parameters["patience"]),
+            seeds=list(parameters["seeds"]),
+        )
+        pipeline.models = list(parameters["models"])
+        return pipeline
+
     def train_single_seed(
         self,
         model_name: str,
@@ -743,34 +802,38 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="T0301: Huấn luyện Pre-training đa hạt giống (3 seeds) dùng WP01 pipeline."
     )
-    parser.add_argument("--data-dir", type=Path, default=Path("data/raw"))
-    parser.add_argument("--output-dir", type=Path, default=Path("outputs"))
+    parser.add_argument(
+        "--config", type=Path, default=ProjectConfiguration.DEFAULT_PATH,
+        help="Đường dẫn YAML (mặc định: configs/default.yaml).",
+    )
+    parser.add_argument("--data-dir", type=Path, default=None)
+    parser.add_argument("--output-dir", type=Path, default=None)
     parser.add_argument(
         "--models",
         nargs="+",
-        default=DEFAULT_MODELS,
+        default=None,
         choices=ALL_SUPPORTED_MODELS,
     )
     parser.add_argument(
         "--mode",
         type=str,
-        default="multivariate",
+        default=None,
         choices=["multivariate", "univariate"],
     )
-    parser.add_argument("--lookback", type=int, default=96)
-    parser.add_argument("--horizon", type=int, default=24, choices=[24, 48, 96, 192])
-    parser.add_argument("--batch-size", type=int, default=512)
-    parser.add_argument("--train-stride", type=int, default=6)
-    parser.add_argument("--lr", type=float, default=5e-5)
-    parser.add_argument("--weight-decay", type=float, default=1e-2)
-    parser.add_argument("--dropout", type=float, default=0.3)
-    parser.add_argument("--epochs", type=int, default=20)
-    parser.add_argument("--patience", type=int, default=6)
+    parser.add_argument("--lookback", type=int, default=None)
+    parser.add_argument("--horizon", type=int, default=None, choices=[24, 48, 96, 192])
+    parser.add_argument("--batch-size", type=int, default=None)
+    parser.add_argument("--train-stride", type=int, default=None)
+    parser.add_argument("--lr", type=float, default=None)
+    parser.add_argument("--weight-decay", type=float, default=None)
+    parser.add_argument("--dropout", type=float, default=None)
+    parser.add_argument("--epochs", type=int, default=None)
+    parser.add_argument("--patience", type=int, default=None)
     parser.add_argument(
         "--seeds",
         nargs="+",
         type=int,
-        default=[42, 1024, 2026],
+        default=None,
         help="Danh sách hạt giống ngẫu nhiên (mặc định 3 seeds: 42 1024 2026).",
     )
     return parser.parse_args()
@@ -778,19 +841,24 @@ def parse_args() -> argparse.Namespace:
 
 if __name__ == "__main__":
     args = parse_args()
-    pipeline = TrainingPipeline(
-        data_dir=args.data_dir,
-        output_dir=args.output_dir,
-        mode=args.mode,
-        lookback=args.lookback,
-        horizon=args.horizon,
-        batch_size=args.batch_size,
-        train_stride=args.train_stride,
-        lr=args.lr,
-        weight_decay=args.weight_decay,
-        dropout=args.dropout,
-        epochs=args.epochs,
-        patience=args.patience,
-        seeds=args.seeds,
+    configuration = ProjectConfiguration(args.config)
+    pipeline = TrainingPipeline.from_configuration(
+        configuration,
+        overrides={
+            "data_dir": args.data_dir,
+            "output_dir": args.output_dir,
+            "models": args.models,
+            "mode": args.mode,
+            "lookback": args.lookback,
+            "horizon": args.horizon,
+            "batch_size": args.batch_size,
+            "train_stride": args.train_stride,
+            "lr": args.lr,
+            "weight_decay": args.weight_decay,
+            "dropout": args.dropout,
+            "epochs": args.epochs,
+            "patience": args.patience,
+            "seeds": args.seeds,
+        },
     )
-    pipeline.run(models=args.models)
+    pipeline.run(models=pipeline.models)

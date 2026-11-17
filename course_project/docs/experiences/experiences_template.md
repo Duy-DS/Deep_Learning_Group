@@ -30,7 +30,7 @@
   - Chiều dài cửa sổ lịch sử (Lookback $L$): `96`
   - Khung thời gian dự báo (Horizon $H$): `[24 | 48 | 96 | 192]`
 - **Danh sách Random Seeds:** `[42, 1024, 2026]` (Cố định seed cho `numpy`, `torch`, `torch.cuda`, Python `random`).
-- **Siêu tham số chính (Đọc từ `configs/config.yaml`):**
+- **Siêu tham số chính (Đọc từ `configs/default.yaml`):**
   - Batch Size: `32`
   - Learning Rate: `0.0001`
   - Optimizer: `AdamW` (hoặc Adam)
@@ -43,7 +43,7 @@
 ## 3. Lệnh thực thi tái hiện (Reproduction Command)
 ```bash
 # Lệnh bash hoặc python command chính xác dùng để tái hiện kết quả
-python training_loop.py --config configs/config.yaml --model informer --horizon 96 --seeds 42 1024 2026
+python training_loop.py --config configs/default.yaml --models informer --horizon 96 --seeds 42 1024 2026
 
 # Hoặc thực thi qua script tự động 3 seeds:
 bash scripts/train.sh --exp EXP01 --model patchtst --horizon 96

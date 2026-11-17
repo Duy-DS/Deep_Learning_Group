@@ -3,6 +3,9 @@ import numpy as np
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
 import joblib
+import argparse
+
+from src.configuration import ProjectConfiguration
 
 TIME_COLS = ["year", "month", "day", "hour"]
 TARGET_COL = "pm2.5"
@@ -203,3 +206,124 @@ def save_splits_csv(splits, output_dir):
         output_path = output_dir / f"{name}.csv"
         data.to_csv(output_path, index=False)
         print(f"Đã lưu: {output_path}")
+
+
+class PreprocessingPipeline:
+    """Điều phối tiền xử lý, chia tập và chuẩn hóa theo cấu hình dự án."""
+
+    def __init__(self, configuration: ProjectConfiguration, overwrite: bool = False) -> None:
+        """Khởi tạo pipeline từ cấu hình đã nạp.
+
+        Args:
+            configuration: Đối tượng ``ProjectConfiguration``.
+            overwrite: Cho phép ghi đè CSV và scaler đã tồn tại.
+        """
+        self.configuration = configuration
+        self.overwrite = overwrite
+
+    def run(self) -> dict[str, pd.DataFrame]:
+        """Chạy pipeline dữ liệu và lưu các split đã chuẩn hóa.
+
+        Returns:
+            Từ điển các DataFrame đã chia và chuẩn hóa.
+
+        Raises:
+            KeyError: Nếu thiếu tham số đường dẫn hoặc nhóm dữ liệu cần thiết.
+            ValueError: Nếu danh sách đặc trưng cấu hình không có trong dữ liệu.
+            FileExistsError: Nếu đầu ra đã tồn tại và chưa cho phép ghi đè.
+        """
+        paths = self.configuration.section("paths")
+        data_config = self.configuration.section("data")
+        raw_path = Path(paths["data_dir"]).expanduser()
+        nested_raw_path = raw_path / "PRSA_Data_20130301-20170228"
+        if raw_path.is_dir() and not any(raw_path.glob("*.csv")) and nested_raw_path.is_dir():
+            raw_path = nested_raw_path
+        raw_data = load_pm25(raw_path)
+        ratios = data_config.get("split_ratios", [0.60, 0.10, 0.10, 0.20])
+        raw_splits = chronological_split(raw_data, ratios=tuple(ratios))
+
+        # Kiểm tra artifact trước khi xử lý để mặc định không ghi đè dữ liệu người dùng.
+        output_dir = Path(paths["processed_dir"])
+        scaler_path = paths.get("scaler_template")
+        if scaler_path:
+            scaler_path = scaler_path.format(mode=data_config.get("mode", "multivariate"))
+        existing_outputs = [
+            output_dir / f"{split_name}.csv" for split_name in raw_splits
+            if (output_dir / f"{split_name}.csv").exists()
+        ]
+        existing_scaler = bool(scaler_path and Path(scaler_path).exists())
+        if not self.overwrite and (existing_outputs or existing_scaler):
+            existing_paths = existing_outputs + (
+                [Path(scaler_path)] if existing_scaler else []
+            )
+            raise FileExistsError(
+                "Từ chối ghi đè artifact đã tồn tại: "
+                + ", ".join(map(str, existing_paths))
+                + ". Chọn đường dẫn mới hoặc truyền --overwrite."
+            )
+
+        encoded_splits = {}
+        for split_name, split_data in raw_splits.items():
+            # Tiền xử lý riêng sau khi chia để thống kê/điền khuyết không đi qua ranh giới tập.
+            cleaned_data = clean_missing_values(
+                split_data, target_col=data_config.get("target_col", TARGET_COL)
+            )
+            encoded_splits[split_name] = encode_features(cleaned_data)
+        if data_config.get("mode", "multivariate") == "univariate":
+            feature_names = [data_config.get("target_col", TARGET_COL)]
+        else:
+            feature_names = data_config["canonical_multivariate_cols"]
+        available_columns = set.union(
+            *(set(frame.columns) for frame in encoded_splits.values())
+        )
+        missing_features = sorted(set(feature_names) - available_columns)
+        if missing_features:
+            raise ValueError(f"Thiếu đặc trưng cấu hình trong dữ liệu: {missing_features}")
+
+        for split_name, split_data in encoded_splits.items():
+            missing_split_features = sorted(set(feature_names) - set(split_data.columns))
+            if missing_split_features:
+                raise ValueError(
+                    f"Split '{split_name}' thiếu đặc trưng: {missing_split_features}"
+                )
+        scaled_splits, _ = scale_splits(
+            encoded_splits, feature_cols=feature_names, scaler_path=scaler_path
+        )
+        save_splits_csv(scaled_splits, output_dir)
+        return scaled_splits
+
+
+def parse_args() -> argparse.Namespace:
+    """Đọc tùy chọn dòng lệnh của pipeline tiền xử lý.
+
+    Returns:
+        Đối tượng chứa đường dẫn tệp cấu hình.
+    """
+    parser = argparse.ArgumentParser(description="Tiền xử lý dữ liệu PRSA theo cấu hình YAML.")
+    parser.add_argument(
+        "--config", type=Path, default=ProjectConfiguration.DEFAULT_PATH,
+        help="Đường dẫn YAML (mặc định: configs/default.yaml).",
+    )
+    parser.add_argument("--data-dir", type=Path, default=None)
+    parser.add_argument("--output-dir", type=Path, default=None)
+    parser.add_argument(
+        "--scaler-path", type=Path, default=None,
+        help="Đường dẫn scaler đầu ra; ghi đè đường dẫn trong YAML.",
+    )
+    parser.add_argument(
+        "--overwrite", action="store_true",
+        help="Cho phép ghi đè split CSV và scaler đã tồn tại.",
+    )
+    return parser.parse_args()
+
+
+if __name__ == "__main__":
+    arguments = parse_args()
+    configuration = ProjectConfiguration(arguments.config)
+    if arguments.data_dir is not None:
+        configuration.section("paths")["data_dir"] = str(arguments.data_dir)
+    if arguments.output_dir is not None:
+        configuration.section("paths")["processed_dir"] = str(arguments.output_dir)
+    if arguments.scaler_path is not None:
+        configuration.section("paths")["scaler_template"] = str(arguments.scaler_path)
+    PreprocessingPipeline(configuration, overwrite=arguments.overwrite).run()

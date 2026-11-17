@@ -21,7 +21,7 @@
 
 - **Chi tiết tệp thay đổi:**
   - `[CREATED]` `src/.../ten_file.py`: Tạo mới class/module phục vụ nhiệm vụ...
-  - `[MODIFIED]` `configs/config.yaml`: Cập nhật tham số batch size hoặc siêu tham số...
+  - `[MODIFIED]` `configs/default.yaml`: Cập nhật tham số batch size hoặc siêu tham số...
   - `[DELETED]` `.ignore/...`: Dọn dẹp cache hoặc tệp tạm không cần thiết...
 
 ---
@@ -39,7 +39,7 @@
 
 - **Lệnh thực thi (Execution Command):**
 ```bash
-python -m src.data_pipeline.preprocess --config configs/config.yaml
+python training_loop.py --config configs/default.yaml --models patchtst --horizon 24 --seeds 42
 # Hoặc lệnh kiểm thử pytest:
 # pytest tests/test_dataset.py -v
 ```

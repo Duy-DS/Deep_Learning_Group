@@ -1,0 +1,162 @@
+# ==============================================================================
+# Cấu hình thực nghiệm chuẩn (Single Source of Truth) — Dự báo PM2.5 Bắc Kinh
+# Khớp 100% với các checkpoint đã huấn luyện tại WP03 (T0301, T0304, T0305)
+# Dùng chung cho WP03 (Training/Ablation), WP04 (XAI/Error Analysis) và WP05 (Demo)
+# ==============================================================================
+
+paths:
+  data_dir: "data/raw"
+  output_dir: "outputs"
+  processed_dir: "data/preprocess"
+  global_ckpt_dir: "outputs/checkpoints/global"
+  station_ckpt_dir: "outputs/checkpoints/stations"
+  log_dir: "outputs/logs"
+  report_dir: "outputs/reports"
+  ablation_dir: "outputs/ablation"
+  scaler_template: "outputs/checkpoints/global/scaler_12stations_{mode}.joblib"
+
+data:
+  mode: "multivariate"                 # multivariate (D=15) | univariate (D=1)
+  target_col: "pm2.5"
+  target_idx: 0
+  lookback: 96                         # L = 96 giờ lịch sử
+  horizon: 24                          # H = 24 giờ dự báo mặc định
+  train_stride: 6                      # Bước trượt tập train
+  split_ratios: [0.60, 0.10, 0.10, 0.20]
+  eval_stride: 1                       # Bước trượt tập train_dev, dev, test
+  num_continuous_features: 11          # 11 biến vật lý/ô nhiễm đầu tiên dùng RevIN
+  canonical_multivariate_cols:
+    - "pm2.5"
+    - "pm10"
+    - "so2"
+    - "no2"
+    - "co"
+    - "o3"
+    - "temp"
+    - "pres"
+    - "dewp"
+    - "rain"
+    - "wspm"
+    - "hour_sin"
+    - "hour_cos"
+    - "month_sin"
+    - "month_cos"
+  stations:
+    - "Aotizhongxin"
+    - "Changping"
+    - "Dingling"
+    - "Dongsi"
+    - "Guanyuan"
+    - "Gucheng"
+    - "Huairou"
+    - "Nongzhanguan"
+    - "Shunyi"
+    - "Tiantan"
+    - "Wanliu"
+    - "Wanshouxigong"
+
+pretrain:
+  models:
+    - "lstm"
+    - "dlinear"
+    - "informer"
+    - "patchtst"
+  all_supported_models:
+    - "lstm"
+    - "dlinear"
+    - "informer"
+    - "patchtst"
+    - "informer_full"
+  seeds: [42, 1024, 2026]
+  batch_size: 512
+  epochs: 20
+  patience: 6
+  lr: 5.0e-5
+  dlinear_min_lr: 2.0e-4               # DLinear tự nâng lr tối thiểu lên 2e-4
+  weight_decay: 1.0e-2
+  dropout: 0.3
+  loss_fn: "HuberLoss"
+  huber_delta: 1.0
+  eval_metric: "MSELoss"
+  optimizer: "AdamW"
+  scheduler: "WarmupCosine"
+  warmup_epochs: 2
+  min_lr_ratio: 0.05
+  max_grad_norm: 1.0
+  use_amp: true
+
+finetune:
+  stride: 6
+  batch_size: 256
+  epochs: 12
+  patience: 4
+  lr: 3.0e-5
+  weight_decay: 1.0e-2
+  freeze_backbone: true                # Mặc định đóng băng backbone (--unfreeze-backbone=False)
+  seed: 42
+  loss_fn: "HuberLoss"
+  huber_delta: 1.0
+  scheduler: "ReduceLROnPlateau"
+  scheduler_factor: 0.5
+  scheduler_patience: 1
+
+models:
+  patchtst:
+    patch_len: 16
+    stride: 8
+    d_model: 64
+    n_heads: 4
+    e_layers: 2
+    d_ff: 128
+    dropout: 0.3                       # Truyền từ build_model() ghi đè mặc định 0.25
+    target_idx: 0
+    use_revin: true
+    use_revin_wrapper: false           # Đã tích hợp RevIN nội tại
+
+  informer:
+    d_model: 128
+    n_heads: 4
+    e_layers: 2
+    d_layers: 1
+    d_ff: 256
+    factor: 5
+    label_len: 48                      # lookback // 2
+    dropout: 0.3                       # Truyền từ build_model() ghi đè mặc định 0.15
+    activation: "gelu"
+    attention_type: "probsparse"
+    use_revin_wrapper: true
+
+  informer_full:
+    d_model: 128
+    n_heads: 4
+    e_layers: 2
+    d_layers: 1
+    d_ff: 256
+    factor: 96
+    label_len: 48
+    dropout: 0.3
+    activation: "gelu"
+    attention_type: "full"
+    use_revin_wrapper: true
+
+  lstm:
+    dropout: 0.3
+    use_revin_wrapper: true
+
+  dlinear:
+    use_revin_wrapper: false           # Dùng phân rã Trend/Seasonal nội tại
+
+ablation:
+  ablations: ["all"]
+  all_horizons: [24, 48, 96, 192]
+  ab3_horizons: [96, 192]
+  skip_existing: true
+  with_finetune: false
+
+xai:
+  shap:
+    background_samples: 100
+    nsamples: 100
+  integrated_gradients:
+    n_steps: 50
+    spike_threshold: 150.0

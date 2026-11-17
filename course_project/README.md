@@ -200,7 +200,7 @@ Toàn bộ dự án tuân thủ kiến trúc phân tầng nghiêm ngặt. Mã ng
 ```text
 beijing-pm25-deeplearning/
 ├── configs/
-│   └── config.yaml            # Quản lý tập trung Hyperparameters (L=96, H, LR, Paths)
+│   └── default.yaml           # Nguồn cấu hình chuẩn duy nhất cho dữ liệu, mô hình và đường dẫn
 ├── data/
 │   ├── raw/                   # [READ-ONLY] Dữ liệu gốc 36 trạm Bắc Kinh (gitignored)
 │   └── processed/             # [WRITE-ONLY] Dữ liệu đã Impute, Encode & Scale (gitignored)
@@ -281,13 +281,13 @@ pip install -r requirements.txt
 
 ### 5.2. Chạy Pipeline Dữ liệu, Huấn luyện & Đánh giá Đa Seed
 ```bash
-# Bước 1: Chạy tiền xử lý dữ liệu (Imputation, Cyclic/One-Hot Encoding, Train-only Scaling)
-python -m src.data_pipeline.preprocess --config configs/config.yaml
+# Huấn luyện thử nghiệm một mô hình với cấu hình chuẩn (CLI ghi đè được tham số)
+python training_loop.py --config configs/default.yaml --models patchtst --horizon 96 --seeds 42
 
-# Bước 2: Huấn luyện thử nghiệm một mô hình đơn lẻ với cấu hình YAML
-python training_loop.py --config configs/config.yaml --model patchtst --horizon 96 --seed 42
+# Tiền xử lý, chia tập tuần tự và fit scaler trên Train theo cấu hình chuẩn
+python -m src.data_pipeline.preprocess --config configs/default.yaml --output-dir data/processed --scaler-path outputs/checkpoints/global/scaler_multivariate_preprocess.joblib
 
-# Bước 3: Chạy tự động toàn bộ thực nghiệm qua 3 Random Seeds và xuất bảng (mean ± std)
+# Chạy tự động thực nghiệm qua 3 Random Seeds và xuất bảng (mean ± std)
 bash scripts/train.sh
 bash scripts/evaluate.sh
 ```
@@ -352,7 +352,7 @@ Dự án gồm **26 nhiệm vụ (`T0101` – `T0604`)** được chia thành **
 | **WP03** | **SOTA Model & Fine-Tuning** | `T0301` – `T0305` | `training_loop.py`<br>`src/models/informer.py`<br>`src/models/patchtst.py`<br>`scripts/train.sh` | **Đinh Thái Toàn** |
 | **WP04** | **XAI Integration** | `T0401` – `T0403` | `src/xai/shap_explainer.py`<br>`src/xai/ig_explainer.py`<br>`notebooks/02_xai_analysis.ipynb` | **Nguyễn Tấn Duy** |
 | **WP05** | **Web Demo & UI/UX** | `T0501`, `T0502`, `T0504` | `src/app/main.py` | **Nguyễn Công Trí** |
-| **WP06** | **MLOps, Ablation & Documentation** | `T0503`, `T0601` – `T0604` | `Dockerfile`, `requirements.txt`<br>`configs/config.yaml`<br>`README.md`, `docs/` | **Nguyễn Công Trí** &<br>**Đinh Thái Toàn** |
+| **WP06** | **MLOps, Ablation & Documentation** | `T0503`, `T0601` – `T0604` | `Dockerfile`, `requirements.txt`<br>`configs/default.yaml`<br>`README.md`, `docs/` | **Nguyễn Công Trí** &<br>**Đinh Thái Toàn** |
 
 ---
 

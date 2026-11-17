@@ -34,7 +34,7 @@
 ## 3. Danh mục sản phẩm bàn giao (Deliverables & Artifacts)
 - **Mã nguồn chính thức (Source Code):**
   - `[CREATED]` `src/.../file_name.py`: Mô tả class và các phương thức chính vừa phát triển.
-  - `[MODIFIED]` `configs/config.yaml`: Mô tả các tham số cấu hình vừa bổ sung.
+  - `[MODIFIED]` `configs/default.yaml`: Mô tả các tham số cấu hình vừa bổ sung.
 - **Tài liệu & Notebook kiểm chứng (nếu có):**
   - `notebooks/0X_...ipynb`: Notebook phân tích, EDA hoặc trực quan hóa kết quả.
 - **Trọng số & Dữ liệu (Lưu nội bộ, gitignored):**
@@ -46,7 +46,7 @@
 - **Lệnh thực thi kiểm toán:**
 ```bash
 # Lệnh chạy script hoặc pytest xác minh tính hoạt động của module
-python -m src.data_pipeline.preprocess --config configs/config.yaml
+python training_loop.py --config configs/default.yaml --models patchtst --horizon 24 --seeds 42
 # Hoặc: python -m pytest tests/test_module.py
 ```
 

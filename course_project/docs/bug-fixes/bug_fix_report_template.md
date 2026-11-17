@@ -77,7 +77,7 @@ Exception: <Nội dung chi tiết lỗi>
 # Ví dụ lệnh kiểm thử pipeline hoặc pytest
 python -m pytest tests/test_data_pipeline.py -v
 # Hoặc chạy kiểm tra trực tiếp script
-python training_loop.py --config configs/config.yaml --model dlinear --horizon 24 --seed 42
+python training_loop.py --config configs/default.yaml --models dlinear --horizon 24 --seeds 42
 ```
 
 - **Nhật ký xác minh thành công (Verification Output Log):**

@@ -37,7 +37,7 @@ Xây dựng hệ thống dự báo nồng độ $\text{PM}_{2.5}$ đa biến tr�
 *   **Evidence-Driven Execution (Bằng chứng thực thi là bắt buộc):** Sau bất kỳ task, thực nghiệm hay lần sửa lỗi nào, Agent **bắt buộc** phải khởi tạo file báo cáo/log tương ứng trong `docs/bug-fixes/`, `docs/dev-logs/`, `docs/reports/`, hoặc `docs/experiences/` theo đúng quy chuẩn đặt tên ở Mục III.8.
 *   **100% OOP & Docstring Tiếng Việt:** Toàn bộ mã nguồn trong `src/` phải được thiết kế theo phương pháp Hướng đối tượng (Classes & Methods). 100% class, phương thức, hàm và inline comments giải thích thuật toán phải viết bằng **Tiếng Việt** (theo chuẩn Google/NumPy Docstring).
 *   **Data Leakage Prevention (Chống rò rỉ dữ liệu):** Bộ chuẩn hóa `StandardScaler` ($\mu, \sigma$) và quy trình Imputation chỉ được phép `.fit()` trên tập **Train**, sau đó mới `.transform()` trên tập **Validation** và **Test**.
-*   **Config Decoupling:** Mọi siêu tham số (`learning_rate`, `batch_size`, `lookback=96`, `horizons=[24, 48, 96, 192]`, đường dẫn file) phải được nạp từ `configs/config.yaml`.
+*   **Config Decoupling:** `configs/default.yaml` là nguồn cấu hình chuẩn duy nhất. Pipeline tiền xử lý, huấn luyện và các module tích hợp phải nạp siêu tham số/đường dẫn từ tệp này; đối số CLI chỉ dùng để ghi đè tường minh.
 *   **Multi-Seed Reproducibility:** Mọi kịch bản huấn luyện/đánh giá chính phải cố định seed (`random`, `numpy`, `torch`, `torch.cuda`) và hỗ trợ chạy tự động qua 3 seeds để xuất kết quả $\text{mean} \pm \text{std}$.
 
 **Ask First (Phải xin ý kiến trước khi làm):**
@@ -194,7 +194,7 @@ Dự án gồm 26 nhiệm vụ phân bổ vào 6 gói công việc (WP01 – WP0
 | **WP03: SOTA Model & Fine-Tuning**<br>**Đinh Thái Toàn** | `T0301` – `T0305` | `training_loop.py`<br>`src/models/informer.py`<br>`src/models/patchtst.py`<br>`scripts/train.sh` | Xây dựng `TrainingPipeline` OOP tổng thể; cài đặt `Informer` (*ProbSparse Attention* & *Generative Decoder*) và `PatchTST`; Fine-tuning trọng số riêng cho 36 trạm; lập script chạy tự động 3 seeds. |
 | **WP04: XAI Integration**<br>**Nguyễn Tấn Duy** | `T0401` – `T0403` | `src/xai/shap_explainer.py`<br>`src/xai/ig_explainer.py`<br>`notebooks/02_xai_analysis.ipynb` | Định lượng đóng góp toàn cục (Global Importance) bằng `SHAP`; cài đặt `Integrated Gradients` cho PyTorch Time-Series; phân tích nguyên nhân sai số tại các đỉnh ô nhiễm (*Smog Spikes*) gắn với biến `DEW` và `WD`. |
 | **WP05: Web Demo & UI/UX**<br>**Nguyễn Công Trí** | `T0501`, `T0502`, `T0504` | `src/app/main.py` | Thiết kế giao diện Streamlit cho phép tải file CSV thực tế, chọn trạm & mô hình; vẽ biểu đồ đường Plotly nối mượt chuỗi quá khứ và tương lai; nhúng trực tiếp biểu đồ giải thích SHAP/XAI lên giao diện. |
-| **WP06: MLOps, Ablation & Docs**<br>**Nguyễn Công Trí & Đinh Thái Toàn** | `T0503`, `T0601` – `T0604` | `Dockerfile`, `requirements.txt`<br>`configs/config.yaml`<br>`README.md`, `docs/` | Đóng gói Docker container chạy độc lập; thực thi Ablation Studies (3 seeds, $\text{mean} \pm \text{std}$); thiết lập ma trận RQs; dọn dẹp repository và tổng hợp báo cáo cuối kỳ. |
+| **WP06: MLOps, Ablation & Docs**<br>**Nguyễn Công Trí & Đinh Thái Toàn** | `T0503`, `T0601` – `T0604` | `Dockerfile`, `requirements.txt`<br>`configs/default.yaml`<br>`README.md`, `docs/` | Đóng gói Docker container chạy độc lập; thực thi Ablation Studies (3 seeds, $\text{mean} \pm \text{std}$); thiết lập ma trận RQs; dọn dẹp repository và tổng hợp báo cáo cuối kỳ. |
 
 ---
 
@@ -233,7 +233,7 @@ Dự án áp dụng cơ chế kiểm soát **"Evidence-First"** cực kỳ nghi�
 ```text
 beijing-pm25-deeplearning/
 ├── configs/
-│   └── config.yaml            [READ & WRITE; Nơi duy nhất chứa Hyperparameters & Paths]
+│   └── default.yaml           [READ & WRITE; Nguồn cấu hình chuẩn duy nhất]
 ├── data/
 │   ├── raw/                   [READ-ONLY; Dữ liệu gốc 36 trạm, CẤM sửa đổi hoặc commit]
 │   └── processed/             [WRITE-ONLY; Lưu dữ liệu đã Impute/Encode/Scale, gitignored]
@@ -337,10 +337,10 @@ source venv/bin/activate  # Linux/macOS (hoặc venv\Scripts\activate trên Wind
 pip install -r requirements.txt
 
 # 2. Chạy tiền xử lý dữ liệu & Kiểm tra chống Data Leakage (WP01)
-python -m src.data_pipeline.preprocess --config configs/config.yaml
+python -m src.data_pipeline.preprocess --config configs/default.yaml --output-dir data/processed --scaler-path outputs/checkpoints/global/scaler_multivariate_preprocess.joblib
 
 # 3. Huấn luyện thử nghiệm một mô hình với cấu hình chuẩn (WP02 / WP03)
-python training_loop.py --config configs/config.yaml --model patchtst --horizon 96 --seed 42
+python training_loop.py --config configs/default.yaml --models patchtst --horizon 96 --seeds 42
 
 # 4. Chạy kịch bản tự động 3 seeds & xuất kết quả mean ± std (T0305 / T0601)
 bash scripts/train.sh
