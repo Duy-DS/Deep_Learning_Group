@@ -48,13 +48,17 @@ data/
 
 ## 3. Hướng dẫn tải dữ liệu
 
-1. Truy cập cuộc thi Kaggle FER2013: [Challenges in Representation Learning: Facial Expression Recognition Challenge](https://www.kaggle.com/c/challenges-in-representation-learning-facial-expression-recognition-challenge/data)
-2. Tải file `fer2013.tar.gz` hoặc `fer2013.csv`.
-3. Giải nén và đặt file `fer2013.csv` vào thư mục `data/raw/`.
-4. Chạy script tiền xử lý và giải nén thành định dạng thư mục ảnh:
+Nguồn dữ liệu chuẩn duy nhất hiện tại là cuộc thi Kaggle: [Challenges in Representation Learning: Facial Expression Recognition Challenge](https://www.kaggle.com/c/challenges-in-representation-learning-facial-expression-recognition-challenge/data).
+
+1. **Cấp quyền Kaggle:** đăng nhập, nhấn **Accept Rules** tại trang dữ liệu cuộc thi, tạo API Token trong Kaggle Account Settings và đặt `kaggle.json` tại `~/.kaggle/kaggle.json` (Windows: `%USERPROFILE%\.kaggle\kaggle.json`). Có thể dùng biến môi trường `KAGGLE_USERNAME` và `KAGGLE_KEY` thay thế.
+2. **Tải và xác thực bằng một lệnh** từ thư mục `BTL02/`:
    ```bash
-   python scripts/prepare_data.py --input data/raw/fer2013.csv --output data/processed/
+   bash scripts/download_data.sh
    ```
+   Trên Windows có thể chạy `python -m src.data.downloader`. Tùy chọn `--force` tải lại; `--verify-only` chỉ xác thực file hiện có.
+3. **Kiểm tra kết quả:** chương trình xác nhận ba cột `emotion`, `pixels`, `Usage`, đúng 35.887 dòng và phân chia 28.709 / 3.589 / 3.589; cuối cùng in SHA-256 để đối chiếu.
+
+File chuẩn sau khi chạy là `data/raw/fer2013.csv`. Dữ liệu chỉ được thay thế sau khi archive đã giải nén và CSV ứng viên vượt qua toàn bộ kiểm tra. Google Drive dự phòng hiện đang cập nhật; dùng Kaggle API làm nguồn chuẩn.
 
 ---
 

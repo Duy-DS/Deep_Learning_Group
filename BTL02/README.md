@@ -309,15 +309,13 @@ pip install -r requirements.txt
 ```
 
 ### Bước 2: Chuẩn bị Dữ liệu FER2013 & Trọng số Pretrained Checkpoints
-Do quy định không đẩy tệp dung lượng lớn lên GitHub, bạn có thể tải tự động qua script hoặc tải từ Google Drive của nhóm:
+Do quy định không đẩy tệp dung lượng lớn lên GitHub, hãy chấp nhận điều lệ cuộc thi Kaggle và cấu hình API Token (`~/.kaggle/kaggle.json` hoặc `KAGGLE_USERNAME`/`KAGGLE_KEY`), sau đó tải và xác thực tự động:
 ```bash
-# Cách 1: Chạy script tự động tải và giải nén vào data/raw/
 bash scripts/download_data.sh
-
-# Cách 2: Tải thủ công fer2013.csv từ link Google Drive ở Mục I và đặt vào:
-# BTL02/data/raw/fer2013.csv
-# Tải trọng số tốt nhất best_resnet50.pth đặt vào: BTL02/outputs/checkpoints/
+# Windows: python -m src.data.downloader
+# Chỉ xác thực CSV đã có: python -m src.data.downloader --verify-only
 ```
+Downloader lấy dữ liệu từ Kaggle, xử lý archive nhiều lớp và chỉ cài `data/raw/fer2013.csv` sau khi xác thực đủ 35.887 mẫu cùng split chuẩn; SHA-256 được in ra để đối chiếu. Google Drive dự phòng hiện đang cập nhật.
 
 ### Bước 3: Chạy Kiểm thử Đơn vị (Unit Tests) Xác minh Pipeline
 Trước khi huấn luyện, kiểm tra tính toàn vẹn của `DataLoader`, kích thước Tensor đầu vào/đầu ra và hàm khóa `Seed = 42`:

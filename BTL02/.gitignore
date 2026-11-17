@@ -13,8 +13,13 @@ venv/
 env/
 
 # Data rules (Ignore heavy datasets, keep doc and tracking files)
+*.csv
+!docs/**/*.csv
 data/raw/*
 data/processed/*
+data/**/*.zip
+data/**/*.tar.gz
+data/**/*.tgz
 !data/README.md
 !data/raw/.gitkeep
 !data/processed/.gitkeep
