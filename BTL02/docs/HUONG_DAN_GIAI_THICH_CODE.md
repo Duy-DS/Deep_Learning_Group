@@ -151,21 +151,36 @@ Hai mô hình này được thiết kế để giải quyết câu hỏi nghiên
 
 ---
 
-## 6. SO SÁNH THAM SỐ 3 MÔ HÌNH CUSTOM CNN (RQ1 MATRIX)
+## 6. SO SÁNH THAM SỐ & KẾT QUẢ THỰC NGHIỆM 3 MÔ HÌNH CUSTOM CNN (RQ1 MATRIX)
 
-| Đặc tính kiến trúc | `SmallCNN` (Baseline) | `MediumCNN` | `LargeCNN` |
+### 6.1. Bảng Đối Sánh Kiến Trúc & Kết Quả Thực Nghiệm Trên Google Colab (GPU T4)
+
+| Đặc tính kiến trúc & Kết quả | `SmallCNN` (Baseline) | `MediumCNN` | `LargeCNN` (Đề xuất tối ưu) |
 | :--- | :---: | :---: | :---: |
-| **Số khối Conv (Blocks)** | 2 blocks | 3 blocks | 4 blocks |
+| **Mã thực nghiệm (Experiment ID)** | `EXP-01` | `EXP-02` | `EXP-03` |
+| **Số khối Conv (Blocks)** | 2 blocks | 3 blocks | **4 blocks** |
 | **Số kênh đặc trưng** | $32 \rightarrow 64$ | $64 \rightarrow 128 \rightarrow 256$ | $64 \rightarrow 128 \rightarrow 256 \rightarrow 512$ |
 | **Kích thước feature map cuối** | $12 \times 12$ | $6 \times 6$ | $3 \times 3$ |
-| **Batch Normalization** | Không | Không | `BatchNorm2d` + `BatchNorm1d` |
-| **Dropout** | FC Dropout (0.5) | FC Dropout (0.5) | Spatial Dropout (0.2–0.3) + FC (0.5) |
+| **Batch Normalization** | Không | Không | **`BatchNorm2d` + `BatchNorm1d`** |
+| **Dropout Regularization** | FC Dropout (0.5) | FC Dropout (0.5) | **Spatial Dropout (0.2–0.3) + FC (0.5)** |
 | **Tổng số tham số** | **1.199.495** (~1.20M) | **2.731.015** (~2.73M) | **3.916.167** (~3.92M) |
-| **Thực nghiệm tương ứng** | `EXP-01` | `EXP-02` | `EXP-03` |
+| **Best Epoch (Điểm hội tụ tối ưu)** | **Epoch 8** | **Epoch 20** | **Epoch 32** |
+| **Best Validation Accuracy** | **55.36%** | **59.60%** (+4.24%) | **63.83%** (+8.47%) |
+| **Private Test Accuracy (Mù)** | **55.17%** | **58.09%** (+2.92%) | **64.95%** (**+9.78%**) |
+| **Private Test Macro-F1** | **0.4936** | **0.5708** (+15.64%) | **0.6356** (**+28.77%**) |
+| **Train Accuracy** | 71.28% | 91.95% | **92.40%** |
+| **Val Loss tại Best Epoch** | 1.5215 | 2.8824 (Overfitting) | **1.6093 (Kiểm soát tốt)** |
+| **Thời gian train (T4 GPU)** | 3m 13s (18 epochs) | 5m 55s (30 epochs) | 10m 19s (42 epochs) |
+| **Trọng số lưu trữ (.pth)** | `best_small_cnn.pth` (4.8MB) | `best_medium_cnn.pth` (10.9MB) | `best_large_cnn.pth` (15.7MB) |
+| **MLflow Run ID** | `49137a591d164169...` | `1f46b0e87c324a63...` | `5a71e5b71f034b21...` |
+
+### 6.2. Kết Luận Khoa Học Cho Câu Hỏi Nghiên Cứu RQ1
+1. **Mở rộng độ sâu giúp tăng hiệu năng đơn điệu tuyệt đối:** Tăng từ 2 lên 4 khối Conv giúp Test Acc tăng từ **$55.17\%$ lên $64.95\%$** ($+9.78\%$) và Macro-F1 tăng từ **$0.4936$ lên $0.6356$** ($+14.20\%$).
+2. **Vai trò sống còn của BatchNorm:** `MediumCNN` dù có dung lượng học lớn (Train Acc $91.95\%$) nhưng do thiếu BatchNorm nên bị overfit nghiêm trọng (Val Loss bùng nổ lên $2.88$). Sang `LargeCNN`, việc tích hợp `BatchNorm2d` sau mỗi tầng tích chập đã triệt tiêu hiện tượng trôi dạt hiệp biến nội tại (internal covariate shift), giữ Val Loss ở mức $1.60$ và kéo dài đà học ổn định tới tận Epoch 32.
 
 ---
 
-## 🎯 CÂU HỎI VẤN ĐÁP THƯỜNG GẶP VỚI GIẢNG VIÊN (CHEAT-SHEET)
+## 7. 🎯 CÂU HỎI VẤN ĐÁP THƯỜNG GẶP VỚI GIẢNG VIÊN (CHEAT-SHEET)
 
 **Q1: Tại sao nhóm không dùng `train_test_split` của Scikit-Learn để chia dữ liệu ngẫu nhiên?**
 * *Trả lời:* Vì FER2013 là bộ dữ liệu benchmark chuẩn quốc tế, tác giả đã chia sẵn cố định 3 tập qua cột `Usage` (`Training: 28.709`, `PublicTest: 3.589`, `PrivateTest: 3.589`). Nhóm giữ nguyên phân chia này để kết quả thực nghiệm có thể so sánh công bằng và khách quan với các bài báo khoa học quốc tế.
@@ -173,9 +188,24 @@ Hai mô hình này được thiết kế để giải quyết câu hỏi nghiên
 **Q2: Tại sao phải tính Mean/Std trên tập Training mà không tính trên toàn bộ 35.887 ảnh?**
 * *Trả lời:* Đây là nguyên tắc vàng **Chống rò rỉ dữ liệu (No Data Leakage)**. Trong bài toán thực tế, mô hình không hề biết trước dữ liệu tương lai (tập Test). Việc lấy tập Test tính Mean/Std sẽ làm lộ phân phối dữ liệu kiểm thử vào quá trình tiền xử lý, khiến kết quả đánh giá không còn khách quan.
 
-**Q3: Tại sao trong các báo cáo nghiệm thu ghi chú quá trình train 50 epoch được bảo lưu chạy trên GPU?**
-* *Trả lời:* Trên máy tính cá nhân chỉ có CPU thông thường, việc train 50 epoch cho mỗi mô hình qua 28.709 ảnh mất khoảng 15–20 phút mỗi thí nghiệm. Nhóm đã nghiệm thu toàn bộ kiến trúc mô hình, pipeline nạp dữ liệu và kiểm thử unit test 100% đạt chuẩn; quá trình huấn luyện 50 epoch được chuyển lên máy trạm có card GPU CUDA / Google Colab Pro để hoàn thành nhanh chóng và tiết kiệm điện năng.
+**Q3: Nhóm đã thực hiện quá trình huấn luyện thực nghiệm ở đâu và mất bao lâu?**
+* *Trả lời:* Nhóm xây dựng notebook chuẩn hóa `notebooks/02_colab_training.ipynb` và thực hiện huấn luyện tự động toàn bộ 3 mô hình trên phần cứng GPU NVIDIA Tesla T4 của Google Colab:
+  - `SmallCNN`: 18 epochs, mất 3 phút 13 giây.
+  - `MediumCNN`: 30 epochs, mất 5 phút 55 giây.
+  - `LargeCNN`: 42 epochs, mất 10 phút 19 giây.
+  Tổng cộng toàn bộ 3 thực nghiệm chỉ mất chưa đầy 20 phút trên GPU, mọi thông số metric và trọng số `.pth` đều được tự động lưu vết qua MLflow và đồng bộ vào file CSV 24 cột.
 
 **Q4: Hàm `get_target_layer()` được thiết kế để làm gì?**
-* *Trả lời:* Lớp trừu tượng `BaseEmotionModel` bắt buộc hàm này để trả về tầng tích chập (`Conv2d`) cuối cùng. Tầng này chứa đặc trưng không gian giàu ngữ nghĩa nhất, phục vụ cho Thành viên 5 móc hook (forward/backward hook) để tính gradient và vẽ bản đồ nhiệt **Grad-CAM**, trực quan hóa vùng khuôn mặt mà mô hình chú ý khi đưa ra dự đoán.
+* *Trả lời:* Lớp trừu tượng `BaseEmotionModel` bắt buộc hàm này để trả về tầng tích chập (`Conv2d`) cuối cùng (`conv2` ở SmallCNN, `conv3` ở MediumCNN, `conv4` ở LargeCNN). Tầng này chứa đặc trưng không gian giàu ngữ nghĩa nhất, phục vụ cho Thành viên 5 móc hook (forward/backward hook) để tính gradient và vẽ bản đồ nhiệt **Grad-CAM**, trực quan hóa vùng khuôn mặt mà mô hình chú ý khi đưa ra dự đoán.
+
+**Q5: Tại sao SmallCNN kích hoạt EarlyStopping rất sớm ở Epoch 8 trong khi LargeCNN học bền bỉ đến tận Epoch 32?**
+* *Trả lời:* `SmallCNN` chỉ có 2 khối tích chập, receptive field chỉ đạt $10 \times 10$ pixels và thiếu tầng chuẩn hóa `BatchNorm2d`. Mô hình nhanh chóng khai thác hết các đặc trưng biên cạnh đơn giản và bị bão hòa. Ngược lại, `LargeCNN` có 4 khối tích chập kết hợp `BatchNorm2d`, giúp duy trì dòng gradient ổn định sâu xuống tầng dưới cùng và liên tục kết hợp các đặc trưng bậc thấp thành đặc trưng trừu tượng cao hơn (mắt, miệng, nếp nhăn) trong suốt 32 epochs.
+
+**Q6: Tại sao ở mô hình LargeCNN, độ chính xác trên Private Test (64.95%) lại cao hơn Validation Acc (63.83%)?**
+* *Trả lời:* Trong quá trình huấn luyện, mô hình được áp dụng cơ chế điều hòa rất mạnh: `Dropout2d (0.2–0.3)` ở các tầng Conv và `Dropout (0.5)` ở tầng Fully Connected. Khi bước sang pha đánh giá (`model.eval()`), toàn bộ Dropout được tắt đi, 100% neuron hoạt động đồng thời. Tập Private Test chứa nhiều khuôn mặt có biểu cảm rõ nét, giúp mô hình phát huy tối đa năng lực khái quát hóa mà không bị bias bởi tập Validation.
+
+**Q7: Tại sao MediumCNN lại bị overfit nặng (Val Loss tăng vọt lên 2.88) trong khi LargeCNN dù nhiều tham số hơn (3.92M so với 2.73M) lại kiểm soát loss tốt hơn nhiều (Val Loss 1.60)?**
+* *Trả lời:* Đây là minh chứng kinh điển trong Deep Learning: **Dung lượng mạng (Capacity) phải đi đôi với Kỹ thuật điều hòa (Regularization)**. 
+  - `MediumCNN` có 2.73M tham số nhưng không có `BatchNorm2d` và chỉ có 1 lớp Dropout ở cuối, dẫn đến các bộ lọc ở khối 3 bị đồng kích hoạt (co-adaptation).
+  - `LargeCNN` dù sâu hơn và có 3.92M tham số, nhưng được trang bị `BatchNorm2d` sau mỗi tầng tích chập (giúp phân phối kích hoạt luôn chuẩn hóa) và `Dropout2d` (ngẫu nhiên ngắt toàn bộ kênh đặc trưng trong quá trình học), buộc các bộ lọc phải học các đặc trưng độc lập, chống phụ thuộc lẫn nhau, từ đó ghìm chặt Val Loss ở mức thấp.
 
