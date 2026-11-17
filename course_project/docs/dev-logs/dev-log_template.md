@@ -2,7 +2,7 @@
 
 - **Mã phiên (Session ID):** `LOG_[YYMMDD]_[HHMM]`
 - **Thời gian (Timestamp):** YYYY-MM-DD HH:MM
-- **Người thực hiện:** <Họ và tên thành viên / AI Coding Agent>
+- **Người thực hiện:** <Họ và tên thành viên phụ trách WP — chỉ ghi tên thành viên nhóm>
 - **Work Package liên quan:** [WP01 | WP02 | WP03 | WP04 | WP05 | WP06]
 - **Task ID đang xử lý:** `BPM25_<Task_ID>` (Ví dụ: `BPM25_T0104`, `BPM25_T0401`)
 - **Nhánh Git (Branch):** `[chức năng]/BPM25_<Task_ID>_<tên_công_việc>`
@@ -62,4 +62,4 @@ python -m src.data_pipeline.preprocess --config configs/config.yaml
 
 ## 6. Kế hoạch & Bàn giao phiên tiếp theo (Next Steps & Handover)
 - [ ] Công việc cụ thể cần làm tiếp theo (gắn kèm Task ID tương ứng).
-- [ ] Thông tin cần bàn giao cho thành viên phối hợp hoặc phiên làm việc tiếp theo của AI Agent.
+- [ ] Thông tin cần bàn giao cho thành viên phối hợp hoặc người phụ trách phiên tiếp theo.

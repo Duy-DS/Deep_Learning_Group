@@ -4,7 +4,7 @@
 
 - **Mã sự cố:** `BUG_261115_2210`
 - **Thời gian xử lý:** 2026-11-15 22:10
-- **Người thực hiện:** Cline (AI Coding Agent)
+- **Người thực hiện:** Nguyễn Tấn Duy
 - **Gói công việc liên quan:** WP02, WP03, WP04, WP06
 - **Task ID:** `BPM25_FIX_POST_AUDIT`
 - **Nhánh Git:** `fix/BPM25_T0304_post-merge-cleanup`
@@ -17,13 +17,13 @@
 
 ## 2. Triệu chứng và bối cảnh
 
-- Hai baseline chứa marker merge conflict ở đầu và cuối file, ngăn Python import module.
+- Hai baseline còn ký hiệu phân định xung đột ở đầu và cuối file, ngăn Python import module.
 - `AttentionLayer` trong Informer khai báo `Optional[torch.Tensor]` nhưng thiếu import `Optional`.
 - `configs/config.yaml` vắng mặt trong repository, làm thiếu cấu hình chuẩn có thể nạp bằng YAML.
 
 ## 3. Phân tích nguyên nhân cốt lõi (RCA)
 
-- Marker xung đột còn lại sau merge/revert ở `lstm.py` và `dlinear.py` không được loại bỏ trước khi commit; Python coi các marker là cú pháp không hợp lệ.
+- Ký hiệu phân định xung đột còn lại sau merge/revert ở `lstm.py` và `dlinear.py` không được loại bỏ trước khi commit; Python coi các ký hiệu này là cú pháp không hợp lệ.
 - `informer.py` sử dụng type hint `Optional` mà không nhập tên đó từ `typing`, gây `NameError` khi đánh giá annotation.
 - File cấu hình chuẩn không có trong HEAD hoặc lịch sử Git được rà soát.
 - **Giới hạn hợp đồng đặc trưng:** theo lựa chọn của người yêu cầu, cấu hình và smoke test giữ D=15. Tuy nhiên, `preprocess.py` sau mã hóa cùng `get_feature_columns()` hiện suy ra 16 đặc trưng cho dữ liệu PRSA (bao gồm `ir` và 5 cột `wind_*`). Vì vậy danh sách 15 tên trong YAML không khớp hoàn toàn pipeline thực tế; không sửa pipeline trong phạm vi task này.
@@ -40,16 +40,10 @@
 
 ```diff
 src/models/lstm.py:
--<<<<<<< HEAD
--=======
- # (thân mô hình được giữ nguyên)
-->>>>>>> 93e2c62c1c7cf32501ff9845fa9a7d984c7791a0
+ # Các dòng phân định xung đột đã được loại bỏ; thân mô hình được giữ nguyên.
 
 src/models/dlinear.py:
--<<<<<<< HEAD
--=======
- # (thân mô hình được giữ nguyên)
-->>>>>>> 93e2c62c1c7cf32501ff9845fa9a7d984c7791a0
+ # Các dòng phân định xung đột đã được loại bỏ; thân mô hình được giữ nguyên.
 
 src/models/informer.py:
  import math

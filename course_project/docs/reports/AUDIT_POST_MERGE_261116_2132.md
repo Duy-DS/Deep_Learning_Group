@@ -3,7 +3,7 @@
 - **Mã công việc (Task ID):** `BPM25_AUDIT_POST_MERGE`
 - **Tên file lưu vết:** `docs/reports/AUDIT_POST_MERGE_261116_2132.md`
 - **Thời gian nghiệm thu:** 2026-11-16 21:32
-- **Người thực hiện:** Cline (AI Coding Agent)
+- **Người thực hiện:** Nguyễn Tấn Duy
 - **Work Package liên quan:** WP03, WP04
 - **Nhánh Git (Branch):** `feat/BPM25_T0401_shap-explainer`
 - **Commit SHA được kiểm toán:** `bad29596b0a7cd408558b41a7fb74574e3d0d50c`

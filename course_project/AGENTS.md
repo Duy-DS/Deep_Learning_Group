@@ -51,6 +51,7 @@ Xây dựng hệ thống dự báo nồng độ $\text{PM}_{2.5}$ đa biến tr�
 *   **Git Pollution Red Line:** **TUYỆT ĐỐI KHÔNG** commit dữ liệu thô (`data/raw/`), dữ liệu đã xử lý (`data/processed/`), hoặc trọng số mô hình (`*.pth`, `*.pt`) lên Git.
 *   **Procedural Spaghetti Code:** **TUYỆT ĐỐI KHÔNG** viết code xử lý dữ liệu hay mô hình dưới dạng script thủ tục rời rạc không đóng gói vào Class OOP, hoặc viết docstring bằng tiếng Anh.
 *   **Branch Naming Violation:** **TUYỆT ĐỐI KHÔNG** làm việc trực tiếp trên nhánh `main` hoặc đặt tên nhánh sai cấu trúc `[chức năng]/BPM25_[Task ID]_[tên công việc]`.
+*   **Human-Attribution Only Red Line:** **TUYỆT ĐỐI KHÔNG** ghi tên hay từ khóa nhận diện AI/Agent (`AI`, `Agent`, `AI Coding Agent`, `Cline`, `Antigravity`, `Cursor`, `Copilot`, `Claude`, `Devin`, `Windsurf`,...) trong trường `Người thực hiện`, nội dung thuộc `docs/`, comment/docstring mã nguồn hoặc commit message. Trường `Người thực hiện` chỉ ghi tên thành viên phụ trách theo Mục II.6: `WP01`/`T0101–T0106` — Nguyễn Thành Đạt; `WP02`/`T0201–T0204` — Trần Chí Vỹ; `WP03`/`T0301–T0305` — Đinh Thái Toàn; `WP04`/`T0401–T0403` — Nguyễn Tấn Duy; `WP05`/`T0501`, `T0502`, `T0504` — Nguyễn Công Trí; `WP06`/`T0503`, `T0601–T0604` — Nguyễn Công Trí & Đinh Thái Toàn.
 
 ---
 

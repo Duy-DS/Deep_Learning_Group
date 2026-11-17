@@ -48,6 +48,6 @@ Lưu ý: Lịch sử GitHub, kết quả thực nghiệm, báo cáo và phần t
 + Phải có baseline và thiết lập so sánh công bằng; ghi rõ cách chia dữ liệu, tham số huấn luyện, độ đo đánh giá, môi trường thực nghiệm và random seed.
 + Khuyến khích sử dụng các kiến trúc hiện đại/SOTA phù hợp, có phân tích hiệu quả và chi phí tính toán.
 + Khuyến khích xây dựng ứng dụng minh họa thực tiễn bằng Streamlit, Gradio hoặc API.
-+ Mã nguồn, mô hình và kết quả phải có khả năng kiểm tra, chạy lại; ghi rõ nguồn dataset, pretrained weights, mã nguồn tham khảo và công cụ AI được sử dụng.
++ Mã nguồn, mô hình và kết quả phải có khả năng kiểm tra, chạy lại; ghi rõ nguồn dataset, pretrained weights, mã nguồn tham khảo và công cụ hỗ trợ được sử dụng.
 
 Việc sử dụng mô hình pretrained hoặc mã nguồn tham khảo được cho phép nhưng nhóm phải hiểu, giải thích được kiến trúc, quy trình huấn luyện và kết quả thực nghiệm. Không chấp nhận việc chỉ chạy lại notebook có sẵn mà thiếu đóng góp và phân tích của nhóm.

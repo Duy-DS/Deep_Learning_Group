@@ -3,7 +3,7 @@
 - **Mã công việc (Task ID):** `BPM25_<Task_ID>` (Ví dụ: `BPM25_T0104`, `BPM25_T0401`)
 - **Tên file lưu vết:** `docs/reports/[Task_ID]_[YYMMDD]_[HHMM].md`
 - **Thời gian nghiệm thu:** YYYY-MM-DD HH:MM
-- **Người thực hiện:** <Họ và tên thành viên / AI Coding Agent>
+- **Người thực hiện:** <Họ và tên thành viên phụ trách WP — chỉ ghi tên thành viên nhóm>
 - **Work Package liên quan:** [WP01 | WP02 | WP03 | WP04 | WP05 | WP06]
 - **Nhánh Git (Branch):** `[feat|fix|exp|docs]/BPM25_<Task_ID>_<ten_cong_viec>`
 - **Commit SHA hoàn thành:** `<Git commit hash ngắn gọn, ví dụ: a1b2c3d>`

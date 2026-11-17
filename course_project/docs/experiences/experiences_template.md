@@ -3,7 +3,7 @@
 - **Mã thực nghiệm (Experiment ID):** `EXP_[ID]` (Ví dụ: `EXP01`, `EXP02`)
 - **Tên file lưu vết:** `docs/experiences/[ex ID]_[YYMMDD]_[HHMM].md`
 - **Thời gian thực hiện:** YYYY-MM-DD HH:MM
-- **Người thực hiện:** <Tên thành viên / AI Coding Agent>
+- **Người thực hiện:** <Họ và tên thành viên phụ trách WP — chỉ ghi tên thành viên nhóm>
 - **Work Package liên quan:** WP02 | WP03 | WP04 | WP06
 - **Task ID:** `BPM25_<Task_ID>` (Ví dụ: `BPM25_T0305`, `BPM25_T0601`)
 - **Nhánh Git (Branch):** `exp/BPM25_<Task_ID>_<ten_cong_viec>`
