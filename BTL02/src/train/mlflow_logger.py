@@ -7,6 +7,16 @@ import pandas as pd
 class MLflowLogger:
     """Lớp quản lý ghi nhận tiến trình huấn luyện và chỉ số thực nghiệm qua MLflow."""
 
+    # Schema bất biến đồng bộ với tab Raw_MLflow_Logs trên Google Sheets.
+    CSV_COLUMNS = [
+        "Start Time", "Duration", "Run ID", "Name", "Source Name", "Status",
+        "params.architecture", "params.exp_group", "params.rq_tag", "params.seed",
+        "params.image_size", "params.augmentation", "params.optimizer", "params.lr",
+        "params.scheduler", "params.batch_size", "params.dropout", "metrics.train_loss",
+        "metrics.train_acc", "metrics.best_val_acc", "metrics.private_test_acc",
+        "metrics.macro_f1", "metrics.best_epoch", "tags.member",
+    ]
+
     def __init__(self, experiment_name: str = "BTL02_FER2013_PyTorch", tracking_uri: str = "mlruns") -> None:
         """Khởi tạo logger với tên thực nghiệm và thư mục lưu trữ mlruns."""
         os.environ["MLFLOW_ALLOW_FILE_STORE"] = "true"
@@ -54,8 +64,35 @@ class MLflowLogger:
         mlflow.end_run()
 
     def export_summary_csv(self, output_path: str = "outputs/logs/mlflow_summary_24col.csv") -> str:
-        """Trích xuất tất cả các runs thành file CSV đồng bộ với Tab 4 Google Sheets."""
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        """Xuất MLflow runs với đúng 24 cột theo thứ tự của Google Sheets."""
+        output_dir = os.path.dirname(output_path)
+        if output_dir:
+            os.makedirs(output_dir, exist_ok=True)
         runs_df = mlflow.search_runs(experiment_names=[self.experiment_name])
-        runs_df.to_csv(output_path, index=False, encoding="utf-8-sig")
+        column_mapping = {
+            "Start Time": "start_time",
+            "Run ID": "run_id",
+            "Name": "tags.mlflow.runName",
+            "Source Name": "tags.mlflow.source.name",
+            "Status": "status",
+            **{column: column for column in self.CSV_COLUMNS if column.startswith(("params.", "metrics.", "tags."))},
+        }
+        summary_df = pd.DataFrame(index=runs_df.index)
+        for output_column, source_column in column_mapping.items():
+            if source_column in runs_df.columns:
+                summary_df[output_column] = runs_df[source_column]
+            else:
+                summary_df[output_column] = "None"
+
+        if "end_time" in runs_df.columns and "start_time" in runs_df.columns:
+            start_time = pd.to_datetime(runs_df["start_time"], errors="coerce", utc=True)
+            end_time = pd.to_datetime(runs_df["end_time"], errors="coerce", utc=True)
+            duration = (end_time - start_time).dt.total_seconds()
+            summary_df["Duration"] = duration.where(duration.notna(), "None")
+        else:
+            summary_df["Duration"] = "None"
+
+        summary_df = summary_df.reindex(columns=self.CSV_COLUMNS)
+        assert len(summary_df.columns) == 24, "Schema CSV MLflow phải có đúng 24 cột."
+        summary_df.to_csv(output_path, index=False, encoding="utf-8-sig")
         return output_path

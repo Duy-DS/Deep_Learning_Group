@@ -7,14 +7,21 @@ from pathlib import Path
 from src.data.dataset import FER2013Dataset, get_dataloaders
 from src.data.transforms import get_transforms, FER2013_MEAN, FER2013_STD
 
-CSV_PATH = Path("BTL02/data/raw/fer2013.csv")
+CSV_PATH = None
 
 
 @pytest.fixture(scope="module")
-def check_csv_exists():
-    """Kiểm tra sự tồn tại của file dữ liệu thô."""
-    if not CSV_PATH.exists():
-        pytest.skip(f"Không tìm thấy file dữ liệu tại {CSV_PATH}")
+def check_csv_exists(tmp_path_factory):
+    """Sinh FER2013 giả lập ngoài repo, không mở hoặc sửa dữ liệu thật."""
+    global CSV_PATH
+    CSV_PATH = tmp_path_factory.mktemp("fer2013_synthetic") / "fer2013.csv"
+    pixels = " ".join(["127"] * 2304)
+    with CSV_PATH.open("w", encoding="utf-8", newline="") as stream:
+        stream.write("emotion,pixels,Usage\n")
+        for split, size in (("Training", 28709), ("PublicTest", 3589), ("PrivateTest", 3589)):
+            for index in range(size):
+                label = index % 7 if index % 10 == 0 else 3
+                stream.write(f"{label},{pixels},{split}\n")
 
 
 def test_split_counts_integrity(check_csv_exists):
@@ -114,4 +121,16 @@ def test_reproducibility_dataloader_shuffle(check_csv_exists):
     batch2_x, batch2_y = next(iter(loader_2))
 
     assert torch.equal(batch1_y, batch2_y), "Labels giữa 2 lần chạy seed=42 phải giống nhau tuyệt đối!"
+
+
+def test_imagenet_normalization_for_rgb_pipeline():
+    """Kiểm tra pipeline RGB tùy chọn dùng mean/std ImageNet cho WP3."""
+    _, eval_transform = get_transforms(
+        image_size=128,
+        in_channels=3,
+        normalization="imagenet",
+    )
+    normalize = next(transform for transform in eval_transform.transforms if type(transform).__name__ == "Normalize")
+    assert tuple(normalize.mean) == (0.485, 0.456, 0.406)
+    assert tuple(normalize.std) == (0.229, 0.224, 0.225)
 

@@ -26,6 +26,7 @@ class FER2013TransformBuilder:
         in_channels: int = 1,
         mean: Union[Tuple[float, ...], None] = None,
         std: Union[Tuple[float, ...], None] = None,
+        normalization: str = "fer2013",
     ) -> None:
         """Khởi tạo builder với các thông số cấu hình cơ bản.
 
@@ -33,6 +34,7 @@ class FER2013TransformBuilder:
             image_size: Kích thước cạnh ảnh đầu ra (mặc định 48, hoặc 128, 224).
             in_channels: Số kênh ảnh đầu vào (1 cho Grayscale, 3 cho RGB).
             mean: Tuple giá trị trung bình pixel. Nếu None, dùng giá trị mặc định của FER2013.
+            normalization: Chọn ``fer2013`` hoặc ``imagenet`` cho pipeline RGB.
             std: Tuple độ lệch chuẩn pixel. Nếu None, dùng giá trị mặc định của FER2013.
         """
         if in_channels not in (1, 3):
@@ -41,12 +43,25 @@ class FER2013TransformBuilder:
         self.image_size = image_size
         self.in_channels = in_channels
 
-        if in_channels == 1:
-            self.mean = mean if mean is not None else FER2013_MEAN
-            self.std = std if std is not None else FER2013_STD
+        normalization_name = normalization.strip().lower()
+        if normalization_name not in ("fer2013", "imagenet"):
+            raise ValueError("normalization phải là 'fer2013' hoặc 'imagenet'.")
+        if normalization_name == "imagenet" and in_channels != 3:
+            raise ValueError("ImageNet normalization chỉ áp dụng cho ảnh RGB 3 kênh.")
+
+        if normalization_name == "imagenet":
+            self.mean = (0.485, 0.456, 0.406)
+            self.std = (0.229, 0.224, 0.225)
+        elif in_channels == 1:
+            self.mean = FER2013_MEAN
+            self.std = FER2013_STD
         else:
-            self.mean = mean if mean is not None else FER2013_MEAN_RGB
-            self.std = std if std is not None else FER2013_STD_RGB
+            self.mean = FER2013_MEAN_RGB
+            self.std = FER2013_STD_RGB
+        if mean is not None:
+            self.mean = mean
+        if std is not None:
+            self.std = std
 
     def build_train_transforms(self, augmentation: str = "None") -> transforms.Compose:
         """Tạo chuỗi biến đổi dữ liệu cho tập huấn luyện (Training Set).
@@ -126,6 +141,7 @@ def get_transforms(
     augmentation: str = "None",
     mean: Union[Tuple[float, ...], None] = None,
     std: Union[Tuple[float, ...], None] = None,
+    normalization: str = "fer2013",
 ) -> Tuple[transforms.Compose, transforms.Compose]:
     """Hàm tiện ích khởi tạo nhanh cặp transforms (train_transform, eval_transform).
 
@@ -135,6 +151,7 @@ def get_transforms(
         augmentation: Kiểu tăng cường dữ liệu cho tập train.
         mean: Bộ giá trị trung bình pixel.
         std: Bộ giá trị độ lệch chuẩn pixel.
+        normalization: Chuẩn hóa ``fer2013`` hoặc ``imagenet`` (chỉ cho RGB).
 
     Returns:
         Tuple[transforms.Compose, transforms.Compose]: (train_transform, eval_transform)
@@ -144,6 +161,7 @@ def get_transforms(
         in_channels=in_channels,
         mean=mean,
         std=std,
+        normalization=normalization,
     )
     train_transform = builder.build_train_transforms(augmentation=augmentation)
     eval_transform = builder.build_eval_transforms()

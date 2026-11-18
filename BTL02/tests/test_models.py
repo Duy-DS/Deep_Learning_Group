@@ -42,3 +42,20 @@ def test_large_cnn_architecture():
     assert count_parameters(model) == 3916167
     assert isinstance(model.get_target_layer(), nn.Conv2d)
     assert model.get_target_layer().out_channels == 512
+
+
+@pytest.mark.parametrize("activation", ["relu", "leaky_relu", "gelu", "elu"])
+def test_large_cnn_supported_activations(activation):
+    """Kiểm tra LargeCNN hỗ trợ bốn activation và giữ đúng shape logits."""
+    model = LargeCNN(activation=activation).eval()
+    with torch.no_grad():
+        output = model(torch.randn(2, 1, 48, 48))
+    assert output.shape == torch.Size([2, 7])
+
+
+def test_custom_cnn_channels_are_configurable():
+    """Kiểm tra số kênh tùy biến vẫn khởi tạo và suy luận được."""
+    model = LargeCNN(channels=(16, 32, 64, 128)).eval()
+    with torch.no_grad():
+        output = model(torch.randn(2, 1, 48, 48))
+    assert output.shape == torch.Size([2, 7])

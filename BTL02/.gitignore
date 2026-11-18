@@ -14,7 +14,14 @@ env/
 
 # Data rules (Ignore heavy datasets, keep doc and tracking files)
 *.csv
-!docs/**/*.csv
+*.zip
+*.tar.gz
+*.tgz
+.env
+.env.*
+!.env.example
+access_token
+kaggle.json
 data/raw/*
 data/processed/*
 data/**/*.zip
@@ -38,6 +45,7 @@ outputs/**
 
 # Experiment tracking & Personal drafts
 mlruns/
+mlartifacts/
 drafts/
 
 # OS generated files

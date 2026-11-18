@@ -1,12 +1,4 @@
-"""Gói dữ liệu (data package) cho bài toán nhận diện cảm xúc khuôn mặt FER2013."""
-
-from src.data.dataset import FER2013Dataset, get_dataloaders
-from src.data.transforms import (
-    FER2013_MEAN,
-    FER2013_STD,
-    FER2013TransformBuilder,
-    get_transforms,
-)
+"""Gói dữ liệu FER2013 với nạp module lười để CLI tải chỉ cần thư viện chuẩn."""
 
 __all__ = [
     "FER2013Dataset",
@@ -16,3 +8,16 @@ __all__ = [
     "FER2013_MEAN",
     "FER2013_STD",
 ]
+
+
+def __getattr__(name: str):
+    """Nạp lớp dữ liệu hoặc transforms khi mã gọi cần đến chúng."""
+    if name in ("FER2013Dataset", "get_dataloaders"):
+        from src.data import dataset
+
+        return getattr(dataset, name)
+    if name in ("get_transforms", "FER2013TransformBuilder", "FER2013_MEAN", "FER2013_STD"):
+        from src.data import transforms
+
+        return getattr(transforms, name)
+    raise AttributeError(f"module {__name__!r} không có thuộc tính {name!r}")

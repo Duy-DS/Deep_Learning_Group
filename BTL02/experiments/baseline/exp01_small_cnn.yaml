@@ -3,15 +3,20 @@
 
 exp_id: "EXP-01"
 architecture: "SmallCNN"
+activation: "relu"
 exp_group: "Baseline"
 rq_tag: "RQ1"
 seed: 42
 image_size: 48
 in_channels: 1
+num_workers: 0
+num_classes: 7
+normalization: "fer2013"
 augmentation: "None"
 optimizer: "Adam"
 lr: 0.001
 scheduler: "None"
+scheduler_params: {}
 batch_size: 64
 epochs: 50
 dropout: 0.5

@@ -9,6 +9,7 @@ Kiến trúc SmallCNN:
 import torch
 import torch.nn as nn
 from src.models.base_model import BaseEmotionModel
+from src.models.custom_cnn import ActivationFactory
 
 
 class SmallCNN(BaseEmotionModel):
@@ -19,6 +20,7 @@ class SmallCNN(BaseEmotionModel):
         num_classes: int = 7,
         in_channels: int = 1,
         dropout: float = 0.5,
+        activation: str = "relu",
     ) -> None:
         """Khởi tạo các tầng tích chập và tầng phân loại của SmallCNN.
 
@@ -26,6 +28,7 @@ class SmallCNN(BaseEmotionModel):
             num_classes: Số lượng lớp cảm xúc đầu ra (mặc định 7).
             in_channels: Số lượng kênh ảnh đầu vào (1 cho Grayscale, 3 cho RGB).
             dropout: Tỷ lệ dropout tại tầng Fully Connected (mặc định 0.5).
+            activation: Tên hàm kích hoạt lấy từ cấu hình ablation.
         """
         super().__init__(num_classes=num_classes, in_channels=in_channels)
         self.dropout_rate = dropout
@@ -34,12 +37,12 @@ class SmallCNN(BaseEmotionModel):
         # Viết code ở đây:
         self.conv1 = nn.Conv2d(in_channels, 32, kernel_size=3,padding = 1)
 
-        self.relu1 = nn.ReLU(inplace = True)
+        self.relu1 = ActivationFactory.create(activation)
         self.pool1 = nn.MaxPool2d(kernel_size=2,stride=2)
 
 
         self.conv2 = nn.Conv2d(32,64,kernel_size=3,padding=1)
-        self.relu2 = nn.ReLU(inplace = True)
+        self.relu2 = ActivationFactory.create(activation)
         self.pool2 = nn.MaxPool2d(kernel_size=2,stride=2)
 
         # TODO 2: Khai báo tầng phân loại Fully Connected (flatten, fc1, relu_fc, dropout, fc2)
@@ -47,7 +50,7 @@ class SmallCNN(BaseEmotionModel):
 
         self.flatten = nn.Flatten()
         self.fc1 = nn.Linear(64 * 12 * 12, 128)
-        self.relu_fc = nn.ReLU(inplace=True)
+        self.relu_fc = ActivationFactory.create(activation)
         self.dropout = nn.Dropout(p=dropout)
         self.fc2 = nn.Linear(128, num_classes)
 

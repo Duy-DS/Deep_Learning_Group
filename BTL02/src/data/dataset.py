@@ -201,6 +201,7 @@ def get_dataloaders(
     augmentation: str = "None",
     seed: int = 42,
     pin_memory: bool = False,
+    normalization: str = "fer2013",
 ) -> Tuple[DataLoader, DataLoader, DataLoader]:
     """Hàm kiến tạo và trả về bộ 3 DataLoaders (Training, Validation/PublicTest, Test/PrivateTest).
 
@@ -222,6 +223,7 @@ def get_dataloaders(
         image_size=image_size,
         in_channels=in_channels,
         augmentation=augmentation,
+        normalization=normalization,
     )
 
     # 2. Khởi tạo 3 phân tập Dataset

@@ -204,6 +204,26 @@ Hai mô hình này được thiết kế để giải quyết câu hỏi nghiên
 **Q6: Tại sao ở mô hình LargeCNN, độ chính xác trên Private Test (64.95%) lại cao hơn Validation Acc (63.83%)?**
 * *Trả lời:* Trong quá trình huấn luyện, mô hình được áp dụng cơ chế điều hòa rất mạnh: `Dropout2d (0.2–0.3)` ở các tầng Conv và `Dropout (0.5)` ở tầng Fully Connected. Khi bước sang pha đánh giá (`model.eval()`), toàn bộ Dropout được tắt đi, 100% neuron hoạt động đồng thời. Tập Private Test chứa nhiều khuôn mặt có biểu cảm rõ nét, giúp mô hình phát huy tối đa năng lực khái quát hóa mà không bị bias bởi tập Validation.
 
+## Bổ sung kỹ thuật ngày 2026-11-18: Audit và kagglehub
+
+### Nạp .env an toàn (phiên 22:33)
+
+`FER2013Downloader.__init__` gọi `load_environment`: project .env ưu tiên trước CWD, chỉ nạp một tệp, không dò thư mục cha khác. `override=False` giữ quyền ưu tiên của shell; `interpolate=False` giữ nguyên ký tự token. Tham số `env_file` cho phép tests chỉ đọc cấu hình giả trong tmp_path. Không tự tạo .env và không in giá trị biến. Năm test mới nâng toàn suite lên **34 passed** với dependency thật.
+
+**Hỏi: Vì sao copy .env.example chưa đủ để tải?** Phải thay placeholder bằng token mới riêng tư và Accept Rules; token mẫu bị từ chối. Không đưa token vào chat/Git. SHA-256 chỉ dùng đối chiếu dữ liệu, không chứng minh provenance bằng chữ ký Kaggle.
+
+- `FER2013Downloader` gọi `kagglehub.competition_download` sau kiểm tra nguồn chứng thực. Ưu tiên token môi trường, access_token, rồi legacy env/json; không log token. Cache kagglehub chỉ đọc. ZIP/TAR.GZ được sao chép theo khối vào vùng tạm, không extractall; CSV đúng header, nhãn, pixel và split mới được atomic replace. SHA-256 là checksum đối chiếu byte, không phải chữ ký của Kaggle.
+- `ActivationFactory` tạo module mới cho từng tầng; mặc định giữ nguyên số tham số: Small 1.199.495, Medium 2.731.015, Large 3.916.167. Với input `[2,1,48,48]`, Medium sau pooling có `[2,256,6,6]`, Large `[2,512,3,3]`; cả hai xuất logits `[2,7]`. Channels đổi sẽ làm đổi shape trọng số; chỉ cấu hình mặc định tương thích state_dict mặc định cũ.
+- `Trainer` truyền activation/channels/dropout, worker/class count và normalization từ YAML. Plateau dùng validation loss hoặc accuracy theo mode; Cosine cập nhật sau epoch. SmallCNN cũng nhận activation, tránh YAML bị bỏ qua âm thầm. Builder RGB hỗ trợ 128/224 và ImageNet normalization, không augment tập đánh giá.
+- `MLflowLogger.CSV_COLUMNS` cố định 24 cột; metadata ánh xạ từ MLflow, Duration tính theo giây, trường thiếu điền None. Cột activation/channel vẫn log vào MLflow nhưng không thêm vào schema Sheets đã khóa.
+- Test mới dùng dependencies thật và dữ liệu tổng hợp ngoài repo: **29 passed**, không skip. Không xác minh download/auth thật hoặc huấn luyện lại. Seed hỗ trợ tái lập nhưng không bảo đảm bitwise giữa các phiên bản/phần cứng.
+
+**Hỏi: Kết quả ba CNN đã chứng minh tăng độ sâu gây tăng accuracy chưa?**
+Trả lời: Chưa. Width, số tham số, BatchNorm và Dropout cùng thay đổi; T0203 cần đối chứng, không được suy diễn nhân quả chỉ từ bảng kết quả cũ.
+
+**Hỏi: Private Test cao hơn Public Test có phải do tắt Dropout không?**
+Trả lời: Không thể kết luận như vậy: cả Public và Private đều phải dùng eval(), nên Dropout đều tắt. Chênh lệch tập mẫu cần được phân tích, không giả định PrivateTest dễ hơn nếu chưa có bằng chứng.
+
 **Q7: Tại sao MediumCNN lại bị overfit nặng (Val Loss tăng vọt lên 2.88) trong khi LargeCNN dù nhiều tham số hơn (3.92M so với 2.73M) lại kiểm soát loss tốt hơn nhiều (Val Loss 1.60)?**
 * *Trả lời:* Đây là minh chứng kinh điển trong Deep Learning: **Dung lượng mạng (Capacity) phải đi đôi với Kỹ thuật điều hòa (Regularization)**. 
   - `MediumCNN` có 2.73M tham số nhưng không có `BatchNorm2d` và chỉ có 1 lớp Dropout ở cuối, dẫn đến các bộ lọc ở khối 3 bị đồng kích hoạt (co-adaptation).

@@ -12,7 +12,10 @@ import torch.nn as nn
 
 def seed_everything(seed: int = 42) -> None:
     """
-    Khóa cứng tất cả các nguồn sinh số ngẫu nhiên để tái lập kết quả 100%.
+    Thiết lập nguồn ngẫu nhiên và chế độ cuDNN nhằm hỗ trợ tái lập.
+
+    PYTHONHASHSEED chỉ có hiệu lực đầy đủ với hash khi đặt trước lúc khởi động
+    Python; tính xác định giữa phần cứng/phiên bản khác nhau không được bảo đảm.
 
     Tham số:
         seed (int): Hạt giống ngẫu nhiên (mặc định = 42 theo quy định dự án).
@@ -29,13 +32,12 @@ def seed_everything(seed: int = 42) -> None:
     # 4. Khóa PyTorch trên CPU
     torch.manual_seed(seed)
 
-    # 5. Khóa PyTorch trên tất cả các GPU (nếu có)
-    if torch.cuda.is_available():
-        torch.cuda.manual_seed(seed)
-        torch.cuda.manual_seed_all(seed)
-        # Bắt buộc thuật toán cuDNN chạy ở chế độ xác định (deterministic)
-        torch.backends.cudnn.deterministic = True
-        torch.backends.cudnn.benchmark = False
+    # 5. Khóa PyTorch trên tất cả các GPU; hàm an toàn cả khi không có CUDA.
+    torch.cuda.manual_seed_all(seed)
+
+    # Luôn giữ trạng thái cuDNN nhất quán giữa các môi trường CPU và CUDA.
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
 
 
 def count_parameters(model: nn.Module) -> int:

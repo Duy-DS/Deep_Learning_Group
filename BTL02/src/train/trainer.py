@@ -64,6 +64,11 @@ class Trainer:
         self.lr = float(self.config.get("lr", 1e-3))
         self.epochs = int(self.config.get("epochs", 50))
         self.dropout = float(self.config.get("dropout", 0.5))
+        self.activation = str(self.config.get("activation", "relu"))
+        self.channels = self.config.get("channels")
+        self.num_workers = int(self.config.get("num_workers", 0))
+        self.num_classes = int(self.config.get("num_classes", 7))
+        self.normalization = str(self.config.get("normalization", "fer2013"))
         self.patience = int(self.config.get("patience", 10))
         self.member = str(self.config.get("member", "Thành viên 2"))
 
@@ -77,10 +82,11 @@ class Trainer:
         self.train_loader, self.val_loader, self.test_loader = get_dataloaders(
             csv_path=csv_path,
             batch_size=self.batch_size,
-            num_workers=0,
+            num_workers=self.num_workers,
             image_size=self.image_size,
             in_channels=self.in_channels,
             augmentation=self.augmentation,
+            normalization=self.normalization,
             seed=self.seed,
             pin_memory=torch.cuda.is_available(),
         )
@@ -92,6 +98,7 @@ class Trainer:
         # 7. Khởi tạo Hàm mất mát và Bộ tối ưu hóa (Optimizer)
         self.criterion = nn.CrossEntropyLoss()
         self.optimizer = self._build_optimizer()
+        self.lr_scheduler = self._build_scheduler()
 
         # 8. Khởi tạo MLflowLogger
         self.logger = MLflowLogger()
@@ -100,21 +107,28 @@ class Trainer:
         """Khởi tạo kiến trúc mô hình tương ứng với tham số architecture."""
         if self.architecture == "SmallCNN":
             return SmallCNN(
-                num_classes=7,
+                num_classes=self.num_classes,
                 in_channels=self.in_channels,
                 dropout=self.dropout,
+                activation=self.activation,
             )
         elif self.architecture == "MediumCNN":
             return MediumCNN(
-                num_classes=7,
+                num_classes=self.num_classes,
                 in_channels=self.in_channels,
                 dropout=self.dropout,
+                activation=self.activation,
+                channels=self.channels if self.channels is not None else (64, 128, 256),
+                dropout_rate=self.dropout,
             )
         elif self.architecture == "LargeCNN":
             return LargeCNN(
-                num_classes=7,
+                num_classes=self.num_classes,
                 in_channels=self.in_channels,
                 dropout=self.dropout,
+                activation=self.activation,
+                channels=self.channels if self.channels is not None else (64, 128, 256, 512),
+                dropout_rate=self.dropout,
             )
         raise ValueError(f"Kiến trúc mô hình '{self.architecture}' chưa được hỗ trợ trong Trainer.")
 
@@ -129,6 +143,31 @@ class Trainer:
             return optim.SGD(self.model.parameters(), lr=self.lr, momentum=0.9, nesterov=True)
         else:
             raise ValueError(f"Không hỗ trợ bộ tối ưu hóa: '{opt_name}'")
+
+    def _build_scheduler(self) -> Optional[optim.lr_scheduler.LRScheduler]:
+        """Khởi tạo bộ điều chỉnh learning rate theo cấu hình YAML."""
+        scheduler_name = str(self.config.get("scheduler", "None")).strip().lower()
+        scheduler_params = self.config.get("scheduler_params", {}) or {}
+        if scheduler_name in ("none", "null", ""):
+            return None
+        if scheduler_name == "reducelronplateau":
+            return optim.lr_scheduler.ReduceLROnPlateau(
+                self.optimizer,
+                mode=str(scheduler_params.get("mode", "min")),
+                factor=float(scheduler_params.get("factor", 0.1)),
+                patience=int(scheduler_params.get("patience", 3)),
+                min_lr=float(scheduler_params.get("min_lr", 1e-6)),
+            )
+        if scheduler_name == "cosineannealinglr":
+            return optim.lr_scheduler.CosineAnnealingLR(
+                self.optimizer,
+                T_max=int(scheduler_params.get("T_max", self.epochs)),
+                eta_min=float(scheduler_params.get("eta_min", 0.0)),
+            )
+        raise ValueError(
+            f"Scheduler '{self.config.get('scheduler')}' không được hỗ trợ; "
+            "chọn ReduceLROnPlateau, CosineAnnealingLR hoặc None."
+        )
 
     def train_one_epoch(self) -> Tuple[float, float]:
         """Thực hiện lan truyền tiến, tính gradient và cập nhật trọng số cho 1 epoch tập Train.
@@ -223,11 +262,13 @@ class Trainer:
             "scheduler": str(self.config.get("scheduler", "None")),
             "batch_size": self.batch_size,
             "dropout": self.dropout,
+            "activation": self.activation,
+            "channels": str(self.channels) if self.channels is not None else "default",
             "member": self.member,
         }
         self.logger.log_params(init_params)
 
-        best_val_acc = 0.0
+        best_val_acc = float("-inf")
         best_val_macro_f1 = 0.0
         best_epoch = 0
         patience_counter = 0
@@ -236,6 +277,12 @@ class Trainer:
         for epoch in range(1, self.epochs + 1):
             train_loss, train_acc = self.train_one_epoch()
             val_loss, val_acc, val_f1 = self.evaluate(self.val_loader)
+
+            # Scheduler giảm LR theo validation loss hoặc theo lịch cosine.
+            if isinstance(self.lr_scheduler, optim.lr_scheduler.ReduceLROnPlateau):
+                self.lr_scheduler.step(val_acc if self.lr_scheduler.mode == "max" else val_loss)
+            elif self.lr_scheduler is not None:
+                self.lr_scheduler.step()
 
             print(
                 f"Epoch [{epoch:02d}/{self.epochs:02d}] "
@@ -250,6 +297,7 @@ class Trainer:
                 "val_loss": val_loss,
                 "val_acc": val_acc,
                 "val_macro_f1": val_f1,
+                "lr": self.optimizer.param_groups[0]["lr"],
             }, step=epoch)
 
             # Cơ chế EarlyStopping & Lưu trữ Checkpoint tốt nhất dựa trên Val Acc
