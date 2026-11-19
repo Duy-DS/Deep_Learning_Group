@@ -1,28 +1,45 @@
 """
-T0305 — Tệp chạy độc lập toàn bộ ma trận thực nghiệm Ablation Studies:
-- Ablation 1 (RQ1): Multivariate (D=15) vs. Univariate (D=1) tại H=24.
-- Ablation 2 (RQ2): Đánh giá 4 mô hình qua 4 khung dự báo H in {24, 48, 96, 192}.
-- Ablation 3 (RQ2): Informer (ProbSparse) vs. Informer_FullAttention O(L^2) tại H in {96, 192}.
-
-Tính năng:
-- Gọi trực tiếp TrainingPipeline (training_loop.py) và tùy chọn run_fine_tuning_pipeline (fine_tune.py).
-- Tự động tái sử dụng kết quả đã chạy trước đó (--skip-existing) theo từng mô hình để tránh chạy trùng.
-- Tự động tổng hợp 3 bảng CSV chuẩn và xuất báo cáo Markdown (outputs/ablation/ablation_report_summary.md).
+T0305 — Tệp chạy độc lập toàn bộ ma trận thực nghiệm Ablation Studies (RQ1 & RQ2),
+tích hợp đối chứng trực tiếp với WP02 BaselineTrainer (`train_baseline.py`) và
+xuất hợp đồng dữ liệu hợp nhất `ExperimentMetricsContract` (`utils_metrics.py`).
 """
 
 from __future__ import annotations
-from training_loop import apply_yaml_config
+
 import argparse
+import json
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence
 
 import pandas as pd
 import yaml
+
 from fine_tune import run_fine_tuning_pipeline
-from training_loop import DEFAULT_MODELS, TrainingPipeline
+from training_loop import (
+    DEFAULT_MODELS,
+    TrainingPipeline,
+    apply_yaml_config,
+    run_wp02_baseline_pipeline,
+)
+from utils_metrics import ExperimentMetricsContract
 
 ALL_HORIZONS: List[int] = [24, 48, 96, 192]
 LONG_HORIZONS: List[int] = [96, 192]
+
+
+def _df_to_markdown(df: pd.DataFrame) -> str:
+    """Chuyển DataFrame sang bảng Markdown, tự động fallback nếu thiếu gói tabulate."""
+    try:
+        return df.to_markdown(index=False)
+    except ImportError:
+        headers = [str(c) for c in df.columns]
+        lines = [
+            "| " + " | ".join(headers) + " |",
+            "| " + " | ".join(["---"] * len(headers)) + " |",
+        ]
+        for row in df.itertuples(index=False, name=None):
+            lines.append("| " + " | ".join(str(v) for v in row) + " |")
+        return "\n".join(lines)
 
 
 def ensure_pretrain_results(
@@ -35,16 +52,18 @@ def ensure_pretrain_results(
     batch_size: int,
     train_stride: int,
     lr: float,
+    dlinear_lr: float,
     weight_decay: float,
     dropout: float,
     epochs: int,
     patience: int,
+    loss_fn: str,
+    huber_delta: float,
     seeds: List[int],
     skip_existing: bool = True,
 ) -> pd.DataFrame:
     """
     Đảm bảo đã có đủ kết quả Pre-training cho danh sách `models` ở cấu hình `(mode, horizon)`.
-    Nếu bật `skip_existing`, chỉ huấn luyện các mô hình còn thiếu và gộp vào file báo cáo hiện có.
     """
     report_dir = output_dir / "reports"
     summary_csv = report_dir / f"global_pretrain_summary_{mode}_H{horizon}.csv"
@@ -79,10 +98,13 @@ def ensure_pretrain_results(
             batch_size=batch_size,
             train_stride=train_stride,
             lr=lr,
+            dlinear_lr=dlinear_lr,
             weight_decay=weight_decay,
             dropout=dropout,
             epochs=epochs,
             patience=patience,
+            loss_fn=loss_fn,
+            huber_delta=huber_delta,
             seeds=seeds,
         )
         new_runs_df, new_summary_df = pipeline.run(models=missing_models)
@@ -112,6 +134,40 @@ def ensure_pretrain_results(
     return merged_summary[merged_summary["model"].isin(models)].reset_index(drop=True)
 
 
+def ensure_wp02_baseline_results(
+    data_dir: Path,
+    output_dir: Path,
+    mode: str,
+    horizon: int,
+    lookback: int,
+    batch_size: int,
+    train_stride: int,
+    epochs: int,
+    seeds: List[int],
+    skip_existing: bool = True,
+) -> pd.DataFrame:
+    """Chạy hoặc nạp kết quả WP02 BaselineTrainer (LSTM, DLinear) trên dữ liệu thật WP01."""
+    report_dir = output_dir / "reports"
+    base_csv = report_dir / f"wp02_baseline_summary_{mode}_H{horizon}.csv"
+    if skip_existing and base_csv.exists():
+        print(f">>> [SKIP EXISTING] Nạp kết quả WP02 Baseline tại: {base_csv}")
+        return pd.read_csv(base_csv)
+
+    base_df, _ = run_wp02_baseline_pipeline(
+        data_dir=data_dir,
+        output_dir=output_dir,
+        mode=mode,
+        lookback=lookback,
+        horizon=horizon,
+        batch_size=batch_size,
+        train_stride=train_stride,
+        epochs=epochs,
+        seeds=seeds,
+        models=("lstm", "dlinear"),
+    )
+    return base_df
+
+
 def ensure_finetune_results(
     data_dir: Path,
     output_dir: Path,
@@ -125,6 +181,8 @@ def ensure_finetune_results(
     lr: float,
     weight_decay: float,
     patience: int,
+    loss_fn: str,
+    huber_delta: float,
     freeze_backbone: bool,
     seed: int,
     skip_existing: bool = True,
@@ -160,6 +218,8 @@ def ensure_finetune_results(
             lr=lr,
             weight_decay=weight_decay,
             patience=patience,
+            loss_fn=loss_fn,
+            huber_delta=huber_delta,
             freeze_backbone=freeze_backbone,
             output_root=output_dir,
             seed=seed,
@@ -188,11 +248,58 @@ def ensure_finetune_results(
     return merged_ft[merged_ft["model"].isin(models)].reset_index(drop=True)
 
 
+def build_wp02_vs_wp03_table(
+    wp02_df: pd.DataFrame, wp03_df: pd.DataFrame, horizon: int = 24
+) -> pd.DataFrame:
+    """
+    Đối chứng trực tiếp WP02 (`BaselineTrainer`: Adam lr=1e-3, không RevIN/ResidualAnchor)
+    với WP03 (`TrainingPipeline`: RevIN + ResidualAnchor + Stepwise WarmupCosine).
+    """
+    rows: List[Dict[str, object]] = []
+    for model_name in ("lstm", "dlinear"):
+        b_sub = wp02_df[wp02_df["model"] == model_name]
+        w_sub = wp03_df[wp03_df["model"] == model_name]
+        if b_sub.empty or w_sub.empty:
+            continue
+        b_row = b_sub.iloc[0]
+        w_row = w_sub.iloc[0]
+
+        mse_gain = (
+            (float(b_row["mse_mean"]) - float(w_row["mse_mean"]))
+            / float(b_row["mse_mean"])
+        ) * 100.0
+        rmse_gain = (
+            (float(b_row["rmse_mean"]) - float(w_row["rmse_mean"]))
+            / float(b_row["rmse_mean"])
+        ) * 100.0
+        mae_gain = (
+            (float(b_row["mae_mean"]) - float(w_row["mae_mean"]))
+            / float(b_row["mae_mean"])
+        ) * 100.0
+
+        rows.append(
+            {
+                "model": model_name,
+                "horizon": horizon,
+                "wp02_baseline_mse": b_row["mse_mean_std"],
+                "wp03_pretrain_mse": w_row["mse_mean_std"],
+                "mse_improvement_pct": round(mse_gain, 2),
+                "wp02_baseline_rmse": b_row["rmse_mean_std"],
+                "wp03_pretrain_rmse": w_row["rmse_mean_std"],
+                "rmse_improvement_pct": round(rmse_gain, 2),
+                "wp02_baseline_mae": b_row["mae_mean_std"],
+                "wp03_pretrain_mae": w_row["mae_mean_std"],
+                "mae_improvement_pct": round(mae_gain, 2),
+            }
+        )
+    return pd.DataFrame(rows)
+
+
 def build_ablation1_table(
     multi_df: pd.DataFrame, uni_df: pd.DataFrame, horizon: int = 24
 ) -> pd.DataFrame:
     """
-    Ablation 1 (RQ1): So sánh Multivariate (D=15) vs. Univariate (D=1)
+    Ablation 1 (RQ1): So sánh Multivariate vs. Univariate
     và tính tỷ lệ giảm sai số (%) nhờ bổ sung biến khí tượng.
     """
     rows: List[Dict[str, object]] = []
@@ -258,7 +365,6 @@ def build_ablation2_table(horizon_dfs: Dict[int, pd.DataFrame]) -> pd.DataFrame:
         frames.append(df_h[available_cols])
 
     long_df = pd.concat(frames, ignore_index=True)
-    # Sắp xếp theo thứ tự mô hình chuẩn trong từng horizon
     order_map = {m: idx for idx, m in enumerate(DEFAULT_MODELS)}
     long_df["_order"] = long_df["model"].map(order_map).fillna(99)
     long_df = long_df.sort_values(["horizon", "_order"]).drop(columns=["_order"])
@@ -286,6 +392,12 @@ def build_ablation3_table(long_horizon_dfs: Dict[int, pd.DataFrame]) -> pd.DataF
             ((vram_full - vram_sparse) / vram_full) * 100.0 if vram_full > 0 else 0.0
         )
 
+        rmse_sparse = float(sparse_row["rmse_mean"])
+        rmse_full = float(full_row["rmse_mean"])
+        rmse_diff_pct = (
+            ((rmse_full - rmse_sparse) / rmse_full) * 100.0 if rmse_full > 0 else 0.0
+        )
+
         rows.append(
             {
                 "horizon": h,
@@ -293,6 +405,7 @@ def build_ablation3_table(long_horizon_dfs: Dict[int, pd.DataFrame]) -> pd.DataF
                 "full_attn_mse": full_row["mse_mean_std"],
                 "probsparse_rmse": sparse_row["rmse_mean_std"],
                 "full_attn_rmse": full_row["rmse_mean_std"],
+                "rmse_reduction_pct": round(rmse_diff_pct, 2),
                 "probsparse_mae": sparse_row["mae_mean_std"],
                 "full_attn_mae": full_row["mae_mean_std"],
                 "probsparse_time_sec": round(t_sparse, 2),
@@ -306,24 +419,59 @@ def build_ablation3_table(long_horizon_dfs: Dict[int, pd.DataFrame]) -> pd.DataF
     return pd.DataFrame(rows)
 
 
+def aggregate_all_contracts(report_dir: Path, ablation_dir: Path) -> Optional[Path]:
+    """
+    Gom toàn bộ tệp JSON `ExperimentMetricsContract` của WP02 và WP03 thành một tệp
+    hợp nhất `ablation_contracts.json` phục vụ trực tiếp WP05 (Dashboard).
+    """
+    contract_files = sorted(report_dir.glob("*_contracts_*.json"))
+    all_contracts: List[Dict[str, object]] = []
+    seen_ids = set()
+
+    for fpath in contract_files:
+        items = json.loads(fpath.read_text(encoding="utf-8"))
+        for item in items:
+            validated = ExperimentMetricsContract.model_validate(item)
+            if validated.experiment_id not in seen_ids:
+                seen_ids.add(validated.experiment_id)
+                all_contracts.append(validated.model_dump())
+
+    if not all_contracts:
+        return None
+
+    out_json = ablation_dir / "ablation_contracts.json"
+    out_json.write_text(
+        json.dumps(all_contracts, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+    return out_json
+
+
 def export_markdown_report(
     ablation_dir: Path,
+    wp02_vs_wp03_df: Optional[pd.DataFrame],
     ab1_df: Optional[pd.DataFrame],
     ab2_df: Optional[pd.DataFrame],
     ab3_df: Optional[pd.DataFrame],
     ft_ablation_df: Optional[pd.DataFrame] = None,
+    multi_dim: int = 31,
 ) -> Path:
-    """Xuất toàn bộ các bảng Ablation sang định dạng Markdown sẵn sàng đưa vào báo cáo."""
+    """Xuất toàn bộ các bảng đối chứng WP02-WP03 và Ablation sang Markdown."""
     md_path = ablation_dir / "ablation_report_summary.md"
     sections: List[str] = [
-        "# TỔNG HỢP KẾT QUẢ ABLATION STUDIES — DỰ BÁO PM2.5 BẮC KINH\n"
+        "# TỔNG HỢP KẾT QUẢ THỰC NGHIỆM & ABLATION STUDIES — DỰ BÁO PM2.5 BẮC KINH\n"
     ]
+
+    if wp02_vs_wp03_df is not None and not wp02_vs_wp03_df.empty:
+        sections.append(
+            "## 0. Đối chứng WP02 (`BaselineTrainer`) vs. WP03 (`TrainingPipeline` — RevIN + ResidualAnchor) tại $H=24$\n"
+        )
+        sections.append(_df_to_markdown(wp02_vs_wp03_df) + "\n")
 
     if ab1_df is not None and not ab1_df.empty:
         sections.append(
-            "## 1. Ablation 1 (RQ1): Multivariate ($D=15$) vs. Univariate ($D=1$) tại $H=24$\n"
+            f"## 1. Ablation 1 (RQ1): Multivariate ($D={multi_dim}$) vs. Univariate ($D=1$) tại $H=24$\n"
         )
-        sections.append(ab1_df.to_markdown(index=False) + "\n")
+        sections.append(_df_to_markdown(ab1_df) + "\n")
 
     if ab2_df is not None and not ab2_df.empty:
         sections.append(
@@ -338,42 +486,44 @@ def export_markdown_report(
             "train_time_mean_sec",
             "peak_vram_max_mb",
         ]
-        sections.append(ab2_df[display_cols].to_markdown(index=False) + "\n")
+        sections.append(_df_to_markdown(ab2_df[display_cols]) + "\n")
 
     if ab3_df is not None and not ab3_df.empty:
         sections.append(
             "## 3. Ablation 3 (RQ2): Informer (`ProbSparse`) vs. `Informer_FullAttention` ($O(L^2)$)\n"
         )
-        sections.append(ab3_df.to_markdown(index=False) + "\n")
+        sections.append(_df_to_markdown(ab3_df) + "\n")
 
     if ft_ablation_df is not None and not ft_ablation_df.empty:
         sections.append(
             "## 4. Tổng hợp Fine-Tuning (Trước vs. Sau) qua các cấu hình Ablation\n"
         )
-        sections.append(ft_ablation_df.to_markdown(index=False) + "\n")
+        sections.append(_df_to_markdown(ft_ablation_df) + "\n")
 
     md_path.write_text("\n".join(sections), encoding="utf-8")
     return md_path
 
 
 def run_ablation_suite(args: argparse.Namespace) -> None:
-    """Điều phối toàn bộ quy trình Ablation Studies theo lựa chọn người dùng."""
+    """Điều phối toàn bộ quy trình Ablation Studies và đối chứng WP02."""
     ablation_dir = args.output_dir / "ablation"
     ablation_dir.mkdir(parents=True, exist_ok=True)
+    report_dir = args.output_dir / "reports"
 
     run_all = "all" in args.ablations
     do_ab1 = run_all or ("ablation1" in args.ablations)
     do_ab2 = run_all or ("ablation2" in args.ablations)
     do_ab3 = run_all or ("ablation3" in args.ablations)
 
+    wp02_vs_wp03_df: Optional[pd.DataFrame] = None
     ab1_df: Optional[pd.DataFrame] = None
     ab2_df: Optional[pd.DataFrame] = None
     ab3_df: Optional[pd.DataFrame] = None
     ft_records: List[pd.DataFrame] = []
-
-    pretrain_cache: Dict[tuple[str, int], pd.DataFrame] = {}
+    detected_multi_dim = 31
 
     def _get_pretrain(mode: str, horizon: int, models: Sequence[str]) -> pd.DataFrame:
+        nonlocal detected_multi_dim
         df_res = ensure_pretrain_results(
             data_dir=args.data_dir,
             output_dir=args.output_dir,
@@ -384,14 +534,23 @@ def run_ablation_suite(args: argparse.Namespace) -> None:
             batch_size=args.batch_size,
             train_stride=args.train_stride,
             lr=args.lr,
+            dlinear_lr=args.dlinear_lr,
             weight_decay=args.weight_decay,
             dropout=args.dropout,
             epochs=args.epochs,
             patience=args.patience,
+            loss_fn=args.loss_fn,
+            huber_delta=args.huber_delta,
             seeds=args.seeds,
             skip_existing=args.skip_existing,
         )
-        pretrain_cache[(mode, horizon)] = df_res
+        if (
+            mode == "multivariate"
+            and "in_features" in df_res.columns
+            and not df_res.empty
+        ):
+            detected_multi_dim = int(df_res["in_features"].iloc[0])
+
         if args.with_finetune:
             ft_df = ensure_finetune_results(
                 data_dir=args.data_dir,
@@ -406,6 +565,8 @@ def run_ablation_suite(args: argparse.Namespace) -> None:
                 lr=args.ft_lr,
                 weight_decay=args.weight_decay,
                 patience=4,
+                loss_fn=args.loss_fn,
+                huber_delta=args.huber_delta,
                 freeze_backbone=True,
                 seed=args.seeds[0],
                 skip_existing=args.skip_existing,
@@ -413,14 +574,10 @@ def run_ablation_suite(args: argparse.Namespace) -> None:
             ft_records.append(ft_df)
         return df_res
 
-    # ------------------------------------------------------------------
-    # ABLATION 1: Multivariate vs. Univariate (H = 24)
-    # ------------------------------------------------------------------
+    multi_h24: Optional[pd.DataFrame] = None
     if do_ab1:
         print("\n" + "=" * 84)
-        print(
-            "BẮT ĐẦU ABLATION 1 (RQ1): MULTIVARIATE (D=15) VS. UNIVARIATE (D=1) @ H=24"
-        )
+        print("BẮT ĐẦU ABLATION 1 (RQ1): MULTIVARIATE VS. UNIVARIATE (D=1) @ H=24")
         print("=" * 84)
         multi_h24 = _get_pretrain("multivariate", 24, DEFAULT_MODELS)
         uni_h24 = _get_pretrain("univariate", 24, DEFAULT_MODELS)
@@ -431,9 +588,6 @@ def run_ablation_suite(args: argparse.Namespace) -> None:
         print(f"\n[SAVED] Ablation 1: {ab1_csv}")
         print(ab1_df.to_string(index=False))
 
-    # ------------------------------------------------------------------
-    # ABLATION 2: 4 mô hình x 4 khung dự báo H in {24, 48, 96, 192}
-    # ------------------------------------------------------------------
     if do_ab2:
         print("\n" + "=" * 84)
         print("BẮT ĐẦU ABLATION 2 (RQ2): ĐA KHUNG DỰ BÁO H IN {24, 48, 96, 192}")
@@ -441,6 +595,8 @@ def run_ablation_suite(args: argparse.Namespace) -> None:
         horizon_dfs: Dict[int, pd.DataFrame] = {}
         for h in ALL_HORIZONS:
             horizon_dfs[h] = _get_pretrain("multivariate", h, DEFAULT_MODELS)
+        if multi_h24 is None and 24 in horizon_dfs:
+            multi_h24 = horizon_dfs[24]
 
         ab2_df = build_ablation2_table(horizon_dfs)
         ab2_csv = ablation_dir / "ablation2_multi_horizon_H24_48_96_192.csv"
@@ -448,9 +604,6 @@ def run_ablation_suite(args: argparse.Namespace) -> None:
         print(f"\n[SAVED] Ablation 2: {ab2_csv}")
         print(ab2_df.to_string(index=False))
 
-    # ------------------------------------------------------------------
-    # ABLATION 3: Informer (ProbSparse) vs. Informer_FullAttention O(L^2)
-    # ------------------------------------------------------------------
     if do_ab3:
         print("\n" + "=" * 84)
         print(
@@ -469,26 +622,63 @@ def run_ablation_suite(args: argparse.Namespace) -> None:
         print(f"\n[SAVED] Ablation 3: {ab3_csv}")
         print(ab3_df.to_string(index=False))
 
+    # Tích hợp WP02 BaselineTrainer (chạy mới nếu bật --with-wp02-baseline hoặc nạp file sẵn có)
+    existing_wp02_csv = report_dir / "wp02_baseline_summary_multivariate_H24.csv"
+    if args.with_wp02_baseline or existing_wp02_csv.exists():
+        print("\n" + "=" * 84)
+        print("ĐỐI CHỨNG WP02 (BaselineTrainer) VS. WP03 (TrainingPipeline) @ H=24")
+        print("=" * 84)
+        wp02_h24 = ensure_wp02_baseline_results(
+            data_dir=args.data_dir,
+            output_dir=args.output_dir,
+            mode="multivariate",
+            horizon=24,
+            lookback=args.lookback,
+            batch_size=args.batch_size,
+            train_stride=args.train_stride,
+            epochs=args.epochs,
+            seeds=args.seeds,
+            skip_existing=args.skip_existing,
+        )
+        if multi_h24 is None:
+            multi_h24 = _get_pretrain("multivariate", 24, DEFAULT_MODELS)
+        wp02_vs_wp03_df = build_wp02_vs_wp03_table(wp02_h24, multi_h24, horizon=24)
+        if not wp02_vs_wp03_df.empty:
+            cmp_csv = ablation_dir / "wp02_baseline_vs_wp03_H24.csv"
+            wp02_vs_wp03_df.to_csv(cmp_csv, index=False, encoding="utf-8-sig")
+            print(f"[SAVED] Bảng đối chứng WP02 vs WP03: {cmp_csv}")
+            print(wp02_vs_wp03_df.to_string(index=False))
+
     ft_all_df = pd.concat(ft_records, ignore_index=True) if ft_records else None
     if ft_all_df is not None:
         ft_ab_csv = ablation_dir / "ablation_finetune_summary.csv"
         ft_all_df.to_csv(ft_ab_csv, index=False, encoding="utf-8-sig")
 
+    contracts_path = aggregate_all_contracts(
+        report_dir=report_dir, ablation_dir=ablation_dir
+    )
+    if contracts_path is not None:
+        print(
+            f"[SAVED] Hợp đồng tổng hợp WP02 + WP03 (ExperimentMetricsContract): {contracts_path}"
+        )
+
     md_path = export_markdown_report(
         ablation_dir=ablation_dir,
+        wp02_vs_wp03_df=wp02_vs_wp03_df,
         ab1_df=ab1_df,
         ab2_df=ab2_df,
         ab3_df=ab3_df,
         ft_ablation_df=ft_all_df,
+        multi_dim=detected_multi_dim,
     )
     print(f"\n[HOÀN TẤT] Báo cáo tổng hợp Markdown đã lưu tại: {md_path}")
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="T0305: Chạy toàn bộ ma trận Ablation Studies (RQ1 & RQ2)."
+        description="T0305: Chạy toàn bộ ma trận Ablation Studies & đối chứng WP02."
     )
-    parser.add_argument("--data-dir", type=Path, default=Path("data/raw"))
+    parser.add_argument("--data-dir", type=Path, default=Path("data/preprocess"))
     parser.add_argument("--output-dir", type=Path, default=Path("outputs"))
     parser.add_argument(
         "--ablations",
@@ -507,12 +697,18 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--lookback", type=int, default=96)
     parser.add_argument("--batch-size", type=int, default=512)
-    parser.add_argument("--train-stride", type=int, default=6)
-    parser.add_argument("--lr", type=float, default=5e-5)
-    parser.add_argument("--weight-decay", type=float, default=1e-2)
-    parser.add_argument("--dropout", type=float, default=0.3)
+    parser.add_argument("--train-stride", type=int, default=12)
+    parser.add_argument("--train-dev-stride", type=int, default=None)
+    parser.add_argument("--dev-stride", type=int, default=None)
+    parser.add_argument("--test-stride", type=int, default=None)
+    parser.add_argument("--lr", type=float, default=3e-5)
+    parser.add_argument("--dlinear-lr", type=float, default=1e-4)
+    parser.add_argument("--weight-decay", type=float, default=3e-2)
+    parser.add_argument("--dropout", type=float, default=0.35)
     parser.add_argument("--epochs", type=int, default=20)
     parser.add_argument("--patience", type=int, default=6)
+    parser.add_argument("--loss-fn", type=str, default="MSELoss")
+    parser.add_argument("--huber-delta", type=float, default=2.5)
     parser.add_argument(
         "--seeds",
         nargs="+",
@@ -521,13 +717,18 @@ def parse_args() -> argparse.Namespace:
         help="Danh sách hạt giống (mặc định 3 seeds: 42 1024 2026).",
     )
     parser.add_argument(
+        "--with-wp02-baseline",
+        action="store_true",
+        help="Chạy kèm WP02 BaselineTrainer (LSTM, DLinear) trên dữ liệu thật WP01 để so sánh trực tiếp.",
+    )
+    parser.add_argument(
         "--with-finetune",
         action="store_true",
         help="Chạy kèm Fine-tuning 12 trạm cho từng cấu hình Ablation.",
     )
     parser.add_argument("--ft-batch-size", type=int, default=256)
     parser.add_argument("--ft-epochs", type=int, default=12)
-    parser.add_argument("--ft-lr", type=float, default=3e-5)
+    parser.add_argument("--ft-lr", type=float, default=1e-5)
     parser.add_argument(
         "--no-skip-existing",
         dest="skip_existing",
@@ -536,6 +737,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.set_defaults(skip_existing=True)
     apply_yaml_config(parser, ["paths", "data", "pretrain", "ablation"])
+
     pre_args, _ = parser.parse_known_args()
     if Path(pre_args.config).exists():
         with open(pre_args.config, "r", encoding="utf-8") as f:
@@ -543,7 +745,7 @@ def parse_args() -> argparse.Namespace:
         parser.set_defaults(
             ft_batch_size=ft_cfg.get("batch_size", 256),
             ft_epochs=ft_cfg.get("epochs", 12),
-            ft_lr=ft_cfg.get("lr", 3e-5),
+            ft_lr=ft_cfg.get("lr", 1e-5),
         )
 
     args = parser.parse_args()

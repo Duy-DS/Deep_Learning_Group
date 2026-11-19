@@ -61,9 +61,14 @@ def build_windows_for_all_horizons(
     horizons=(24, 48, 96, 192),
     stride=1,
 ):
-    """Tạo X, y cho từng split và từng forecast horizon."""
+    """Tạo X, y cho từng split và từng forecast horizon.
+
+    stride có thể là int (dùng chung) hoặc dict, ví dụ:
+    {"train": 24, "train_dev": 12, "dev": 12, "test": 1}
+    """
     result = {}
     for split_name, split_df in splits.items():
+        split_stride = stride.get(split_name, 1) if isinstance(stride, dict) else stride
         result[split_name] = {}
         for horizon in horizons:
             X, y = make_sliding_windows(
@@ -72,7 +77,7 @@ def build_windows_for_all_horizons(
                 target_col=target_col,
                 lookback=lookback,
                 horizon=horizon,
-                stride=stride,
+                stride=split_stride,
             )
             result[split_name][horizon] = {"X": X, "y": y}
     return result

@@ -1,28 +1,39 @@
 # ==============================================================================
 # Cấu hình thực nghiệm chuẩn (Single Source of Truth) — Dự báo PM2.5 Bắc Kinh
-# Khớp 100% với các checkpoint đã huấn luyện tại WP03 (T0301, T0304, T0305)
-# Dùng chung cho WP03 (Training/Ablation), WP04 (XAI/Error Analysis) và WP05 (Demo)
+# Khớp 100% với WP01 (data/preprocess), WP02 (train_baseline.py, src/models/*),
+# WP03 (training_loop.py, fine_tune.py, run_ablation.py) và utils_metrics.py
 # ==============================================================================
-
 paths:
-  data_dir: "data/raw"
+  data_dir: "data/preprocess"          # Dùng trực tiếp thành quả đã chia tập của WP01
   output_dir: "outputs"
   global_ckpt_dir: "outputs/checkpoints/global"
   station_ckpt_dir: "outputs/checkpoints/stations"
+  wp02_ckpt_dir: "outputs/checkpoints/wp02_baseline"
+  wp02_log_dir: "outputs/logs/wp02_baseline"
   log_dir: "outputs/logs"
   report_dir: "outputs/reports"
   ablation_dir: "outputs/ablation"
   scaler_template: "outputs/checkpoints/global/scaler_12stations_{mode}.joblib"
 
+xai:
+  background_split: "train"
+  eval_split: "test"
+  background_samples: 100
+  eval_samples: 200
+  nsamples: 100
+  seed: 42
+  device: "cuda"
+
 data:
-  mode: "multivariate"                 # multivariate (D=15) | univariate (D=1)
+  mode: "multivariate"                 # multivariate (D=31: 15 cơ sở + 16 wd_*) | univariate (D=1)
   target_col: "pm2.5"
   target_idx: 0
   lookback: 96                         # L = 96 giờ lịch sử
   horizon: 24                          # H = 24 giờ dự báo mặc định
-  train_stride: 6                      # Bước trượt tập train
+  train_stride: 7                      # Bước trượt tập train (giảm trùng lặp 96h)
   eval_stride: 1                       # Bước trượt tập train_dev, dev, test
   num_continuous_features: 11          # 11 biến vật lý/ô nhiễm đầu tiên dùng RevIN
+  include_wind_onehot: true            # Tự động nối thêm 16 cột wd_* từ WP01 (tổng D=31)
   canonical_multivariate_cols:
     - "pm2.5"
     - "pm10"
@@ -53,6 +64,18 @@ data:
     - "Wanliu"
     - "Wanshouxigong"
 
+wp02_baseline:
+  models:
+    - "lstm"
+    - "dlinear"
+  seeds: [42, 1024, 2026]
+  batch_size: 512
+  epochs: 20
+  patience: 5
+  lr: 1.0e-3
+  optimizer: "Adam"
+  scheduler: "ReduceLROnPlateau"
+
 pretrain:
   models:
     - "lstm"
@@ -70,30 +93,33 @@ pretrain:
   epochs: 20
   patience: 6
   lr: 5.0e-5
-  dlinear_min_lr: 2.0e-4               # DLinear tự nâng lr tối thiểu lên 2e-4
-  weight_decay: 1.0e-2
-  dropout: 0.3
-  loss_fn: "HuberLoss"
-  huber_delta: 1.0
+  dlinear_lr: 5.0e-4                   # LR riêng cho DLinear tránh hội tụ quá sớm ở epoch 1
+  weight_decay: 5.0e-2
+  dropout: 0.4
+  loss_fn: "MSELoss"                   # Đồng bộ với eval_metric để tránh lệch mục tiêu spike
+  huber_delta: 2.5
   eval_metric: "MSELoss"
   optimizer: "AdamW"
-  scheduler: "WarmupCosine"
-  warmup_epochs: 2
-  min_lr_ratio: 0.05
+  scheduler: "StepwiseWarmupCosine"
+  warmup_ratio: 0.1
+  min_lr_ratio: 0.01
   max_grad_norm: 1.0
   use_amp: true
+  include_wp02_baseline: false         # Bật true hoặc truyền --include-wp02-baseline để đối chứng WP02
 
 finetune:
-  stride: 6
+  ckpt_source: "wp03"                  # "wp03" (Global Pretrained) | "wp02" (BaselineTrainer)
+  stride: 7
   batch_size: 256
   epochs: 12
   patience: 4
-  lr: 3.0e-5
-  weight_decay: 1.0e-2
-  freeze_backbone: true                # Mặc định đóng băng backbone (--unfreeze-backbone=False)
+  lr: 5.0e-5                           # LR nhỏ kèm warmup ở epoch 1 giữ ổn định pretrain
+  weight_decay: 5.0e-2
+  freeze_backbone: true                # Mặc định đóng băng backbone
+  unfreeze_backbone: false
   seed: 42
-  loss_fn: "HuberLoss"
-  huber_delta: 1.0
+  loss_fn: "MSELoss"
+  huber_delta: 2.5
   scheduler: "ReduceLROnPlateau"
   scheduler_factor: 0.5
   scheduler_patience: 1
@@ -101,15 +127,15 @@ finetune:
 models:
   patchtst:
     patch_len: 16
-    stride: 8
+    stride: 7
     d_model: 64
     n_heads: 4
     e_layers: 2
     d_ff: 128
-    dropout: 0.3                       # Truyền từ build_model() ghi đè mặc định 0.25
+    dropout: 0.4
     target_idx: 0
     use_revin: true
-    use_revin_wrapper: false           # Đã tích hợp RevIN nội tại
+    use_revin_wrapper: false
 
   informer:
     d_model: 128
@@ -118,8 +144,8 @@ models:
     d_layers: 1
     d_ff: 256
     factor: 5
-    label_len: 48                      # lookback // 2
-    dropout: 0.3                       # Truyền từ build_model() ghi đè mặc định 0.15
+    label_len: 48
+    dropout: 0.4
     activation: "gelu"
     attention_type: "probsparse"
     use_revin_wrapper: true
@@ -132,17 +158,17 @@ models:
     d_ff: 256
     factor: 96
     label_len: 48
-    dropout: 0.3
+    dropout: 0.4
     activation: "gelu"
     attention_type: "full"
     use_revin_wrapper: true
 
   lstm:
-    dropout: 0.3
+    dropout: 0.4
     use_revin_wrapper: true
 
   dlinear:
-    use_revin_wrapper: false           # Dùng phân rã Trend/Seasonal nội tại
+    use_revin_wrapper: false
 
 ablation:
   ablations: ["all"]
@@ -150,3 +176,4 @@ ablation:
   ab3_horizons: [96, 192]
   skip_existing: true
   with_finetune: false
+  with_wp02_baseline: false            # Bật true hoặc truyền --with-wp02-baseline để xuất bảng đối chứng WP02
