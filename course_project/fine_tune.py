@@ -1,13 +1,12 @@
 """
 T0304 — Fine-Tuning mô hình Pre-trained cho từng trạm quan trắc PM2.5 Bắc Kinh:
-- Sử dụng trực tiếp WP01 pipeline (load_pm25, clean_missing_values, encode_features,
-  chronological_split, scale_splits, make_sliding_windows).
-- Kế thừa RevINModelWrapper từ training_loop.py, đóng băng backbone mặc định để tránh
-  quá khớp trên dữ liệu đơn trạm và đảm bảo dev_loss giảm ổn định.
+- Tích hợp đọc cả checkpoint của WP03 (`outputs/checkpoints/global/`) lẫn
+  checkpoint Baseline của WP02 (`train_baseline.py` -> `checkpoints/`).
+- Đánh giá chuẩn hóa thông qua `MetricsCalculator` từ `utils_metrics.py`.
 """
 
 from __future__ import annotations
-from training_loop import apply_yaml_config
+
 import argparse
 import gc
 import json
@@ -15,7 +14,6 @@ import time
 from pathlib import Path
 from typing import Dict, List, Literal, Optional, Sequence, Tuple
 
-import joblib
 import pandas as pd
 import torch
 import torch.nn as nn
@@ -23,24 +21,20 @@ from sklearn.preprocessing import StandardScaler
 from torch.utils.data import DataLoader, TensorDataset
 
 from src.data_pipeline.dataset import make_sliding_windows
-from src.data_pipeline.preprocess import (
-    TARGET_COL,
-    chronological_split,
-    clean_missing_values,
-    encode_features,
-    load_pm25,
-    scale_splits,
-)
+from src.data_pipeline.preprocess import TARGET_COL
 from training_loop import (
+    ALL_SPLITS,
     ALL_SUPPORTED_MODELS,
     DEFAULT_MODELS,
+    apply_yaml_config,
+    build_criterion,
     build_model,
     evaluate,
-    get_feature_columns,
-    resolve_data_dir,
+    load_and_prepare_wp01_splits,
     set_seed,
     train_one_epoch,
 )
+from utils_metrics import MetricsCalculator
 
 
 def load_and_scale_with_wp01(
@@ -48,36 +42,12 @@ def load_and_scale_with_wp01(
     mode: str,
     scaler_path: Path,
 ) -> Tuple[Dict[str, pd.DataFrame], StandardScaler, List[str]]:
-    """Nạp dữ liệu 12 trạm bằng WP01 pipeline và chuẩn hóa bằng Global StandardScaler."""
-    resolved_dir = resolve_data_dir(data_dir)
-    df = load_pm25(resolved_dir)
-    df = clean_missing_values(df, target_col=TARGET_COL)
-    df = encode_features(df)
-
-    feature_cols = get_feature_columns(df, mode=mode, target_col=TARGET_COL)
-    splits = chronological_split(df)
-
-    if scaler_path.exists():
-        scaler: StandardScaler = joblib.load(scaler_path)
-        if (
-            hasattr(scaler, "feature_names_in_")
-            and list(scaler.feature_names_in_) != feature_cols
-        ):
-            scaled_splits, scaler = scale_splits(
-                splits, feature_cols=feature_cols, scaler_path=scaler_path
-            )
-        else:
-            scaled_splits = {}
-            for split_name in ["train", "train_dev", "dev", "test"]:
-                part = splits[split_name].copy()
-                part[feature_cols] = scaler.transform(part[feature_cols])
-                scaled_splits[split_name] = part
-    else:
-        scaled_splits, scaler = scale_splits(
-            splits, feature_cols=feature_cols, scaler_path=scaler_path
-        )
-
-    return scaled_splits, scaler, feature_cols
+    """Nạp 4 tập từ WP01 và đảm bảo không chuẩn hóa 2 lần."""
+    return load_and_prepare_wp01_splits(
+        data_dir=data_dir,
+        mode=mode,
+        scaler_save_path=scaler_path,
+    )
 
 
 def build_single_station_loaders(
@@ -86,15 +56,15 @@ def build_single_station_loaders(
     feature_cols: List[str],
     lookback: int = 96,
     horizon: int = 24,
-    stride: int = 6,
+    stride: int = 12,
     batch_size: int = 256,
     use_pin_memory: bool = False,
 ) -> Dict[str, DataLoader]:
-    """Tạo bộ DataLoader (train, train_dev, dev, test) cho riêng 1 trạm từ dữ liệu đã scale."""
+    """Tạo đầy đủ 4 DataLoader (train, train_dev, dev, test) cho riêng 1 trạm từ dữ liệu WP01."""
     num_workers = 4 if use_pin_memory else 0
     loaders: Dict[str, DataLoader] = {}
 
-    for split_name in ["train", "train_dev", "dev", "test"]:
+    for split_name in ALL_SPLITS:
         st_df = scaled_splits[split_name]
         st_df = st_df[st_df["station"] == station].reset_index(drop=True)
         current_stride = stride if split_name == "train" else 1
@@ -107,6 +77,10 @@ def build_single_station_loaders(
             horizon=horizon,
             stride=current_stride,
         )
+        if len(X) == 0:
+            raise ValueError(
+                f"Trạm '{station}' không đủ dữ liệu tạo cửa sổ cho tập '{split_name}' (L={lookback}, H={horizon})."
+            )
         ds = TensorDataset(torch.from_numpy(X), torch.from_numpy(y))
         loaders[split_name] = DataLoader(
             ds,
@@ -124,12 +98,11 @@ def configure_trainable_layers(
     model: nn.Module,
     model_name: str,
     freeze_backbone: bool = True,
+    use_wrappers: bool = True,
 ) -> None:
     """
     Cấu hình các lớp được phép cập nhật khi Fine-tuning:
-    - freeze_backbone=True : Giữ nguyên bộ trích xuất đặc trưng nền 12 trạm, chỉ tinh chỉnh
-      lớp dự báo đầu ra (head/fc/projection) và hệ số hiệu chỉnh RevIN của trạm.
-    - freeze_backbone=False: Tinh chỉnh toàn bộ mạng với learning rate nhỏ.
+    - Hỗ trợ cả kiến trúc WP03 (`use_wrappers=True`) lẫn kiến trúc gốc WP02 (`use_wrappers=False`).
     """
     for param in model.parameters():
         param.requires_grad = True
@@ -140,16 +113,29 @@ def configure_trainable_layers(
     for param in model.parameters():
         param.requires_grad = False
 
-    head_keywords = {
-        "lstm": ("fc", "head", "proj", "linear", "revin", "affine"),
-        "dlinear": ("linear_seasonal", "linear_trend", "linear"),
-        "informer": ("decoder", "projection", "proj", "head", "revin", "affine"),
-        "informer_full": ("decoder", "projection", "proj", "head", "revin", "affine"),
-        "patchtst": ("head", "projection", "proj", "linear", "revin", "affine"),
-    }.get(
-        model_name.strip().lower(),
-        ("head", "fc", "projection", "decoder", "revin", "affine"),
-    )
+    if use_wrappers:
+        head_keywords = {
+            "lstm": ("fc", "head", "output_projection", "res_scale", "station_bias"),
+            "dlinear": ("res_scale", "station_bias"),
+            "informer": ("projection", "head", "res_scale", "station_bias"),
+            "informer_full": ("projection", "head", "res_scale", "station_bias"),
+            "patchtst": ("head", "res_scale", "station_bias"),
+        }.get(
+            model_name.strip().lower(),
+            ("head", "fc", "projection", "res_scale", "station_bias"),
+        )
+    else:
+        # Kiến trúc gốc WP02 (BaselineTrainer)
+        head_keywords = {
+            "lstm": ("fc", "head", "output_projection", "linear"),
+            "dlinear": ("linear_seasonal", "linear_trend", "linear"),
+            "informer": ("projection", "head"),
+            "informer_full": ("projection", "head"),
+            "patchtst": ("head", "projection"),
+        }.get(
+            model_name.strip().lower(),
+            ("head", "fc", "projection", "linear"),
+        )
 
     unfrozen = 0
     for param_name, param in model.named_parameters():
@@ -164,13 +150,49 @@ def configure_trainable_layers(
 
 def extract_state_dict(
     ckpt_path: Path, device: torch.device
-) -> Tuple[Dict[str, torch.Tensor], Dict[str, object]]:
-    """Trích xuất an toàn model_state_dict từ checkpoint của training_loop."""
+) -> Tuple[Dict[str, torch.Tensor], Dict[str, object], bool]:
+    """
+    Trích xuất an toàn model_state_dict, metadata và tự động nhận diện
+    checkpoint từ WP03 (`use_wrappers=True`) hay WP02 Baseline (`use_wrappers=False`).
+    """
     raw_obj = torch.load(ckpt_path, map_location=device, weights_only=True)
     if isinstance(raw_obj, dict) and "model_state_dict" in raw_obj:
         meta = {k: v for k, v in raw_obj.items() if k != "model_state_dict"}
-        return raw_obj["model_state_dict"], meta
-    return raw_obj, {}
+        state_dict = raw_obj["model_state_dict"]
+        use_wrappers = bool(meta.get("use_wrappers", True))
+        return state_dict, meta, use_wrappers
+
+    # WP02 BaselineTrainer lưu trực tiếp model.state_dict()
+    state_dict = raw_obj
+    has_wrapper_keys = any(
+        k.startswith(("model.", "backbone.", "res_scale", "station_bias"))
+        for k in state_dict.keys()
+    )
+    return state_dict, {}, has_wrapper_keys
+
+
+def resolve_pretrained_checkpoint(
+    model_name: str,
+    mode: str,
+    horizon: int,
+    seed: int,
+    ckpt_source: Literal["wp03", "wp02"],
+    global_ckpt_dir: Path,
+    wp02_ckpt_dir: Path,
+) -> Path:
+    """Tìm đường dẫn checkpoint nguồn từ WP03 hoặc WP02 Baseline."""
+    if ckpt_source == "wp03":
+        return global_ckpt_dir / f"{model_name}_{mode}_H{horizon}_pretrained.pt"
+
+    # WP02 BaselineTrainer lưu file dạng: {model_name.lower()}_h{horizon}_seed{seed}_best.pth
+    candidates = [
+        wp02_ckpt_dir / f"{model_name.lower()}_h{horizon}_seed{seed}_best.pth",
+        Path("checkpoints") / f"{model_name.lower()}_h{horizon}_seed{seed}_best.pth",
+    ]
+    for cand in candidates:
+        if cand.exists():
+            return cand
+    return candidates[0]
 
 
 def finetune_single_station(
@@ -179,43 +201,64 @@ def finetune_single_station(
     station_loaders: Dict[str, DataLoader],
     pretrained_ckpt: str | Path,
     in_features: int,
+    feature_cols: Optional[List[str]] = None,
     lookback: int = 96,
     horizon: int = 24,
     mode: str = "multivariate",
     epochs: int = 12,
-    lr: float = 3e-5,
-    weight_decay: float = 1e-2,
+    lr: float = 1e-5,
+    weight_decay: float = 3e-2,
     patience: int = 4,
+    loss_fn: str = "MSELoss",
+    huber_delta: float = 2.5,
     freeze_backbone: bool = True,
     station_ckpt_dir: str | Path = "outputs/checkpoints/stations",
+    log_dir: str | Path = "outputs/logs",
     seed: int = 42,
     device: Optional[torch.device] = None,
+    metrics_calc: Optional[MetricsCalculator] = None,
 ) -> Dict[str, object]:
     """
-    Nạp trọng số nền của 1 mô hình, đo Zero-shot (Trước), Fine-tune trên 1 trạm
-    và đo lại (Sau) để lưu trọng số trạm cùng mức cải thiện.
+    Nạp trọng số nền (từ WP03 hoặc WP02), đo Zero-shot trên cả 4 tập,
+    Fine-tune trên 1 trạm và đo lại cả 4 tập qua `MetricsCalculator`.
     """
     set_seed(seed)
+    calc = metrics_calc or MetricsCalculator()
     pretrained_ckpt = Path(pretrained_ckpt)
     if not pretrained_ckpt.exists():
         raise FileNotFoundError(
             f"Không tìm thấy trọng số Pre-trained tại: {pretrained_ckpt}. "
-            "Hãy chạy training_loop.py (T0301) trước."
+            "Hãy chạy training_loop.py (WP03) hoặc train_baseline.py (WP02) trước."
         )
 
     device = device or torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    state_dict, ckpt_meta, use_wrappers = extract_state_dict(pretrained_ckpt, device)
+    source_tag = "wp03" if use_wrappers else "wp02"
+
     out_dir = Path(station_ckpt_dir) / station
     out_dir.mkdir(parents=True, exist_ok=True)
-    ft_ckpt_path = out_dir / f"{model_name}_{mode}_H{horizon}_finetuned.pt"
+    ft_ckpt_path = out_dir / f"{model_name}_{source_tag}_{mode}_H{horizon}_finetuned.pt"
 
-    state_dict, ckpt_meta = extract_state_dict(pretrained_ckpt, device)
+    ft_log_dir = Path(log_dir)
+    ft_log_dir.mkdir(parents=True, exist_ok=True)
+    ft_log_csv = (
+        ft_log_dir
+        / f"finetune_{model_name}_{source_tag}_{station}_{mode}_H{horizon}.csv"
+    )
+
     ckpt_in_features = int(ckpt_meta.get("in_features", in_features))
-    ckpt_dropout = float(ckpt_meta.get("dropout", 0.3))
+    ckpt_dropout = float(ckpt_meta.get("dropout", 0.35))
     if ckpt_in_features != in_features:
         raise ValueError(
-            f"Lệch số đặc trưng đầu vào giữa Scaler ({in_features}) và "
+            f"Lệch số đặc trưng đầu vào giữa dữ liệu hiện tại ({in_features}) và "
             f"Checkpoint {pretrained_ckpt.name} ({ckpt_in_features})."
         )
+    if feature_cols is not None and "feature_cols" in ckpt_meta:
+        ckpt_cols = list(ckpt_meta["feature_cols"])
+        if ckpt_cols != list(feature_cols):
+            raise ValueError(
+                f"Lệch thứ tự cột đặc trưng giữa dữ liệu hiện tại và Checkpoint {pretrained_ckpt.name}."
+            )
 
     model = build_model(
         model_name=model_name,
@@ -224,47 +267,65 @@ def finetune_single_station(
         in_features=in_features,
         device=device,
         dropout=ckpt_dropout,
+        use_wrappers=use_wrappers,
     )
     model.load_state_dict(state_dict)
 
-    train_criterion = nn.HuberLoss(delta=1.0)
+    train_criterion = build_criterion(loss_fn=loss_fn, huber_delta=huber_delta)
     eval_criterion = nn.MSELoss()
 
-    before_train_dev = evaluate(
-        model, station_loaders["train_dev"], eval_criterion, device
+    # Đo Zero-shot (Trước fine-tune) trên đầy đủ cả 4 tập
+    before_train = evaluate(
+        model, station_loaders["train"], eval_criterion, device, calc
     )
-    before_dev = evaluate(model, station_loaders["dev"], eval_criterion, device)
-    before_test = evaluate(model, station_loaders["test"], eval_criterion, device)
+    before_train_dev = evaluate(
+        model, station_loaders["train_dev"], eval_criterion, device, calc
+    )
+    before_dev = evaluate(model, station_loaders["dev"], eval_criterion, device, calc)
+    before_test = evaluate(model, station_loaders["test"], eval_criterion, device, calc)
 
     best_dev_loss = before_dev["loss"]
     best_epoch = 0
 
     def _save_station_ckpt(epoch_idx: int, dev_loss_val: float) -> None:
-        torch.save(
-            {
-                "model_name": model_name,
-                "station": station,
-                "mode": mode,
-                "lookback": lookback,
-                "horizon": horizon,
-                "in_features": in_features,
-                "dropout": ckpt_dropout,
-                "seed": seed,
-                "best_epoch": epoch_idx,
-                "best_dev_loss": dev_loss_val,
-                "model_state_dict": model.state_dict(),
-            },
-            ft_ckpt_path,
-        )
+        payload: Dict[str, object] = {
+            "ckpt_source": source_tag,
+            "use_wrappers": use_wrappers,
+            "model_name": model_name,
+            "station": station,
+            "mode": mode,
+            "lookback": lookback,
+            "horizon": horizon,
+            "in_features": in_features,
+            "dropout": ckpt_dropout,
+            "seed": seed,
+            "best_epoch": epoch_idx,
+            "best_dev_loss": dev_loss_val,
+            "model_state_dict": model.state_dict(),
+        }
+        if feature_cols is not None:
+            payload["feature_cols"] = list(feature_cols)
+        elif "feature_cols" in ckpt_meta:
+            payload["feature_cols"] = list(ckpt_meta["feature_cols"])
+        torch.save(payload, ft_ckpt_path)
 
     _save_station_ckpt(epoch_idx=0, dev_loss_val=best_dev_loss)
 
     configure_trainable_layers(
-        model, model_name=model_name, freeze_backbone=freeze_backbone
+        model,
+        model_name=model_name,
+        freeze_backbone=freeze_backbone,
+        use_wrappers=use_wrappers,
     )
     trainable_params = [p for p in model.parameters() if p.requires_grad]
     optimizer = torch.optim.AdamW(trainable_params, lr=lr, weight_decay=weight_decay)
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+
+    warmup_steps = max(1, len(station_loaders["train"]))
+    warmup_scheduler = torch.optim.lr_scheduler.LambdaLR(
+        optimizer,
+        lr_lambda=lambda step: min(1.0, float(step + 1) / float(warmup_steps)),
+    )
+    plateau_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
         optimizer, mode="min", factor=0.5, patience=1
     )
     grad_scaler = torch.amp.GradScaler("cuda", enabled=(device.type == "cuda"))
@@ -274,18 +335,55 @@ def finetune_single_station(
         torch.cuda.reset_peak_memory_stats(device)
     t_start = time.perf_counter()
 
+    history_rows = [
+        {
+            "epoch": 0,
+            "train_loss": None,
+            "train_mse": round(before_train["mse"], 6),
+            "train_rmse": round(before_train["rmse"], 6),
+            "train_dev_mse": round(before_train_dev["mse"], 6),
+            "train_dev_rmse": round(before_train_dev["rmse"], 6),
+            "dev_mse": round(before_dev["mse"], 6),
+            "dev_rmse": round(before_dev["rmse"], 6),
+            "lr": lr,
+        }
+    ]
+
     epochs_no_improve = 0
     for epoch in range(1, epochs + 1):
-        _ = train_one_epoch(
+        step_sched = warmup_scheduler if epoch == 1 else None
+        train_loss = train_one_epoch(
             model=model,
             dataloader=station_loaders["train"],
             criterion=train_criterion,
             optimizer=optimizer,
             device=device,
             scaler=grad_scaler,
+            scheduler=step_sched,
         )
-        dev_metrics = evaluate(model, station_loaders["dev"], eval_criterion, device)
-        scheduler.step(dev_metrics["loss"])
+        current_lr = optimizer.param_groups[0]["lr"]
+        train_dev_metrics = evaluate(
+            model, station_loaders["train_dev"], eval_criterion, device, calc
+        )
+        dev_metrics = evaluate(
+            model, station_loaders["dev"], eval_criterion, device, calc
+        )
+        if epoch > 1:
+            plateau_scheduler.step(dev_metrics["loss"])
+
+        history_rows.append(
+            {
+                "epoch": epoch,
+                "train_loss": round(train_loss, 6),
+                "train_mse": None,
+                "train_rmse": None,
+                "train_dev_mse": round(train_dev_metrics["mse"], 6),
+                "train_dev_rmse": round(train_dev_metrics["rmse"], 6),
+                "dev_mse": round(dev_metrics["mse"], 6),
+                "dev_rmse": round(dev_metrics["rmse"], 6),
+                "lr": current_lr,
+            }
+        )
 
         if dev_metrics["loss"] < best_dev_loss:
             best_dev_loss = dev_metrics["loss"]
@@ -304,14 +402,20 @@ def finetune_single_station(
         peak_vram_mb = 0.0
     finetune_time_sec = time.perf_counter() - t_start
 
-    best_state_dict, _ = extract_state_dict(ft_ckpt_path, device)
+    pd.DataFrame(history_rows).to_csv(ft_log_csv, index=False)
+
+    # Nạp lại checkpoint tốt nhất và đánh giá đầy đủ trên cả 4 tập
+    best_state_dict, _, _ = extract_state_dict(ft_ckpt_path, device)
     model.load_state_dict(best_state_dict)
 
-    after_train_dev = evaluate(
-        model, station_loaders["train_dev"], eval_criterion, device
+    after_train = evaluate(
+        model, station_loaders["train"], eval_criterion, device, calc
     )
-    after_dev = evaluate(model, station_loaders["dev"], eval_criterion, device)
-    after_test = evaluate(model, station_loaders["test"], eval_criterion, device)
+    after_train_dev = evaluate(
+        model, station_loaders["train_dev"], eval_criterion, device, calc
+    )
+    after_dev = evaluate(model, station_loaders["dev"], eval_criterion, device, calc)
+    after_test = evaluate(model, station_loaders["test"], eval_criterion, device, calc)
 
     mse_gain_pct = (
         ((before_test["mse"] - after_test["mse"]) / before_test["mse"]) * 100.0
@@ -330,18 +434,19 @@ def finetune_single_station(
     )
 
     print(
-        f"  [{model_name:<13} | {station:<14}] "
-        f"MSE: {before_test['mse']:.4f} -> {after_test['mse']:.4f} ({mse_gain_pct:+.2f}%) | "
+        f"  [{source_tag.upper()} | {model_name:<13} | {station:<14}] "
+        f"Test MSE: {before_test['mse']:.4f} -> {after_test['mse']:.4f} ({mse_gain_pct:+.2f}%) | "
         f"RMSE: {before_test['rmse']:.4f} -> {after_test['rmse']:.4f} ({rmse_gain_pct:+.2f}%) | "
         f"MAE: {before_test['mae']:.4f} -> {after_test['mae']:.4f} ({mae_gain_pct:+.2f}%) "
         f"[best_ep={best_epoch}, {finetune_time_sec:.2f}s]"
     )
 
-    del model, optimizer, scheduler, grad_scaler
+    del model, optimizer, warmup_scheduler, plateau_scheduler, grad_scaler
     if device.type == "cuda":
         torch.cuda.empty_cache()
 
     return {
+        "ckpt_source": source_tag,
         "model": model_name,
         "station": station,
         "mode": mode,
@@ -350,8 +455,16 @@ def finetune_single_station(
         "best_epoch": best_epoch,
         "finetune_time_sec": round(finetune_time_sec, 3),
         "peak_vram_mb": round(peak_vram_mb, 2),
+        "before_train_mse": round(before_train["mse"], 6),
+        "after_train_mse": round(after_train["mse"], 6),
+        "before_train_rmse": round(before_train["rmse"], 6),
+        "after_train_rmse": round(after_train["rmse"], 6),
+        "before_train_dev_mse": round(before_train_dev["mse"], 6),
+        "after_train_dev_mse": round(after_train_dev["mse"], 6),
         "before_train_dev_rmse": round(before_train_dev["rmse"], 6),
         "after_train_dev_rmse": round(after_train_dev["rmse"], 6),
+        "before_dev_mse": round(before_dev["mse"], 6),
+        "after_dev_mse": round(after_dev["mse"], 6),
         "before_dev_rmse": round(before_dev["rmse"], 6),
         "after_dev_rmse": round(after_dev["rmse"], 6),
         "before_mse": round(before_test["mse"], 6),
@@ -369,32 +482,39 @@ def finetune_single_station(
 
 
 def run_fine_tuning_pipeline(
-    data_dir: str | Path = "data/raw",
+    data_dir: str | Path = "data/preprocess",
     models: Sequence[str] = DEFAULT_MODELS,
     stations: Optional[Sequence[str]] = None,
     mode: Literal["multivariate", "univariate"] = "multivariate",
     lookback: int = 96,
     horizon: int = 24,
-    stride: int = 6,
+    stride: int = 12,
     batch_size: int = 256,
     epochs: int = 12,
-    lr: float = 3e-5,
-    weight_decay: float = 1e-2,
+    lr: float = 1e-5,
+    weight_decay: float = 3e-2,
     patience: int = 4,
+    loss_fn: str = "MSELoss",
+    huber_delta: float = 2.5,
     freeze_backbone: bool = True,
+    ckpt_source: Literal["wp03", "wp02"] = "wp03",
+    wp02_ckpt_dir: str | Path = "outputs/checkpoints/wp02_baseline",
     output_root: str | Path = "outputs",
     seed: int = 42,
 ) -> Dict[str, object]:
-    """Chạy Fine-tuning toàn bộ các mô hình trên từng trạm và xuất bảng đối chứng."""
+    """Chạy Fine-tuning toàn bộ các mô hình trên từng trạm (hỗ trợ cả nguồn WP03 và WP02)."""
     set_seed(seed)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     use_pin_memory = device.type == "cuda"
+    metrics_calc = MetricsCalculator()
 
     output_root = Path(output_root)
     global_ckpt_dir = output_root / "checkpoints" / "global"
     station_ckpt_dir = output_root / "checkpoints" / "stations"
+    log_dir = output_root / "logs"
     report_dir = output_root / "reports"
     station_ckpt_dir.mkdir(parents=True, exist_ok=True)
+    log_dir.mkdir(parents=True, exist_ok=True)
     report_dir.mkdir(parents=True, exist_ok=True)
 
     scaler_path = global_ckpt_dir / f"scaler_12stations_{mode}.joblib"
@@ -424,13 +544,19 @@ def run_fine_tuning_pipeline(
     model_summary_records: List[Dict[str, object]] = []
 
     for model_name in models:
-        pretrained_ckpt = (
-            global_ckpt_dir / f"{model_name}_{mode}_H{horizon}_pretrained.pt"
+        pretrained_ckpt = resolve_pretrained_checkpoint(
+            model_name=model_name,
+            mode=mode,
+            horizon=horizon,
+            seed=seed,
+            ckpt_source=ckpt_source,
+            global_ckpt_dir=global_ckpt_dir,
+            wp02_ckpt_dir=Path(wp02_ckpt_dir),
         )
         print("\n" + "=" * 88)
         print(
-            f"[FINE-TUNE TỪNG TRẠM] Model={model_name.upper()} | Mode={mode} (D={in_features}) | "
-            f"H={horizon} | Số trạm={len(target_stations)} | freeze_backbone={freeze_backbone}"
+            f"[FINE-TUNE TỪNG TRẠM] Source={ckpt_source.upper()} | Model={model_name.upper()} | "
+            f"Mode={mode} (D={in_features}) | H={horizon} | Số trạm={len(target_stations)}"
         )
         print("=" * 88)
 
@@ -442,6 +568,7 @@ def run_fine_tuning_pipeline(
                 station_loaders=per_station_loaders[st],
                 pretrained_ckpt=pretrained_ckpt,
                 in_features=in_features,
+                feature_cols=feature_cols,
                 lookback=lookback,
                 horizon=horizon,
                 mode=mode,
@@ -449,10 +576,14 @@ def run_fine_tuning_pipeline(
                 lr=lr,
                 weight_decay=weight_decay,
                 patience=patience,
+                loss_fn=loss_fn,
+                huber_delta=huber_delta,
                 freeze_backbone=freeze_backbone,
                 station_ckpt_dir=station_ckpt_dir,
+                log_dir=log_dir,
                 seed=seed,
                 device=device,
+                metrics_calc=metrics_calc,
             )
             model_records.append(rec)
             all_station_records.append(rec)
@@ -461,10 +592,47 @@ def run_fine_tuning_pipeline(
         win_count = int(df_m["improved"].to_numpy().sum())
         model_summary_records.append(
             {
+                "ckpt_source": ckpt_source,
                 "model": model_name,
                 "mode": mode,
                 "horizon": horizon,
                 "freeze_backbone": freeze_backbone,
+                "mean_before_train_mse": round(
+                    float(df_m["before_train_mse"].to_numpy().mean()), 6
+                ),
+                "mean_after_train_mse": round(
+                    float(df_m["after_train_mse"].to_numpy().mean()), 6
+                ),
+                "mean_before_train_rmse": round(
+                    float(df_m["before_train_rmse"].to_numpy().mean()), 6
+                ),
+                "mean_after_train_rmse": round(
+                    float(df_m["after_train_rmse"].to_numpy().mean()), 6
+                ),
+                "mean_before_train_dev_mse": round(
+                    float(df_m["before_train_dev_mse"].to_numpy().mean()), 6
+                ),
+                "mean_after_train_dev_mse": round(
+                    float(df_m["after_train_dev_mse"].to_numpy().mean()), 6
+                ),
+                "mean_before_train_dev_rmse": round(
+                    float(df_m["before_train_dev_rmse"].to_numpy().mean()), 6
+                ),
+                "mean_after_train_dev_rmse": round(
+                    float(df_m["after_train_dev_rmse"].to_numpy().mean()), 6
+                ),
+                "mean_before_dev_mse": round(
+                    float(df_m["before_dev_mse"].to_numpy().mean()), 6
+                ),
+                "mean_after_dev_mse": round(
+                    float(df_m["after_dev_mse"].to_numpy().mean()), 6
+                ),
+                "mean_before_dev_rmse": round(
+                    float(df_m["before_dev_rmse"].to_numpy().mean()), 6
+                ),
+                "mean_after_dev_rmse": round(
+                    float(df_m["after_dev_rmse"].to_numpy().mean()), 6
+                ),
                 "mean_before_mse": round(
                     float(df_m["before_mse"].to_numpy().mean()), 6
                 ),
@@ -502,9 +670,12 @@ def run_fine_tuning_pipeline(
         )
         gc.collect()
 
-    detail_csv = report_dir / f"before_vs_after_by_station_{mode}_H{horizon}.csv"
-    summary_csv = report_dir / f"before_vs_after_by_model_{mode}_H{horizon}.csv"
-    summary_json = report_dir / f"before_vs_after_full_{mode}_H{horizon}.json"
+    suffix = f"_{ckpt_source}" if ckpt_source == "wp02" else ""
+    detail_csv = (
+        report_dir / f"before_vs_after_by_station{suffix}_{mode}_H{horizon}.csv"
+    )
+    summary_csv = report_dir / f"before_vs_after_by_model{suffix}_{mode}_H{horizon}.csv"
+    summary_json = report_dir / f"before_vs_after_full{suffix}_{mode}_H{horizon}.json"
 
     pd.DataFrame(all_station_records).to_csv(
         detail_csv, index=False, encoding="utf-8-sig"
@@ -516,7 +687,9 @@ def run_fine_tuning_pipeline(
         json.dump(
             {
                 "config": {
+                    "ckpt_source": ckpt_source,
                     "mode": mode,
+                    "in_features": in_features,
                     "lookback": lookback,
                     "horizon": horizon,
                     "stride": stride,
@@ -524,6 +697,7 @@ def run_fine_tuning_pipeline(
                     "epochs": epochs,
                     "lr": lr,
                     "weight_decay": weight_decay,
+                    "loss_fn": loss_fn,
                     "freeze_backbone": freeze_backbone,
                     "seed": seed,
                 },
@@ -536,7 +710,9 @@ def run_fine_tuning_pipeline(
         )
 
     print("\n" + "=" * 96)
-    print(f"TỔNG HỢP TRƯỚC VS. SAU FINE-TUNING (MODE={mode}, H={horizon})")
+    print(
+        f"TỔNG HỢP TRƯỚC VS. SAU FINE-TUNING (SOURCE={ckpt_source.upper()}, MODE={mode}, H={horizon})"
+    )
     print("=" * 96)
     print(summary_df.to_string(index=False))
     print(
@@ -556,9 +732,9 @@ def run_fine_tuning_pipeline(
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="T0304: Fine-tuning mô hình theo từng trạm dùng WP01 pipeline."
+        description="T0304: Fine-tuning mô hình theo từng trạm từ WP03 hoặc WP02 Baseline."
     )
-    parser.add_argument("--data-dir", type=str, default="data/raw")
+    parser.add_argument("--data-dir", type=str, default="data/preprocess")
     parser.add_argument(
         "--models",
         nargs="+",
@@ -579,18 +755,44 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--lookback", type=int, default=96)
     parser.add_argument("--horizon", type=int, default=24, choices=[24, 48, 96, 192])
-    parser.add_argument("--stride", type=int, default=6)
+    parser.add_argument(
+        "--stride", "--train-stride", dest="stride", type=int, default=12
+    )
+    parser.add_argument("--train-dev-stride", type=int, default=None)
+    parser.add_argument("--dev-stride", type=int, default=None)
+    parser.add_argument("--test-stride", type=int, default=None)
     parser.add_argument("--batch-size", type=int, default=256)
     parser.add_argument("--epochs", type=int, default=12)
-    parser.add_argument("--lr", type=float, default=3e-5)
-    parser.add_argument("--weight-decay", type=float, default=1e-2)
+    parser.add_argument("--lr", type=float, default=1e-5)
+    parser.add_argument("--weight-decay", type=float, default=3e-2)
     parser.add_argument("--patience", type=int, default=4)
+    parser.add_argument("--loss-fn", type=str, default="MSELoss")
+    parser.add_argument("--huber-delta", type=float, default=2.5)
     parser.add_argument(
         "--unfreeze-backbone",
         action="store_true",
         help="Mở khóa toàn bộ backbone (mặc định đóng băng backbone để chống overfit).",
     )
-    parser.add_argument("--output-root", type=str, default="outputs")
+    parser.add_argument(
+        "--ckpt-source",
+        type=str,
+        default="wp03",
+        choices=["wp03", "wp02"],
+        help="Chọn nguồn trọng số khởi tạo: 'wp03' (Global Pretrained) hoặc 'wp02' (BaselineTrainer).",
+    )
+    parser.add_argument(
+        "--wp02-ckpt-dir",
+        type=str,
+        default="outputs/checkpoints/wp02_baseline",
+        help="Thư mục chứa checkpoint của WP02 BaselineTrainer.",
+    )
+    parser.add_argument(
+        "--output-dir",
+        "--output-root",
+        dest="output_dir",
+        type=str,
+        default="outputs",
+    )
     parser.add_argument("--seed", type=int, default=42)
     apply_yaml_config(parser, ["paths", "data", "finetune"])
     return parser.parse_args()
@@ -611,7 +813,11 @@ if __name__ == "__main__":
         lr=args.lr,
         weight_decay=args.weight_decay,
         patience=args.patience,
+        loss_fn=args.loss_fn,
+        huber_delta=args.huber_delta,
         freeze_backbone=(not args.unfreeze_backbone),
-        output_root=args.output_root,
+        ckpt_source=args.ckpt_source,  # type: ignore[arg-type]
+        wp02_ckpt_dir=args.wp02_ckpt_dir,
+        output_root=args.output_dir,
         seed=args.seed,
     )

@@ -1,205 +1,247 @@
+from __future__ import annotations
+
+import argparse
 from pathlib import Path
+from typing import Dict, List, Optional, Tuple
+
+import joblib
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
-import joblib
 
-TIME_COLS = ["year", "month", "day", "hour"]
 TARGET_COL = "pm2.5"
-WIND_CATEGORIES = ["NW", "SE", "cv", "NE", "Unknown"]
+
+CONTINUOUS_COLS: List[str] = [
+    "pm2.5",
+    "pm10",
+    "so2",
+    "no2",
+    "co",
+    "o3",
+    "temp",
+    "pres",
+    "dewp",
+    "rain",
+    "wspm",
+]
+
+WIND_DIRECTIONS: List[str] = [
+    "N",
+    "NNE",
+    "NE",
+    "ENE",
+    "E",
+    "ESE",
+    "SE",
+    "SSE",
+    "S",
+    "SSW",
+    "SW",
+    "WSW",
+    "W",
+    "WNW",
+    "NW",
+    "NNW",
+]
+
+CANONICAL_COLS: List[str] = (
+    CONTINUOUS_COLS
+    + [
+        "hour_sin",
+        "hour_cos",
+        "month_sin",
+        "month_cos",
+    ]
+    + [f"wd_{d}" for d in WIND_DIRECTIONS]
+)
 
 
-def load_pm25(path):
-    """Đọc một file CSV hoặc toàn bộ CSV trong thư mục dữ liệu PRSA."""
-    path = Path(path).expanduser().resolve()
-
-    if not path.exists():
-        raise FileNotFoundError(f"Không tìm thấy đường dẫn dữ liệu: {path}")
-
-    if path.is_file():
-        csv_files = [path] if path.suffix.lower() == ".csv" else []
+def build_datetime_column(df: pd.DataFrame) -> pd.DataFrame:
+    out = df.copy()
+    if "datetime" not in out.columns:
+        out["datetime"] = pd.to_datetime(out[["year", "month", "day", "hour"]])
     else:
-        csv_files = sorted(path.glob("*.csv"))
-
-    if not csv_files:
-        raise FileNotFoundError(f"Không tìm thấy file CSV trong: {path}")
-
-    frames = []
-    for file in csv_files:
-        station_df = pd.read_csv(file)
-        station_df.columns = station_df.columns.str.strip().str.lower()
-
-        if "station" not in station_df.columns:
-            station_df["station"] = file.stem.replace("PRSA_Data_", "")
-
-        if "datetime" not in station_df.columns:
-            required = {"year", "month", "day", "hour"}
-            missing = required - set(station_df.columns)
-            if missing:
-                raise ValueError(f"File {file.name} thiếu cột thời gian: {missing}")
-            station_df["datetime"] = pd.to_datetime(
-                station_df[["year", "month", "day", "hour"]], errors="coerce"
-            )
-
-        frames.append(station_df)
-
-    df = pd.concat(frames, ignore_index=True)
-    df = df.dropna(subset=["datetime"])
-    df = df.sort_values(["station", "datetime"])
-    df = df.drop_duplicates(["station", "datetime"]).reset_index(drop=True)
-
-    print(f"Số file/trạm: {len(csv_files)}")
-    print(f"Kích thước dữ liệu: {df.shape}")
-    return df
+        out["datetime"] = pd.to_datetime(out["datetime"])
+    return out.sort_values(["station", "datetime"]).reset_index(drop=True)
 
 
-def missing_report(df, output_dir=None):
-    """Thống kê missing values tổng thể, theo tháng và theo trạm."""
-    report = df.isna().sum().to_frame("missing_count")
-    report["missing_rate"] = df.isna().mean()
-    report = report.sort_values("missing_rate", ascending=False)
-
-    if output_dir:
-        output_dir = Path(output_dir)
-        output_dir.mkdir(parents=True, exist_ok=True)
-        report.to_csv(output_dir / "missing_overall.csv")
-
-        if "datetime" in df.columns:
-            by_month = (
-                df.set_index("datetime").groupby("station").resample("MS").mean(numeric_only=True)
-                if "station" in df.columns
-                else df.set_index("datetime").resample("MS").mean(numeric_only=True)
-            )
-            by_month.to_csv(output_dir / "missing_by_month.csv")
-
-        if "station" in df.columns:
-            df.groupby("station").apply(
-                lambda group: group.isna().mean(), include_groups=False
-            ).to_csv(output_dir / "missing_by_station.csv")
-
-    return report
-
-
-def _clean_one_series(group, target_col):
-    group = group.copy().sort_values("datetime")
-    numeric_cols = group.select_dtypes(include=np.number).columns.tolist()
-    group[numeric_cols] = group[numeric_cols].interpolate(
-        method="linear", limit_direction="both"
-    ).ffill().bfill()
-
-    categorical_cols = group.select_dtypes(include=["object", "category"]).columns
-    for col in categorical_cols:
-        group[col] = group[col].ffill().bfill()
-        if group[col].isna().any() and not group[col].mode().empty:
-            group[col] = group[col].fillna(group[col].mode().iloc[0])
-
-    if target_col in group.columns:
-        group = group.dropna(subset=[target_col])
-    return group
-
-
-def clean_missing_values(df, target_col=TARGET_COL):
-    """Làm sạch theo thời gian riêng từng trạm, tránh nội suy chéo giữa các trạm."""
-    df = df.copy()
-    if "station" in df.columns:
-        parts = [
-            _clean_one_series(group, target_col)
-            for _, group in df.groupby("station", sort=False)
-        ]
-        return pd.concat(parts, ignore_index=True).sort_values(
-            ["station", "datetime"]
-        ).reset_index(drop=True)
-    return _clean_one_series(df, target_col).reset_index(drop=True)
-
-
-def encode_features(df, wind_col="cbwd"):
-    """Mã hóa hướng gió One-Hot và thời gian theo chu kỳ."""
-    df = df.copy()
-
-    if "hour" not in df.columns and "datetime" in df.columns:
-        df["hour"] = df["datetime"].dt.hour
-    if "month" not in df.columns and "datetime" in df.columns:
-        df["month"] = df["datetime"].dt.month
-
-    if "hour" in df.columns:
-        df["hour_sin"] = np.sin(2 * np.pi * df["hour"] / 24)
-        df["hour_cos"] = np.cos(2 * np.pi * df["hour"] / 24)
-    if "month" in df.columns:
-        df["month_sin"] = np.sin(2 * np.pi * (df["month"] - 1) / 12)
-        df["month_cos"] = np.cos(2 * np.pi * (df["month"] - 1) / 12)
-
-    if wind_col in df.columns:
-        wind = df[wind_col].fillna("Unknown").astype(str).str.strip()
-        wind = wind.where(wind.isin(WIND_CATEGORIES[:-1]), "Unknown")
-        df[wind_col] = pd.Categorical(wind, categories=WIND_CATEGORIES)
-        dummies = pd.get_dummies(df[wind_col], prefix="wind", dtype=np.float32)
-        df = pd.concat([df.drop(columns=[wind_col]), dummies], axis=1)
-
-    return df
-
-
-def chronological_split(df, ratios=(0.60, 0.10, 0.10, 0.20)):
-    """Chia theo thời gian; nếu có nhiều trạm thì chia riêng từng trạm."""
-    if len(ratios) != 4 or not np.isclose(sum(ratios), 1.0):
-        raise ValueError("Cần 4 tỷ lệ train/train_dev/dev/test có tổng bằng 1.")
-
-    names = ["train", "train_dev", "dev", "test"]
-
-    def split_one(group):
-        group = group.sort_values("datetime").reset_index(drop=True)
-        n = len(group)
-        i1 = int(n * ratios[0])
-        i2 = i1 + int(n * ratios[1])
-        i3 = i2 + int(n * ratios[2])
-        return {
-            "train": group.iloc[:i1].copy(),
-            "train_dev": group.iloc[i1:i2].copy(),
-            "dev": group.iloc[i2:i3].copy(),
-            "test": group.iloc[i3:].copy(),
-        }
-
-    groups = [group for _, group in df.groupby("station", sort=False)] if "station" in df.columns else [df]
-    results = {name: [] for name in names}
-    for group in groups:
-        parts = split_one(group)
-        for name in names:
-            results[name].append(parts[name])
+def split_chronological_per_station(
+    df: pd.DataFrame,
+    train_end: str = "2015-12-31 23:00:00",
+    train_dev_end: str = "2016-04-30 23:00:00",
+    dev_end: str = "2016-08-31 23:00:00",
+) -> Dict[str, pd.DataFrame]:
+    """Chia 4 tập theo trục thời gian TRƯỚC khi thực hiện bất kỳ thao tác điền khuyết nào."""
+    df = build_datetime_column(df)
+    t_train = pd.Timestamp(train_end)
+    t_train_dev = pd.Timestamp(train_dev_end)
+    t_dev = pd.Timestamp(dev_end)
 
     return {
-        name: pd.concat(parts, ignore_index=True).sort_values(
-            ["station", "datetime"] if "station" in df.columns else ["datetime"]
-        ).reset_index(drop=True)
-        for name, parts in results.items()
+        "train": df[df["datetime"] <= t_train].copy().reset_index(drop=True),
+        "train_dev": df[(df["datetime"] > t_train) & (df["datetime"] <= t_train_dev)]
+        .copy()
+        .reset_index(drop=True),
+        "dev": df[(df["datetime"] > t_train_dev) & (df["datetime"] <= t_dev)]
+        .copy()
+        .reset_index(drop=True),
+        "test": df[df["datetime"] > t_dev].copy().reset_index(drop=True),
     }
 
 
-def scale_splits(splits, feature_cols, scaler_path=None):
-    """Fit scaler trên train; chỉ transform các split còn lại."""
+def causal_impute_splits(splits: Dict[str, pd.DataFrame]) -> Dict[str, pd.DataFrame]:
+    """
+    Điền khuyết nhân quả tuyệt đối (không nhìn trước):
+    1. Chỉ dùng ffill() theo từng trạm bên trong từng phân vùng.
+    2. Các ô NaN đầu chuỗi chưa có lịch sử chỉ dùng median của tập TRAIN.
+    3. Cột hướng gió 'wd' điền ffill() và fallback bằng mode của tập TRAIN.
+    """
+    train_df = splits["train"].copy()
+    station_medians = train_df.groupby("station")[CONTINUOUS_COLS].median()
+    global_medians = train_df[CONTINUOUS_COLS].median()
+
+    wd_col = "wd" if "wd" in train_df.columns else "cbwd"
+    station_wd_mode = (
+        train_df.groupby("station")[wd_col]
+        .agg(lambda s: s.dropna().mode().iloc[0] if not s.dropna().empty else "NW")
+        .to_dict()
+    )
+
+    imputed_splits: Dict[str, pd.DataFrame] = {}
+    for split_name, part in splits.items():
+        df_s = part.sort_values(["station", "datetime"]).copy()
+        df_s[CONTINUOUS_COLS] = df_s.groupby("station")[CONTINUOUS_COLS].ffill()
+
+        for st, idx in df_s.groupby("station").groups.items():
+            fill_vals = (
+                station_medians.loc[st].fillna(global_medians)
+                if st in station_medians.index
+                else global_medians
+            )
+            df_s.loc[idx, CONTINUOUS_COLS] = df_s.loc[idx, CONTINUOUS_COLS].fillna(
+                fill_vals
+            )
+
+            df_s.loc[idx, wd_col] = (
+                df_s.loc[idx, wd_col].ffill().fillna(station_wd_mode.get(st, "NW"))
+            )
+
+        imputed_splits[split_name] = df_s.reset_index(drop=True)
+    return imputed_splits
+
+
+def encode_features(splits: Dict[str, pd.DataFrame]) -> Dict[str, pd.DataFrame]:
+    """Mã hóa chu kỳ thời gian và cố định đúng 16 cột One-Hot hướng gió wd_* (tổng D=31)."""
+    encoded: Dict[str, pd.DataFrame] = {}
+    for split_name, part in splits.items():
+        df_e = part.copy()
+        dt = pd.to_datetime(df_e["datetime"])
+        df_e["hour_sin"] = np.sin(2.0 * np.pi * dt.dt.hour / 24.0)
+        df_e["hour_cos"] = np.cos(2.0 * np.pi * dt.dt.hour / 24.0)
+        df_e["month_sin"] = np.sin(2.0 * np.pi * dt.dt.month / 12.0)
+        df_e["month_cos"] = np.cos(2.0 * np.pi * dt.dt.month / 12.0)
+
+        wd_col = "wd" if "wd" in df_e.columns else "cbwd"
+        wd_series = df_e[wd_col].astype(str).str.strip().str.upper()
+        for d in WIND_DIRECTIONS:
+            df_e[f"wd_{d}"] = (wd_series == d).astype(np.float32)
+
+        keep_cols = ["station", "datetime"] + CANONICAL_COLS
+        encoded[split_name] = df_e[keep_cols].copy()
+    return encoded
+
+
+def scale_splits(
+    splits: Dict[str, pd.DataFrame],
+    feature_cols: List[str],
+    scaler_path: Optional[Path] = None,
+) -> Tuple[Dict[str, pd.DataFrame], StandardScaler]:
+    """Khớp StandardScaler duy nhất trên tập train và biến đổi cả 4 tập."""
     scaler = StandardScaler()
-    scaled = {}
-    train = splits["train"].copy()
-    train[feature_cols] = scaler.fit_transform(train[feature_cols])
-    scaled["train"] = train
+    scaler.fit(splits["train"][feature_cols])
 
-    for name in ["train_dev", "dev", "test"]:
-        part = splits[name].copy()
-        part[feature_cols] = scaler.transform(part[feature_cols])
-        scaled[name] = part
+    scaled: Dict[str, pd.DataFrame] = {}
+    for split_name, part in splits.items():
+        df_sc = part.copy()
+        df_sc[feature_cols] = scaler.transform(df_sc[feature_cols])
+        scaled[split_name] = df_sc
 
-    if scaler_path:
-        scaler_path = Path(scaler_path)
+    if scaler_path is not None:
         scaler_path.parent.mkdir(parents=True, exist_ok=True)
         joblib.dump(scaler, scaler_path)
-
     return scaled, scaler
 
-def save_splits_csv(splits, output_dir):
-    from pathlib import Path
 
-    output_dir = Path(output_dir)
-    output_dir.mkdir(parents=True, exist_ok=True)
+def verify_causal_preprocessing(
+    raw_df: pd.DataFrame,
+    processed_splits: Dict[str, pd.DataFrame],
+) -> None:
+    """Kiểm toán tự động 4 tiêu chí chống rò rỉ dữ liệu trước khi huấn luyện."""
+    # 1. Ranh giới thời gian không chồng lấn
+    assert (
+        processed_splits["train"]["datetime"].max()
+        < processed_splits["train_dev"]["datetime"].min()
+    )
+    assert (
+        processed_splits["train_dev"]["datetime"].max()
+        < processed_splits["dev"]["datetime"].min()
+    )
+    assert (
+        processed_splits["dev"]["datetime"].max()
+        < processed_splits["test"]["datetime"].min()
+    )
 
-    for name, data in splits.items():
-        output_path = output_dir / f"{name}.csv"
-        data.to_csv(output_path, index=False)
-        print(f"Đã lưu: {output_path}")
+    # 2. Đúng hợp đồng đặc trưng D=31 & không NaN/Inf
+    for name, df_p in processed_splits.items():
+        assert list(df_p.columns) == ["station", "datetime"] + CANONICAL_COLS, (
+            f"Sai cột ở {name}"
+        )
+        vals = df_p[CANONICAL_COLS].to_numpy(dtype=np.float64)
+        assert np.isfinite(vals).all(), f"Tồn tại NaN/Inf trong tập {name}"
+
+    # 3. Kiểm tra nhiễu loạn tương lai trên Test (Perturbation Test)
+    perturbed_raw = raw_df.copy()
+    perturbed_raw = build_datetime_column(perturbed_raw)
+    test_mask = perturbed_raw["datetime"] > processed_splits["dev"]["datetime"].max()
+    last_idx = perturbed_raw[test_mask].index[-50:]
+    perturbed_raw.loc[last_idx, "pm2.5"] = 9999.0
+
+    perturbed_splits = encode_features(
+        causal_impute_splits(split_chronological_per_station(perturbed_raw))
+    )
+    orig_head = processed_splits["test"][CANONICAL_COLS].iloc[:-100].to_numpy()
+    pert_head = perturbed_splits["test"][CANONICAL_COLS].iloc[:-100].to_numpy()
+    assert np.allclose(orig_head, pert_head), (
+        "RÒ RỈ TƯƠNG LAI: Thay đổi cuối Test làm đổi đầu Test!"
+    )
+    print(
+        "[VERIFIED] Preprocessing đạt chuẩn nhân quả 100%, D=31, không rò rỉ ranh giới hay tương lai."
+    )
+
+
+def run_preprocess(raw_dir: Path, out_dir: Path) -> None:
+    csv_files = sorted(raw_dir.glob("PRSA_Data_*.csv"))
+    if not csv_files:
+        raise FileNotFoundError(
+            f"Không tìm thấy dữ liệu thô PRSA_Data_*.csv tại {raw_dir}"
+        )
+    raw_df = pd.concat([pd.read_csv(p) for p in csv_files], ignore_index=True)
+
+    splits = split_chronological_per_station(raw_df)
+    imputed = causal_impute_splits(splits)
+    encoded = encode_features(imputed)
+    verify_causal_preprocessing(raw_df, encoded)
+
+    out_dir.mkdir(parents=True, exist_ok=True)
+    for split_name, df_out in encoded.items():
+        df_out.to_csv(out_dir / f"{split_name}.csv", index=False)
+    print(f"[SAVED] Đã xuất 4 tập sạch nhân quả (D=31) tại: {out_dir}")
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--raw-dir", type=Path, default=Path("data/raw"))
+    parser.add_argument("--out-dir", type=Path, default=Path("data/preprocess"))
+    args = parser.parse_args()
+    run_preprocess(args.raw_dir, args.out_dir)
+

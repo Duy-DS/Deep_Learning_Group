@@ -19,6 +19,7 @@ from pydantic import BaseModel, Field
 # Hợp đồng dữ liệu (Pydantic v2 — tuân thủ AGENTS.md)
 # ---------------------------------------------------------------------------
 
+
 class ExperimentMetricsContract(BaseModel):
     """
     Hợp đồng dữ liệu đầu ra bắt buộc cho mọi kịch bản đánh giá mô hình
@@ -29,9 +30,9 @@ class ExperimentMetricsContract(BaseModel):
     """
 
     experiment_id: str = Field(..., description="Mã thực nghiệm, ví dụ: EXP01")
-    model_name: Literal["LSTM", "DLinear", "Informer", "Informer_NoProbSparse", "PatchTST"] = Field(
-        ..., description="Tên kiến trúc mô hình"
-    )
+    model_name: Literal[
+        "LSTM", "DLinear", "Informer", "Informer_NoProbSparse", "PatchTST"
+    ] = Field(..., description="Tên kiến trúc mô hình")
     station_id: str = Field(
         ..., description="Tên trạm quan trắc (hoặc 'ALL_36_STATIONS')"
     )
@@ -41,14 +42,10 @@ class ExperimentMetricsContract(BaseModel):
     seeds: List[int] = Field(
         default=[42, 1024, 2026],
         min_length=3,
-        description="Danh sách 3 random seeds đã dùng"
+        description="Danh sách 3 random seeds đã dùng",
     )
-    mse_per_seed: List[float] = Field(
-        ..., description="MSE tương ứng với từng seed"
-    )
-    mae_per_seed: List[float] = Field(
-        ..., description="MAE tương ứng với từng seed"
-    )
+    mse_per_seed: List[float] = Field(..., description="MSE tương ứng với từng seed")
+    mae_per_seed: List[float] = Field(..., description="MAE tương ứng với từng seed")
     mse_mean: float = Field(..., ge=0.0, description="MSE trung bình qua 3 seeds")
     mse_std: float = Field(..., ge=0.0, description="Độ lệch chuẩn MSE qua 3 seeds")
     mae_mean: float = Field(..., ge=0.0, description="MAE trung bình qua 3 seeds")
@@ -64,6 +61,7 @@ class ExperimentMetricsContract(BaseModel):
 # ---------------------------------------------------------------------------
 # Lớp tính toán độ đo chính
 # ---------------------------------------------------------------------------
+
 
 class MetricsCalculator:
     """
@@ -114,7 +112,7 @@ class MetricsCalculator:
             )
 
         diff = y_pred - y_true
-        mse = torch.mean(diff ** 2).item()
+        mse = torch.mean(diff**2).item()
         mae = torch.mean(torch.abs(diff)).item()
 
         return {"mse": mse, "mae": mae}
@@ -146,7 +144,9 @@ class MetricsCalculator:
     def summarize_multi_seed(
         self,
         experiment_id: str,
-        model_name: Literal["LSTM", "DLinear", "Informer", "Informer_NoProbSparse", "PatchTST"],
+        model_name: Literal[
+            "LSTM", "DLinear", "Informer", "Informer_NoProbSparse", "PatchTST"
+        ],
         station_id: str,
         horizon: Literal[24, 48, 96, 192],
         mse_per_seed: List[float],
@@ -176,9 +176,13 @@ class MetricsCalculator:
             seeds = [42, 1024, 2026]
 
         if len(mse_per_seed) < 3:
-            raise ValueError(f"At least 3 MSE values required, got: {len(mse_per_seed)}.")
+            raise ValueError(
+                f"At least 3 MSE values required, got: {len(mse_per_seed)}."
+            )
         if len(mae_per_seed) < 3:
-            raise ValueError(f"At least 3 MAE values required, got: {len(mae_per_seed)}.")
+            raise ValueError(
+                f"At least 3 MAE values required, got: {len(mae_per_seed)}."
+            )
 
         mse_array = np.array(mse_per_seed, dtype=np.float64)
         mae_array = np.array(mae_per_seed, dtype=np.float64)
@@ -228,6 +232,7 @@ class MetricsCalculator:
 # Smoke test nội bộ
 # ---------------------------------------------------------------------------
 
+
 def _run_smoke_test() -> None:
     """
     Kiểm tra nhanh tính đúng đắn của MetricsCalculator bằng tensor tổng hợp.
@@ -244,7 +249,9 @@ def _run_smoke_test() -> None:
     res1 = calc.compute(y_pred, y_true)
     assert abs(res1["mse"] - 1.0) < 1e-6, f"MSE error: {res1['mse']}"
     assert abs(res1["mae"] - 1.0) < 1e-6, f"MAE error: {res1['mae']}"
-    print(f"[INFO] Test 1 (MSE=1.0, MAE=1.0): MSE={res1['mse']:.6f}, MAE={res1['mae']:.6f} → PASS")
+    print(
+        f"[INFO] Test 1 (MSE=1.0, MAE=1.0): MSE={res1['mse']:.6f}, MAE={res1['mae']:.6f} → PASS"
+    )
 
     # Test 2: Tensor ngẫu nhiên với shape [8, 96, 1]
     y_true2 = torch.randn(8, 96, 1)
@@ -252,7 +259,9 @@ def _run_smoke_test() -> None:
     res2 = calc.compute(y_pred2, y_true2)
     assert abs(res2["mse"] - 0.01) < 1e-5, f"MSE error: {res2['mse']}"
     assert abs(res2["mae"] - 0.1) < 1e-5, f"MAE error: {res2['mae']}"
-    print(f"[INFO] Test 2 (diff +0.1, MSE≈0.01, MAE≈0.1): MSE={res2['mse']:.6f}, MAE={res2['mae']:.6f} → PASS")
+    print(
+        f"[INFO] Test 2 (diff +0.1, MSE≈0.01, MAE≈0.1): MSE={res2['mse']:.6f}, MAE={res2['mae']:.6f} → PASS"
+    )
 
     # Test 3: Multi-seed aggregation
     contract = calc.summarize_multi_seed(
@@ -266,7 +275,9 @@ def _run_smoke_test() -> None:
     )
     assert abs(contract.mse_mean - 0.1) < 1e-9, f"MSE mean error: {contract.mse_mean}"
     assert abs(contract.mae_mean - 0.25) < 1e-9, f"MAE mean error: {contract.mae_mean}"
-    print(f"[INFO] Test 3 (ExperimentMetricsContract): MSE={contract.mse_mean:.4f}±{contract.mse_std:.4f}, MAE={contract.mae_mean:.4f}±{contract.mae_std:.4f} → PASS")
+    print(
+        f"[INFO] Test 3 (ExperimentMetricsContract): MSE={contract.mse_mean:.4f}±{contract.mse_std:.4f}, MAE={contract.mae_mean:.4f}±{contract.mae_std:.4f} → PASS"
+    )
 
     # Test 4: Pydantic schema validation
     contract_dict = contract.model_dump()
@@ -278,7 +289,9 @@ def _run_smoke_test() -> None:
     print(f"[INFO] Sample Markdown row: {table_row}")
     calc.print_summary(contract)
 
-    print("[SUCCESS] Toàn bộ smoke test MetricsCalculator: PASS. Sẵn sàng tích hợp vào WP02 và WP03.")
+    print(
+        "[SUCCESS] Toàn bộ smoke test MetricsCalculator: PASS. Sẵn sàng tích hợp vào WP02 và WP03."
+    )
 
 
 if __name__ == "__main__":
