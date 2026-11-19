@@ -135,12 +135,16 @@ class Trainer:
     def _build_optimizer(self) -> optim.Optimizer:
         """Khởi tạo bộ tối ưu hóa theo cấu hình."""
         opt_name = str(self.config.get("optimizer", "Adam")).lower()
+        weight_decay = self.config.get("weight_decay")
         if opt_name == "adam":
-            return optim.Adam(self.model.parameters(), lr=self.lr)
+            wd = float(weight_decay) if weight_decay is not None else 0.0
+            return optim.Adam(self.model.parameters(), lr=self.lr, weight_decay=wd)
         elif opt_name == "adamw":
-            return optim.AdamW(self.model.parameters(), lr=self.lr, weight_decay=1e-4)
+            wd = float(weight_decay) if weight_decay is not None else 1e-4
+            return optim.AdamW(self.model.parameters(), lr=self.lr, weight_decay=wd)
         elif opt_name in ("sgd", "sgd_nesterov"):
-            return optim.SGD(self.model.parameters(), lr=self.lr, momentum=0.9, nesterov=True)
+            wd = float(weight_decay) if weight_decay is not None else 0.0
+            return optim.SGD(self.model.parameters(), lr=self.lr, momentum=0.9, nesterov=True, weight_decay=wd)
         else:
             raise ValueError(f"Không hỗ trợ bộ tối ưu hóa: '{opt_name}'")
 

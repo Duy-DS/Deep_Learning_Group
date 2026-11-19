@@ -84,6 +84,61 @@ def test_trainer_builds_configured_schedulers():
     assert trainer._build_scheduler() is None
 
 
+def test_trainer_builds_optimizers_with_weight_decay():
+    """Kiểm tra Trainer cấu hình weight_decay cho Adam, AdamW và SGD_Nesterov."""
+    trainer = Trainer.__new__(Trainer)
+    trainer.model = torch.nn.Linear(4, 2)
+    trainer.lr = 0.001
+
+    trainer.config = {"optimizer": "Adam"}
+    opt_adam_default = trainer._build_optimizer()
+    assert opt_adam_default.param_groups[0]["weight_decay"] == 0.0
+
+    trainer.config = {"optimizer": "AdamW", "weight_decay": 5e-4}
+    opt_adamw = trainer._build_optimizer()
+    assert isinstance(opt_adamw, torch.optim.AdamW)
+    assert opt_adamw.param_groups[0]["weight_decay"] == 5e-4
+
+    trainer.config = {"optimizer": "SGD_Nesterov", "weight_decay": 1e-4}
+    opt_sgd = trainer._build_optimizer()
+    assert isinstance(opt_sgd, torch.optim.SGD)
+    assert opt_sgd.param_groups[0]["nesterov"] is True
+    assert opt_sgd.param_groups[0]["weight_decay"] == 1e-4
+
+
+def test_ablation_yaml_configs_are_valid():
+    """Kiểm tra toàn bộ YAML T0203-T0205 trong experiments/ablation/ hợp lệ và seed=42."""
+    from pathlib import Path
+    import yaml
+
+    ablation_dir = Path("experiments/ablation")
+    yaml_files = sorted(ablation_dir.glob("exp_t020*.yaml"))
+    assert len(yaml_files) == 8
+
+    for yaml_path in yaml_files:
+        with open(yaml_path, "r", encoding="utf-8") as f:
+            cfg = yaml.safe_load(f)
+        assert cfg["seed"] == 42
+        assert cfg["architecture"] == "LargeCNN"
+        assert cfg["image_size"] == 48
+        assert cfg["in_channels"] == 1
+
+        trainer = Trainer.__new__(Trainer)
+        trainer.config = cfg
+        trainer.architecture = cfg["architecture"]
+        trainer.num_classes = cfg["num_classes"]
+        trainer.in_channels = cfg["in_channels"]
+        trainer.dropout = float(cfg["dropout"])
+        trainer.activation = str(cfg["activation"])
+        trainer.channels = cfg["channels"]
+        trainer.lr = float(cfg["lr"])
+        trainer.epochs = int(cfg["epochs"])
+
+        trainer.model = trainer._build_model()
+        trainer.optimizer = trainer._build_optimizer()
+        trainer._build_scheduler()
+
+
 def test_empty_mlflow_export_keeps_schema(tmp_path):
     """Experiment chưa có run vẫn phải xuất header đúng hợp đồng 24 cột."""
     logger = MLflowLogger.__new__(MLflowLogger)

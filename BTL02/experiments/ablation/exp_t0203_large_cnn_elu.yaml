@@ -1,0 +1,27 @@
+# Cấu hình thực nghiệm T0203: Ablation Activation ELU trên LargeCNN
+# Nghiên cứu RQ1 / WP2: Đánh giá hàm kích hoạt ELU
+
+exp_id: "EXP-T0203-ELU"
+architecture: "LargeCNN"
+activation: "elu"
+channels: [64, 128, 256, 512]
+exp_group: "Ablation"
+rq_tag: "RQ1"
+seed: 42
+image_size: 48
+in_channels: 1
+num_workers: 0
+num_classes: 7
+normalization: "fer2013"
+augmentation: "None"
+optimizer: "Adam"
+lr: 0.001
+scheduler: "None"
+scheduler_params: {}
+batch_size: 64
+epochs: 50
+dropout: 0.5
+member: "Thành viên 2"
+patience: 10
+checkpoint_path: "outputs/checkpoints/best_t0203_large_cnn_elu.pth"
+csv_path: "data/raw/fer2013.csv"

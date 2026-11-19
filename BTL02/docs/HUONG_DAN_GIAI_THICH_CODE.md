@@ -229,3 +229,26 @@ Trả lời: Không thể kết luận như vậy: cả Public và Private đề
   - `MediumCNN` có 2.73M tham số nhưng không có `BatchNorm2d` và chỉ có 1 lớp Dropout ở cuối, dẫn đến các bộ lọc ở khối 3 bị đồng kích hoạt (co-adaptation).
   - `LargeCNN` dù sâu hơn và có 3.92M tham số, nhưng được trang bị `BatchNorm2d` sau mỗi tầng tích chập (giúp phân phối kích hoạt luôn chuẩn hóa) và `Dropout2d` (ngẫu nhiên ngắt toàn bộ kênh đặc trưng trong quá trình học), buộc các bộ lọc phải học các đặc trưng độc lập, chống phụ thuộc lẫn nhau, từ đó ghìm chặt Val Loss ở mức thấp.
 
+---
+
+## 8. BỔ SUNG KỸ THUẬT CHO T0203 – T0205 (ABLATION CUSTOM CNN)
+
+### 8.1. Thiết kế bộ cấu hình Ablation (`experiments/ablation/`)
+Toàn bộ 8 file YAML được tách biệt khỏi mã nguồn (`Config Decoupling`), khóa cứng `seed: 42`, `architecture: "LargeCNN"`, `image_size: 48`, `in_channels: 1` để cô lập từng biến số thực nghiệm:
+- **`T0203` (Activation Functions):** So sánh `leaky_relu` (`negative_slope=0.01`), `gelu`, `elu` với mốc `relu` (`EXP-03`) trên cùng bộ tối ưu `Adam (lr=1e-3)`.
+- **`T0204` (Optimizers & LR Schedulers):** So sánh `AdamW (lr=1e-3)`, `SGD_Nesterov (lr=1e-2, momentum=0.9) + ReduceLROnPlateau`, và `AdamW + CosineAnnealingLR (T_max=50, eta_min=1e-6)`.
+- **`T0205` (Regularization):** So sánh mức điều hòa nhẹ (`dropout: 0.3, weight_decay: 1e-4`) và mạnh (`dropout: 0.6, weight_decay: 5e-4`) nhằm kiểm soát khoảng cách Train–Val Accuracy.
+
+### 8.2. Mở rộng `weight_decay` trong `Trainer._build_optimizer()` (`src/train/trainer.py`)
+* **Bản chất thay đổi:** Cho phép đọc trường tùy chọn `weight_decay` từ YAML thay vì cố định hoàn toàn trong code. Nếu YAML không khai báo `weight_decay`, hệ thống giữ nguyên mặc định tương thích ngược (`0.0` cho `Adam` và `SGD_Nesterov`, `1e-4` cho `AdamW`).
+* **Kiểm thử tự động (`tests/test_training_utils.py`):** Bổ sung `test_trainer_builds_optimizers_with_weight_decay` và `test_ablation_yaml_configs_are_valid` để xác minh tất cả 8 file YAML `T0203`–`T0205` đều hợp lệ về cấu trúc, giữ `seed=42` và khởi tạo thành công `LargeCNN`, Optimizer và Scheduler.
+
+### 8.3. Câu hỏi vấn đáp thường gặp cho `T0203` – `T0205`
+* **Hỏi: Vì sao trong `T0203` chỉ thay đổi `activation` mà giữ nguyên toàn bộ siêu tham số của `EXP-03`?**
+  * *Trả lời:* Đây là nguyên tắc **cô lập biến số (Controlled Ablation)**. Nếu đổi đồng thời cả `activation` và `lr`/`optimizer`, ta không thể kết luận sự thay đổi độ chính xác đến từ hàm kích hoạt hay từ bộ tối ưu.
+* **Hỏi: Điểm khác biệt cốt lõi giữa `Adam` và `AdamW` trong `T0204` là gì?**
+  * *Trả lời:* `Adam` cộng thành phần L2 penalty trực tiếp vào gradient trước khi chia cho phương sai thích ứng (làm giảm hiệu quả regularization ở các tham số có gradient lớn), trong khi `AdamW` **tách rời Weight Decay (Decoupled Weight Decay)** ra khỏi bước cập nhật thích ứng, giúp kiểm soát overfitting ổn định hơn.
+* **Hỏi: Vì sao `SGD_Nesterov` trong `T0204` dùng `lr=0.01` thay vì `0.001` như `Adam`?**
+  * *Trả lời:* `Adam/AdamW` tự chuẩn hóa bước nhảy theo biên độ gradient nên phù hợp với `lr` nhỏ (`1e-3`). `SGD + Momentum (0.9) + Nesterov` không có bước chia thích ứng nên cần `lr` khởi tạo lớn hơn (`1e-2`) kết hợp `ReduceLROnPlateau` để hội tụ kịp trong giới hạn 50 epochs.
+
+
