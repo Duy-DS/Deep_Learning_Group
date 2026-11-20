@@ -1,0 +1,110 @@
+[
+  {
+    "experiment_id": "WP03_PRETRAIN_LSTM_MULTIVARIATE_H48",
+    "model_name": "LSTM",
+    "station_id": "ALL_12_STATIONS",
+    "horizon": 48,
+    "seeds": [
+      42,
+      1024,
+      2026
+    ],
+    "mse_per_seed": [
+      1.470959,
+      1.506771,
+      1.569364
+    ],
+    "mae_per_seed": [
+      0.812013,
+      0.821598,
+      0.830226
+    ],
+    "mse_mean": 1.5156980000000002,
+    "mse_std": 0.04066656696435868,
+    "mae_mean": 0.8212790000000001,
+    "mae_std": 0.007438846819232146,
+    "checkpoint_path": "outputs/checkpoints/global/lstm_multivariate_H48_pretrained.pt",
+    "extra_notes": "WP03 Pre-training (multivariate, D=31, L=96, H=48) | RMSE=1.231027±0.020188"
+  },
+  {
+    "experiment_id": "WP03_PRETRAIN_DLINEAR_MULTIVARIATE_H48",
+    "model_name": "DLinear",
+    "station_id": "ALL_12_STATIONS",
+    "horizon": 48,
+    "seeds": [
+      42,
+      1024,
+      2026
+    ],
+    "mse_per_seed": [
+      1.146389,
+      1.15854,
+      1.199164
+    ],
+    "mae_per_seed": [
+      0.759614,
+      0.756318,
+      0.768433
+    ],
+    "mse_mean": 1.168031,
+    "mse_std": 0.022566338751925704,
+    "mae_mean": 0.7614550000000001,
+    "mae_std": 0.005114376273473301,
+    "checkpoint_path": "outputs/checkpoints/global/dlinear_multivariate_H48_pretrained.pt",
+    "extra_notes": "WP03 Pre-training (multivariate, D=31, L=96, H=48) | RMSE=1.080705±0.012753"
+  },
+  {
+    "experiment_id": "WP03_PRETRAIN_INFORMER_MULTIVARIATE_H48",
+    "model_name": "Informer",
+    "station_id": "ALL_12_STATIONS",
+    "horizon": 48,
+    "seeds": [
+      42,
+      1024,
+      2026
+    ],
+    "mse_per_seed": [
+      1.29833,
+      1.332211,
+      1.356403
+    ],
+    "mae_per_seed": [
+      0.803561,
+      0.801107,
+      0.826304
+    ],
+    "mse_mean": 1.3289813333333333,
+    "mse_std": 0.023817939909982905,
+    "mae_mean": 0.810324,
+    "mae_std": 0.011343892012885192,
+    "checkpoint_path": "outputs/checkpoints/global/informer_multivariate_H48_pretrained.pt",
+    "extra_notes": "WP03 Pre-training (multivariate, D=31, L=96, H=48) | RMSE=1.152768±0.012664"
+  },
+  {
+    "experiment_id": "WP03_PRETRAIN_PATCHTST_MULTIVARIATE_H48",
+    "model_name": "PatchTST",
+    "station_id": "ALL_12_STATIONS",
+    "horizon": 48,
+    "seeds": [
+      42,
+      1024,
+      2026
+    ],
+    "mse_per_seed": [
+      1.517304,
+      1.552648,
+      1.553001
+    ],
+    "mae_per_seed": [
+      0.837055,
+      0.847164,
+      0.850094
+    ],
+    "mse_mean": 1.5409843333333333,
+    "mse_std": 0.016745144417279794,
+    "mae_mean": 0.844771,
+    "mae_std": 0.005585619452367553,
+    "checkpoint_path": "outputs/checkpoints/global/patchtst_multivariate_H48_pretrained.pt",
+    "extra_notes": "WP03 Pre-training (multivariate, D=31, L=96, H=48) | RMSE=1.241346±0.008277"
+  }
+]

@@ -1,0 +1,110 @@
+[
+  {
+    "experiment_id": "WP03_PRETRAIN_LSTM_UNIVARIATE_H24",
+    "model_name": "LSTM",
+    "station_id": "ALL_12_STATIONS",
+    "horizon": 24,
+    "seeds": [
+      42,
+      1024,
+      2026
+    ],
+    "mse_per_seed": [
+      0.984148,
+      0.978686,
+      0.990211
+    ],
+    "mae_per_seed": [
+      0.624018,
+      0.625251,
+      0.626825
+    ],
+    "mse_mean": 0.9843483333333333,
+    "mse_std": 0.004707193525752783,
+    "mae_mean": 0.6253646666666667,
+    "mae_std": 0.001148768132488982,
+    "checkpoint_path": "outputs/checkpoints/global/lstm_univariate_H24_pretrained.pt",
+    "extra_notes": "WP03 Pre-training (univariate, D=1, L=96, H=24) | RMSE=0.992141±0.002905"
+  },
+  {
+    "experiment_id": "WP03_PRETRAIN_DLINEAR_UNIVARIATE_H24",
+    "model_name": "DLinear",
+    "station_id": "ALL_12_STATIONS",
+    "horizon": 24,
+    "seeds": [
+      42,
+      1024,
+      2026
+    ],
+    "mse_per_seed": [
+      0.848552,
+      0.848176,
+      0.848551
+    ],
+    "mae_per_seed": [
+      0.605776,
+      0.604697,
+      0.605504
+    ],
+    "mse_mean": 0.8484263333333333,
+    "mse_std": 0.00017701286833321197,
+    "mae_mean": 0.6053256666666667,
+    "mae_std": 0.0004581937969413577,
+    "checkpoint_path": "outputs/checkpoints/global/dlinear_univariate_H24_pretrained.pt",
+    "extra_notes": "WP03 Pre-training (univariate, D=1, L=96, H=24) | RMSE=0.921101±0.000117"
+  },
+  {
+    "experiment_id": "WP03_PRETRAIN_INFORMER_UNIVARIATE_H24",
+    "model_name": "Informer",
+    "station_id": "ALL_12_STATIONS",
+    "horizon": 24,
+    "seeds": [
+      42,
+      1024,
+      2026
+    ],
+    "mse_per_seed": [
+      0.959493,
+      0.951883,
+      0.937887
+    ],
+    "mae_per_seed": [
+      0.641755,
+      0.63876,
+      0.634273
+    ],
+    "mse_mean": 0.9497543333333334,
+    "mse_std": 0.008948118064089733,
+    "mae_mean": 0.6382626666666665,
+    "mae_std": 0.0030746909149087166,
+    "checkpoint_path": "outputs/checkpoints/global/informer_univariate_H24_pretrained.pt",
+    "extra_notes": "WP03 Pre-training (univariate, D=1, L=96, H=24) | RMSE=0.974543±0.005627"
+  },
+  {
+    "experiment_id": "WP03_PRETRAIN_PATCHTST_UNIVARIATE_H24",
+    "model_name": "PatchTST",
+    "station_id": "ALL_12_STATIONS",
+    "horizon": 24,
+    "seeds": [
+      42,
+      1024,
+      2026
+    ],
+    "mse_per_seed": [
+      0.983484,
+      0.975197,
+      0.982267
+    ],
+    "mae_per_seed": [
+      0.63316,
+      0.628703,
+      0.634736
+    ],
+    "mse_mean": 0.9803159999999999,
+    "mse_std": 0.003653618571589923,
+    "mae_mean": 0.6321996666666666,
+    "mae_std": 0.0025548584218221247,
+    "checkpoint_path": "outputs/checkpoints/global/patchtst_univariate_H24_pretrained.pt",
+    "extra_notes": "WP03 Pre-training (univariate, D=1, L=96, H=24) | RMSE=0.990107±0.002261"
+  }
+]

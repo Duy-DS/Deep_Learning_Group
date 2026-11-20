@@ -1,0 +1,29 @@
+[
+  {
+    "experiment_id": "WP03_PRETRAIN_INFORMER_FULL_MULTIVARIATE_H96",
+    "model_name": "Informer_NoProbSparse",
+    "station_id": "ALL_12_STATIONS",
+    "horizon": 96,
+    "seeds": [
+      42,
+      1024,
+      2026
+    ],
+    "mse_per_seed": [
+      1.620783,
+      1.651003,
+      1.677415
+    ],
+    "mae_per_seed": [
+      0.917363,
+      0.941995,
+      0.954086
+    ],
+    "mse_mean": 1.6497336666666669,
+    "mse_std": 0.023137332910735896,
+    "mae_mean": 0.9378146666666667,
+    "mae_std": 0.015280730181797214,
+    "checkpoint_path": "outputs/checkpoints/global/informer_full_multivariate_H96_pretrained.pt",
+    "extra_notes": "WP03 Pre-training (multivariate, D=31, L=96, H=96) | RMSE=1.284388±0.011035"
+  }
+]
