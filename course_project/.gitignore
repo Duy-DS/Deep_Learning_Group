@@ -1,0 +1,40 @@
+# Byte-compiled / cache của Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Trọng số mô hình & Artifacts nặng (Tuyệt đối không đẩy lên Git)
+*.pth
+*.pt
+*.onnx
+*.ckpt
+*.h5
+checkpoints/
+weights/
+
+# Môi trường ảo & Biến môi trường
+venv/
+.venv/
+env/
+.env
+data/
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Thư mục log tạm của trình huấn luyện (TensorBoard / WandB)
+runs/
+wandb/
+lightning_logs/
+
+# Hệ điều hành & IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# BẢO VỆ HỆ THỐNG BẰNG CHỨNG: Luôn cho phép Git theo dõi toàn bộ thư mục docs/
+!docs/
+!docs/**/
+!docs/**/*.md
+!docs/**/.gitkeep
