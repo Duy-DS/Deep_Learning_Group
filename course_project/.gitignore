@@ -18,7 +18,7 @@ venv/
 .venv/
 env/
 .env
-data/
+data/preprocess
 # Jupyter Notebook checkpoints
 .ipynb_checkpoints/
 
