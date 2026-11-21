@@ -50,8 +50,17 @@ def test_large_cnn_architecture():
 
 @pytest.mark.parametrize("activation", ["relu", "leaky_relu", "gelu", "elu"])
 def test_large_cnn_supported_activations(activation):
-    """Kiểm tra LargeCNN hỗ trợ bốn activation và giữ đúng shape logits."""
+    """Kiểm tra bốn activation được dùng ở mọi block và tầng FC, đúng shape logits."""
     model = LargeCNN(activation=activation).eval()
+    activation_types = {
+        "relu": nn.ReLU,
+        "leaky_relu": nn.LeakyReLU,
+        "gelu": nn.GELU,
+        "elu": nn.ELU,
+    }
+    expected_type = activation_types[activation]
+    assert all(isinstance(getattr(model, f"activation{index}"), expected_type) for index in range(1, 5))
+    assert isinstance(model.activation_fc, expected_type)
     with torch.no_grad():
         output = model(torch.randn(2, 1, 48, 48))
     assert output.shape == torch.Size([2, 7])

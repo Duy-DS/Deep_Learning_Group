@@ -26,7 +26,7 @@ class MLflowLogger:
 
         Args:
             experiment_name: Tên experiment trong MLflow.
-            tracking_uri: URI lưu trữ tùy chọn; nếu bỏ trống dùng
+            tracking_uri: URI lưu trữ tùy chọn; nếu bỏ trống dùng biến môi trường
                 ``MLFLOW_TRACKING_URI`` hoặc mặc định ``mlruns``.
         """
         os.environ["MLFLOW_ALLOW_FILE_STORE"] = "true"
