@@ -267,3 +267,20 @@ Trả lời: Không. Tổng số tham số không đổi; chỉ số tham số c
 **Hỏi: Chạy unit test có tải pretrained weights không?**
 Trả lời: Không. Các test kiến trúc chạy `pretrained=False`; kiểm tra chế độ pretrained xác nhận enum và đối số weights qua mock, tránh tải mạng. Khi huấn luyện EXP-04 thật, torchvision cần tải/có sẵn weights ImageNet V1.
 
+## T0303: ResNet50 và EfficientNet-B0 ImageNet cho FER2013 (RQ2)
+
+- `src/models/pretrained_resnet.py` bọc `torchvision.models.resnet50`, dùng weights ImageNet V2 khi pretrained. Tensor RGB đi qua stem và residual stages `layer1`–`layer4`, pooling toàn cục trong ResNet tạo vector 2048 chiều. Head mặc định `Dropout -> Linear(2048,7)`; có thể đặt `hidden_dim` để dùng head hai lớp.
+- `src/models/pretrained_efficientnet.py` bọc `efficientnet_b0`, dùng ImageNet V1. Backbone tạo vector 1280 chiều; head mặc định `Dropout(inplace=True) -> Linear(1280,7)`, có thể bổ sung hidden layer. Hai mô hình đều nhận ảnh 128×128 hoặc 224×224 và trả logits `[B,7]`.
+- Cả hai kế thừa `BaseEmotionModel`, cung cấp tầng Conv cuối cho Grad-CAM, `get_parameter_summary()` và điều khiển freeze. ResNet có thể unfreeze từ residual stage 1–4; EfficientNet từ feature block index 0–8. Optimizer Trainer giữ tham chiếu toàn bộ tham số, nên fine-tuning có thể mở khóa thêm các layer sau khi khởi tạo.
+- `exp05_resnet50_finetune.yaml` và `exp06_efficientnet_b0_finetune.yaml` dùng seed 42, ảnh RGB 128, ImageNet normalization và `transform_mode: sota`. `get_dataloaders` gán augmentation chỉ cho transform train, dùng eval transform xác định cho PublicTest/PrivateTest.
+- Trainer nhận các alias `ResNet50`/`PretrainedResNet50` và `EfficientNetB0`/`PretrainedEfficientNetB0`; các kiến trúc cũ và VGG16 vẫn được giữ.
+
+**Hỏi: Freeze backbone có làm giảm tổng số tham số của mô hình không?**
+Trả lời: Không, tổng tham số kiến trúc không đổi; chỉ lượng tham số được cập nhật gradient giảm. Summary phân biệt total, trainable, frozen.
+
+**Hỏi: Vì sao ResNet50 có thể mở từ `layer4` mà không mở stem?**
+Trả lời: Các residual stage có thứ tự tuần tự. Mở layer4 chỉ tinh chỉnh tầng đặc trưng cuối và classifier; các stage trước giữ trọng số ImageNet, giảm số tham số cần cập nhật.
+
+**Hỏi: Vì sao EfficientNet-B0 phù hợp để so sánh với ResNet50 trong RQ2?**
+Trả lời: Đây là đối chứng kiến trúc hiệu quả tham số; phải so sánh trên cùng split, seed, transform, batch/recipe và đánh giá riêng tài nguyên tính toán, không kết luận chỉ từ một chỉ số accuracy.
+

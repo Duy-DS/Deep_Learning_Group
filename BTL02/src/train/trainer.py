@@ -22,7 +22,14 @@ from torch.utils.data import DataLoader
 import yaml
 
 from src.data.dataset import get_dataloaders
-from src.models import LargeCNN, MediumCNN, PretrainedVGG16, SmallCNN
+from src.models import (
+    LargeCNN,
+    MediumCNN,
+    PretrainedEfficientNetB0,
+    PretrainedResNet50,
+    PretrainedVGG16,
+    SmallCNN,
+)
 from src.train.mlflow_logger import MLflowLogger
 from src.train.utils import count_parameters, get_device, seed_everything
 
@@ -79,7 +86,7 @@ class Trainer:
         self.pretrained = bool(self.config.get("pretrained", True))
         self.freeze_backbone = bool(self.config.get("freeze_backbone", False))
         self.dropout_rate = float(self.config.get("dropout_rate", self.dropout))
-        self.hidden_dim = int(self.config.get("hidden_dim", 512))
+        self.hidden_dim = self.config.get("hidden_dim", 512)
         self.patience = int(self.config.get("patience", 10))
         self.member = str(self.config.get("member", "Thành viên 2"))
 
@@ -173,6 +180,22 @@ class Trainer:
                 pretrained=self.pretrained,
                 freeze_backbone=self.freeze_backbone,
                 dropout_rate=self.dropout_rate,
+                hidden_dim=self.hidden_dim,
+            )
+        elif self.architecture in ("ResNet50", "PretrainedResNet50"):
+            return PretrainedResNet50(
+                num_classes=self.num_classes,
+                pretrained=self.pretrained,
+                freeze_backbone=self.freeze_backbone,
+                dropout_rate=self.dropout_rate,
+                hidden_dim=self.hidden_dim,
+            )
+        elif self.architecture in ("EfficientNetB0", "PretrainedEfficientNetB0"):
+            return PretrainedEfficientNetB0(
+                num_classes=self.num_classes,
+                pretrained=self.pretrained,
+                freeze_backbone=self.freeze_backbone,
+                dropout_rate=float(self.config.get("dropout_rate", 0.2)),
                 hidden_dim=self.hidden_dim,
             )
         raise ValueError(f"Kiến trúc mô hình '{self.architecture}' chưa được hỗ trợ trong Trainer.")
