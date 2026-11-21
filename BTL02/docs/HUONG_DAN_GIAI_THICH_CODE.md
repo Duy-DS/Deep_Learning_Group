@@ -284,3 +284,20 @@ Trả lời: Các residual stage có thứ tự tuần tự. Mở layer4 chỉ t
 **Hỏi: Vì sao EfficientNet-B0 phù hợp để so sánh với ResNet50 trong RQ2?**
 Trả lời: Đây là đối chứng kiến trúc hiệu quả tham số; phải so sánh trên cùng split, seed, transform, batch/recipe và đánh giá riêng tài nguyên tính toán, không kết luận chỉ từ một chỉ số accuracy.
 
+## T0304: Thiết kế đối chứng Transfer Learning và kích thước ảnh (RQ2)
+
+- Chín YAML trong `experiments/sota/` tạo ma trận 3 kiến trúc × 3 điều kiện: ImageNet pretrained 128, scratch 128, ImageNet pretrained 48. Seed, split counts, transform, augmentation train-only, optimizer, LR, scheduler, batch, epochs và patience được kiểm tra bằng unit test để giữ recipe cố định.
+- `SOTATransformBuilder` cho phép cạnh ảnh từ 48 trở lên; ảnh FER grayscale được đổi thành 3 kênh và chuẩn hóa ImageNet. Kiểm tra forward 48×48 cho thấy output logits của cả ba model là `[B,7]`; feature cuối thực đo: VGG16 `[B,512,1,1]`, ResNet50 `[B,2048,2,2]`, EfficientNet-B0 `[B,1280,2,2]`. Vì vậy không được giả định mọi backbone có cùng năm lần giảm kích thước.
+- Trainer đặt tên run SOTA duy nhất theo EXP ID, kiến trúc, pretrained/scratch, image size và optimizer. Thời gian epoch có synchronize CUDA trước/sau vùng đo; tổng tham số và Public Macro-F1 được ghi vào MLflow metrics bổ sung.
+- CSV 24 cột là schema cố định và không có exp_id, pretrained, Macro-F1 Public hoặc total params. Notebook giữ nguyên schema này, nối mỗi run với manifest YAML qua tên run, đồng thời xuất metrics chi tiết bổ sung riêng. PublicTest là validation dùng early stopping/model selection theo pipeline hiện hữu; không diễn giải nó như holdout độc lập. PrivateTest được đánh giá sau khi chọn checkpoint.
+- `run_t0304_colab.ipynb` chạy chín cấu hình tuần tự, gắn Drive cho MLflow/checkpoint/log/figure, kiểm tra CSV FER2013 có đúng split counts và tiếp tục bỏ qua các run đã FINISHED. Colab Secret được dùng khi tải dữ liệu và token được gỡ khỏi môi trường sau tiến trình tải.
+
+**Hỏi: Vì sao chưa thể kết luận Pretrained tốt hơn Scratch từ smoke test?**
+Trả lời: Smoke test chỉ xác minh pipeline forward/backward; không đo hội tụ hay accuracy. Chỉ CSV/MLflow của đủ run thật mới cho phép tính ΔAcc, macro-F1 và best epoch.
+
+**Hỏi: Vì sao 48×48 không cho cùng feature map ở ba model?**
+Trả lời: ResNet50 có stem stride/pooling và adaptive average pooling; EfficientNet có stem cùng stride stages; VGG16 dùng chuỗi max-pooling và adaptive pool 7×7 ở classifier. Hình dạng không gian do kiến trúc cụ thể quyết định, nên phải đo từng backbone.
+
+**Hỏi: PublicTest có phải test set độc lập trong Trainer hiện tại không?**
+Trả lời: Không. Trainer dùng PublicTest làm validation để chọn checkpoint/EarlyStopping. Do đó chỉ báo cáo là validation/model-selection metric; không tuyên bố nó là đánh giá holdout không thiên lệch. PrivateTest là split đánh giá cuối theo cấu hình hiện có.
+

@@ -10,6 +10,7 @@ Tuân thủ nghiêm ngặt hiến pháp AGENTS.md:
 
 import argparse
 import os
+import time
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple, Union
 
@@ -146,6 +147,25 @@ class Trainer:
                 optimizer=optimizer or "",
             )
         )
+
+    @staticmethod
+    def _format_run_name(
+        exp_id: str,
+        architecture: str,
+        optimizer: str,
+        activation: str = "relu",
+        pretrained: Optional[bool] = None,
+        image_size: Optional[int] = None,
+    ) -> str:
+        """Tạo tên run phân biệt cấu hình SOTA mà vẫn giữ tên các run CNN cũ."""
+        sota_architectures = {
+            "VGG16", "PretrainedVGG16", "ResNet50", "PretrainedResNet50",
+            "EfficientNetB0", "PretrainedEfficientNetB0",
+        }
+        if architecture in sota_architectures:
+            weight_mode = "pretrained" if pretrained else "scratch"
+            return f"{exp_id}_{architecture}_{weight_mode}_{image_size}_{optimizer}"
+        return f"{exp_id}_{architecture}_{activation}_{optimizer}"
 
     def _build_model(self) -> nn.Module:
         """Khởi tạo kiến trúc mô hình tương ứng với tham số architecture."""
@@ -319,7 +339,14 @@ class Trainer:
         Returns:
             Dict[str, Any]: Từ điển chứa kết quả thực nghiệm tổng kết.
         """
-        run_name = f"{self.exp_id}_{self.architecture}_{self.activation}_{self.optimizer_name}"
+        run_name = self._format_run_name(
+            exp_id=self.exp_id,
+            architecture=self.architecture,
+            optimizer=self.optimizer_name,
+            activation=self.activation,
+            pretrained=self.pretrained,
+            image_size=self.image_size,
+        )
         print(f"\n{'='*70}")
         print(f"🚀 BẮT ĐẦU THỰC NGHIỆM: {run_name} (Nhóm: {self.exp_group} | Câu hỏi: {self.rq_tag})")
         print(f"{'='*70}")
@@ -330,8 +357,12 @@ class Trainer:
         # 2. Ghi nhận tham số khởi tạo (Params)
         init_params = {
             "architecture": self.architecture,
+            "experiment_id": self.exp_id,
+            "pretrained": str(self.pretrained),
             "exp_group": self.exp_group,
             "rq_tag": self.rq_tag,
+            "hidden_dim": str(self.hidden_dim),
+            "total_params": sum(parameter.numel() for parameter in self.model.parameters()),
             "seed": self.seed,
             "image_size": self.image_size,
             "augmentation": self.augmentation,
@@ -354,8 +385,14 @@ class Trainer:
 
         # 3. Vòng lặp từng Epoch
         for epoch in range(1, self.epochs + 1):
+            if self.device.type == "cuda":
+                torch.cuda.synchronize(self.device)
+            epoch_started = time.perf_counter()
             train_loss, train_acc = self.train_one_epoch()
             val_loss, val_acc, val_f1 = self.evaluate(self.val_loader)
+            if self.device.type == "cuda":
+                torch.cuda.synchronize(self.device)
+            epoch_duration = time.perf_counter() - epoch_started
 
             # Scheduler giảm LR theo validation loss hoặc theo lịch cosine.
             if isinstance(self.lr_scheduler, optim.lr_scheduler.ReduceLROnPlateau):
@@ -377,6 +414,7 @@ class Trainer:
                 "val_acc": val_acc,
                 "val_macro_f1": val_f1,
                 "lr": self.optimizer.param_groups[0]["lr"],
+                "epoch_time_seconds": epoch_duration,
             }, step=epoch)
 
             # Cơ chế EarlyStopping & Lưu trữ Checkpoint tốt nhất dựa trên Val Acc
@@ -419,6 +457,13 @@ class Trainer:
             "best_epoch": best_epoch,
         }
         self.logger.log_metrics(final_summary_metrics)
+        # Log bổ sung ngoài schema CSV 24 cột; PublicTest là validation dùng chọn checkpoint.
+        self.logger.log_metrics({
+            "best_val_macro_f1": best_val_macro_f1,
+            "total_params": sum(parameter.numel() for parameter in self.model.parameters()),
+            "pretrained": float(self.pretrained),
+            "image_size": float(self.image_size),
+        })
 
         # Lưu checkpoint làm artifact trong MLflow
         if self.checkpoint_path.exists():
