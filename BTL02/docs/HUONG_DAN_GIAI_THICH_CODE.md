@@ -250,3 +250,20 @@ Trả lời: Không thể kết luận như vậy: cả Public và Private đề
 - **Hỏi: Vì sao thay activation cả ở convolution và FC?** Thiết kế T0204 kiểm tra chính sách activation thống nhất toàn LargeCNN. Muốn tách riêng vị trí activation cần một nghiên cứu factorial khác.
 - **Trạng thái:** Hạ tầng và forward tests đã chuẩn bị; chưa chạy bốn train runs và chưa kết luận activation tối ưu.
 
+## T0302: VGG16 fine-tuning ImageNet cho FER2013 (RQ2)
+
+- `src/models/pretrained_vgg.py` bọc `torchvision.models.vgg16` trong `BaseEmotionModel`; đầu vào cần RGB `[B,3,H,W]`. `AdaptiveAvgPool2d((7,7))` của torchvision giữ tensor đặc trưng cuối thành `[B,512,7,7]` cho cả ảnh 128 và 224. Flatten tạo 25.088 đặc trưng rồi head mới gồm `Linear(25088,512) -> ReLU -> Dropout -> Linear(512,7)` trả logits `[B,7]`.
+- `pretrained=True` chọn `VGG16_Weights.IMAGENET1K_V1`; `False` khởi tạo backbone ngẫu nhiên, dùng cho kiểm thử offline và đối chứng scratch. Trọng số head được khởi tạo Kaiming; bias bằng 0.
+- `freeze_backbone()` chỉ khóa `backbone.features`, giữ classifier trainable để warm-up. `unfreeze_backbone()` mở toàn bộ; `unfreeze_backbone(from_block=1..5)` chỉ mở các tầng thuộc block chỉ định trở về cuối. Bộ đếm summary phân biệt tổng, trainable và frozen parameters.
+- `experiments/sota/exp04_vgg16_finetune.yaml` cấu hình EXP-04, RQ2, ảnh RGB 128, chuẩn hóa ImageNet, AdamW, ReduceLROnPlateau và augmentation chỉ ở train. `get_dataloaders(transform_mode="sota")` tái sử dụng transform eval xác định cho cả PublicTest và PrivateTest, không augmentation.
+- Trainer chấp nhận tên `VGG16` hoặc `PretrainedVGG16`; CNN hiện hữu vẫn dùng transform `custom` mặc định. Optimizer chỉ nhận tham số `requires_grad=True`.
+
+**Hỏi: Vì sao VGG16 vẫn nhận được ảnh 128×128 dù cấu hình gốc thường dùng 224×224?**
+Trả lời: Feature extractor dùng các phép pooling tích lũy và AdaptiveAvgPool2d `(7,7)` chuẩn hóa kích thước không gian trước classifier; cả hai đầu vào cho kích thước feature map đủ lớn để pooling về 7×7.
+
+**Hỏi: Freeze backbone có nghĩa là tổng số tham số giảm không?**
+Trả lời: Không. Tổng số tham số không đổi; chỉ số tham số cập nhật gradient giảm. `get_parameter_summary()` báo riêng ba con số này.
+
+**Hỏi: Chạy unit test có tải pretrained weights không?**
+Trả lời: Không. Các test kiến trúc chạy `pretrained=False`; kiểm tra chế độ pretrained xác nhận enum và đối số weights qua mock, tránh tải mạng. Khi huấn luyện EXP-04 thật, torchvision cần tải/có sẵn weights ImageNet V1.
+

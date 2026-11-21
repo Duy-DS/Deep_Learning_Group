@@ -22,7 +22,7 @@ from torch.utils.data import DataLoader
 import yaml
 
 from src.data.dataset import get_dataloaders
-from src.models import LargeCNN, MediumCNN, SmallCNN
+from src.models import LargeCNN, MediumCNN, PretrainedVGG16, SmallCNN
 from src.train.mlflow_logger import MLflowLogger
 from src.train.utils import count_parameters, get_device, seed_everything
 
@@ -73,6 +73,13 @@ class Trainer:
         self.num_workers = int(self.config.get("num_workers", 0))
         self.num_classes = int(self.config.get("num_classes", 7))
         self.normalization = str(self.config.get("normalization", "fer2013"))
+        self.transform_mode = str(self.config.get("transform_mode", "custom"))
+        self.use_augmentation = bool(self.config.get("use_augmentation", True))
+        self.aug_config = self.config.get("aug_config")
+        self.pretrained = bool(self.config.get("pretrained", True))
+        self.freeze_backbone = bool(self.config.get("freeze_backbone", False))
+        self.dropout_rate = float(self.config.get("dropout_rate", self.dropout))
+        self.hidden_dim = int(self.config.get("hidden_dim", 512))
         self.patience = int(self.config.get("patience", 10))
         self.member = str(self.config.get("member", "Thành viên 2"))
 
@@ -93,6 +100,9 @@ class Trainer:
             in_channels=self.in_channels,
             augmentation=self.augmentation,
             normalization=self.normalization,
+            transform_mode=self.transform_mode,
+            use_augmentation=self.use_augmentation,
+            aug_config=self.aug_config,
             seed=self.seed,
             pin_memory=torch.cuda.is_available(),
         )
@@ -156,6 +166,14 @@ class Trainer:
                 activation=self.activation,
                 channels=self.channels if self.channels is not None else (64, 128, 256, 512),
                 dropout_rate=self.dropout,
+            )
+        elif self.architecture in ("VGG16", "PretrainedVGG16"):
+            return PretrainedVGG16(
+                num_classes=self.num_classes,
+                pretrained=self.pretrained,
+                freeze_backbone=self.freeze_backbone,
+                dropout_rate=self.dropout_rate,
+                hidden_dim=self.hidden_dim,
             )
         raise ValueError(f"Kiến trúc mô hình '{self.architecture}' chưa được hỗ trợ trong Trainer.")
 
