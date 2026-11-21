@@ -63,6 +63,9 @@ class Trainer:
         self.batch_size = int(self.config.get("batch_size", 64))
         self.lr = float(self.config.get("lr", 1e-3))
         self.weight_decay = float(self.config.get("weight_decay", 0.0))
+        self.optimizer_name = str(self.config.get("optimizer", "Adam")).strip().lower()
+        self.momentum = float(self.config.get("momentum", 0.9))
+        self.nesterov = bool(self.config.get("nesterov", True))
         self.epochs = int(self.config.get("epochs", 50))
         self.dropout = float(self.config.get("dropout", 0.5))
         self.activation = str(self.config.get("activation", "relu"))
@@ -75,7 +78,9 @@ class Trainer:
 
         # Đường dẫn lưu checkpoint
         raw_checkpoint = self.config.get("checkpoint_path", "outputs/checkpoints/best_small_cnn.pth")
-        self.checkpoint_path = self._format_artifact_path(raw_checkpoint, self.activation)
+        self.checkpoint_path = self._format_artifact_path(
+            raw_checkpoint, self.activation, self.optimizer_name
+        )
         self.checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
 
         # 5. Khởi tạo DataLoaders cho 3 phân tập
@@ -105,17 +110,25 @@ class Trainer:
         self.logger = MLflowLogger()
 
     @staticmethod
-    def _format_artifact_path(path_template: Union[str, Path], activation: str) -> Path:
-        """Thay thế trường activation trong đường dẫn artefact cấu hình.
+    def _format_artifact_path(
+        path_template: Union[str, Path], activation: str, optimizer: Optional[str] = None
+    ) -> Path:
+        """Thay thế trường activation/optimizer trong đường dẫn artefact cấu hình.
 
         Args:
             path_template: Đường dẫn có thể chứa ``{activation}``.
             activation: Tên activation của lần chạy hiện tại.
+            optimizer: Tên bộ tối ưu; nếu bỏ trống, trường ``{optimizer}`` được thay bằng chuỗi rỗng.
 
         Returns:
             Path: Đường dẫn artefact đã được định dạng.
         """
-        return Path(str(path_template).format(activation=activation))
+        return Path(
+            str(path_template).format(
+                activation=activation,
+                optimizer=optimizer or "",
+            )
+        )
 
     def _build_model(self) -> nn.Module:
         """Khởi tạo kiến trúc mô hình tương ứng với tham số architecture."""
@@ -148,13 +161,23 @@ class Trainer:
 
     def _build_optimizer(self) -> optim.Optimizer:
         """Khởi tạo bộ tối ưu hóa theo cấu hình."""
-        opt_name = str(self.config.get("optimizer", "Adam")).lower()
+        opt_name = str(self.config.get("optimizer", "Adam")).strip().lower()
         if opt_name == "adam":
             return optim.Adam(self.model.parameters(), lr=self.lr, weight_decay=self.weight_decay)
         elif opt_name == "adamw":
             return optim.AdamW(self.model.parameters(), lr=self.lr, weight_decay=self.weight_decay)
         elif opt_name in ("sgd", "sgd_nesterov"):
-            return optim.SGD(self.model.parameters(), lr=self.lr, momentum=0.9, nesterov=True)
+            momentum = float(self.config.get("momentum", 0.9))
+            nesterov = bool(self.config.get("nesterov", True))
+            if nesterov and momentum <= 0.0:
+                raise ValueError("Nesterov yêu cầu momentum lớn hơn 0.")
+            return optim.SGD(
+                self.model.parameters(),
+                lr=self.lr,
+                momentum=momentum,
+                weight_decay=self.weight_decay,
+                nesterov=nesterov,
+            )
         else:
             raise ValueError(f"Không hỗ trợ bộ tối ưu hóa: '{opt_name}'")
 
@@ -255,7 +278,7 @@ class Trainer:
         Returns:
             Dict[str, Any]: Từ điển chứa kết quả thực nghiệm tổng kết.
         """
-        run_name = f"{self.exp_id}_{self.architecture}_{self.activation}"
+        run_name = f"{self.exp_id}_{self.architecture}_{self.activation}_{self.optimizer_name}"
         print(f"\n{'='*70}")
         print(f"🚀 BẮT ĐẦU THỰC NGHIỆM: {run_name} (Nhóm: {self.exp_group} | Câu hỏi: {self.rq_tag})")
         print(f"{'='*70}")
@@ -274,8 +297,8 @@ class Trainer:
             "optimizer": str(self.config.get("optimizer", "Adam")),
             "lr": self.lr,
             "weight_decay": self.weight_decay,
-            "scheduler": str(self.config.get("scheduler", "None")),
-            "batch_size": self.batch_size,
+            "momentum": self.momentum,
+            "nesterov": str(self.nesterov),
             "dropout": self.dropout,
             "activation": self.activation,
             "channels": str(self.channels) if self.channels is not None else "default",
@@ -365,6 +388,7 @@ class Trainer:
         summary_path = self._format_artifact_path(
             self.config.get("summary_csv_path", "outputs/logs/mlflow_summary_24col.csv"),
             self.activation,
+            self.optimizer_name,
         )
         summary_csv = self.logger.export_summary_csv(str(summary_path))
         print(f"[*] Đã xuất bảng tổng kết 24 cột tại: {summary_csv}")

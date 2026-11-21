@@ -1,10 +1,13 @@
 """Kiểm thử tính tái lập và schema xuất MLflow."""
 
 import random
+import ast
+import json
 from unittest.mock import patch
 
 import numpy as np
 import pandas as pd
+import pytest
 import torch
 
 from src.train.mlflow_logger import MLflowLogger
@@ -92,6 +95,10 @@ def test_trainer_formats_activation_artifact_paths():
         "leaky_relu",
     )
     assert str(path).endswith("large_leaky_relu.pth")
+    optimizer_path = Trainer._format_artifact_path(
+        "outputs/checkpoints/exp08_{optimizer}.pth", "relu", "adamw"
+    )
+    assert optimizer_path.as_posix().endswith("exp08_adamw.pth")
 
 
 def test_trainer_optimizer_uses_configured_weight_decay():
@@ -103,6 +110,95 @@ def test_trainer_optimizer_uses_configured_weight_decay():
     trainer.config = {"optimizer": "adam"}
     optimizer = trainer._build_optimizer()
     assert optimizer.param_groups[0]["weight_decay"] == 0.0125
+
+
+def test_trainer_builds_exp08_optimizers_from_yaml_and_runs_one_step():
+    """Đọc ba YAML EXP-08, kiểm tra optimizer và chạy một bước giả lập."""
+    from pathlib import Path
+
+    import yaml
+
+    project_root = Path(__file__).resolve().parents[1]
+    config_paths = (
+        project_root / "experiments/ablation/exp08_opt_adam.yaml",
+        project_root / "experiments/ablation/exp08_opt_adamw.yaml",
+        project_root / "experiments/ablation/exp08_opt_sgd_nesterov.yaml",
+    )
+    expected_types = {
+        "adam": torch.optim.Adam,
+        "adamw": torch.optim.AdamW,
+        "sgd": torch.optim.SGD,
+    }
+    for config_path in config_paths:
+        config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+        name = config["optimizer"]
+        trainer = Trainer.__new__(Trainer)
+        trainer.model = torch.nn.Linear(4, 3)
+        trainer.lr = float(config["lr"])
+        trainer.weight_decay = float(config["weight_decay"])
+        trainer.config = config
+        optimizer = trainer._build_optimizer()
+        assert isinstance(optimizer, expected_types[name])
+        assert optimizer.param_groups[0]["lr"] == float(config["lr"])
+        assert optimizer.param_groups[0]["weight_decay"] == float(config["weight_decay"])
+        if name == "sgd":
+            assert optimizer.param_groups[0]["momentum"] == float(config["momentum"])
+            assert optimizer.param_groups[0]["nesterov"] is True
+        optimizer.zero_grad()
+        loss = trainer.model(torch.ones(2, 4)).square().mean()
+        loss.backward()
+        optimizer.step()
+
+
+def test_sgd_rejects_nesterov_without_positive_momentum():
+    """Nesterov không được bật nếu momentum không dương."""
+    trainer = Trainer.__new__(Trainer)
+    trainer.model = torch.nn.Linear(2, 2)
+    trainer.lr = 0.01
+    trainer.weight_decay = 0.0
+    trainer.config = {"optimizer": "sgd", "momentum": 0.0, "nesterov": True}
+    with pytest.raises(ValueError, match="Nesterov yêu cầu momentum"):
+        trainer._build_optimizer()
+
+
+def test_exp08_configs_share_controlled_architecture_and_data_settings():
+    """Ba cấu hình EXP-08 giữ nguyên kiến trúc, dữ liệu và lịch huấn luyện."""
+    from pathlib import Path
+
+    import yaml
+
+    root = Path(__file__).resolve().parents[1]
+    files = (
+        "exp08_opt_adam.yaml",
+        "exp08_opt_adamw.yaml",
+        "exp08_opt_sgd_nesterov.yaml",
+    )
+    configs = [
+        yaml.safe_load((root / "experiments" / "ablation" / name).read_text(encoding="utf-8"))
+        for name in files
+    ]
+    fixed_fields = (
+        "exp_id", "exp_group", "rq_tag", "architecture", "activation", "channels",
+        "seed", "image_size", "in_channels", "split_counts", "augmentation",
+        "scheduler", "scheduler_params", "batch_size", "epochs", "patience", "dropout",
+    )
+    for field in fixed_fields:
+        assert len({str(config[field]) for config in configs}) == 1, field
+    assert [config["optimizer"] for config in configs] == ["adam", "adamw", "sgd"]
+    assert configs[2]["momentum"] == 0.9
+    assert configs[2]["nesterov"] is True
+
+
+def test_t0205_colab_notebook_is_valid_json_with_parseable_cells():
+    """Kiểm tra JSON notebook và cú pháp Python của các cell thực thi."""
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1]
+    notebook = json.loads((root / "notebooks" / "run_t0205_colab.ipynb").read_text(encoding="utf-8"))
+    code_cells = [cell for cell in notebook["cells"] if cell["cell_type"] == "code"]
+    assert len(code_cells) == 6
+    for index, cell in enumerate(code_cells, start=1):
+        ast.parse("".join(cell["source"]), filename=f"colab-cell-{index}")
 
 
 def test_empty_mlflow_export_keeps_schema(tmp_path):
