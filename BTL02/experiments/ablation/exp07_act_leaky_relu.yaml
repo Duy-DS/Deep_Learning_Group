@@ -1,0 +1,31 @@
+# EXP-07: Controlled activation ablation trên LargeCNN; chỉ activation đổi giữa 4 YAML.
+exp_id: "EXP-07"
+architecture: "LargeCNN"
+activation: "leaky_relu"
+channels: [64, 128, 256, 512]
+exp_group: "EXP-07"
+rq_tag: "RQ1_Ablation_Activation"
+seed: 42
+image_size: 48
+in_channels: 1
+num_workers: 0
+num_classes: 7
+normalization: "fer2013"
+split_counts:
+  Training: 28709
+  PublicTest: 3589
+  PrivateTest: 3589
+augmentation: "None"
+optimizer: "adam"
+lr: 0.001
+weight_decay: 0.0
+scheduler: "None"
+scheduler_params: {}
+batch_size: 64
+epochs: 50
+dropout: 0.5
+member: "Thành viên 2"
+patience: 10
+checkpoint_path: "outputs/checkpoints/exp07_large_cnn_{activation}.pth"
+summary_csv_path: "outputs/logs/exp07_{activation}_24col.csv"
+csv_path: "data/raw/fer2013.csv"

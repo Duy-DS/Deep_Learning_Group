@@ -240,3 +240,13 @@ Trả lời: Không thể kết luận như vậy: cả Public và Private đề
 - **Hỏi: Vì sao không cài lại torch trong cell requirements?** Colab cung cấp PyTorch/Torchvision tương thích CUDA với runtime của họ; cài pin CPU/version khác có thể thay bản GPU. Notebook lọc hai package này khỏi requirements.
 - **Giới hạn thí nghiệm:** Cấu hình mạng tăng đồng thời channels, độ sâu và regularization; bảng kết quả chỉ so sánh các gói kiến trúc, không cô lập nhân quả riêng số block. Chưa có kết quả T4 thì không được suy luận bão hòa/overfitting.
 
+## Chuẩn bị T0204: controlled ablation các activation trên LargeCNN
+
+- Bốn YAML `experiments/ablation/exp07_act_*.yaml` dùng LargeCNN channels `(64, 128, 256, 512)`, seed 42, ảnh grayscale 48×48, split chuẩn, augmentation `None`, Adam `lr=0.001`, weight decay 0, batch 64, tối đa 50 epochs và patience 10. Chỉ `activation` thay đổi (`relu`, `leaky_relu`, `gelu`, `elu`).
+- `ActivationFactory` được dùng tại từng block tích chập và tầng fully-connected; cùng một activation được áp dụng xuyên feature extractor/classifier. BatchNorm, Dropout và số kênh giữ nguyên giữa các run.
+- Trainer định dạng `{activation}` trong đường dẫn checkpoint và summary CSV; tên MLflow run chứa activation. Logger ưu tiên URI đối số, `MLFLOW_TRACKING_URI`, rồi mặc định `mlruns`, để notebook có thể ghi vào Drive.
+- Notebook `run_t0204_colab.ipynb` mount Drive, clone branch qua Colab Secret, giữ PyTorch/Torchvision CUDA sẵn có, tải và xác thực split FER2013, chạy tuần tự bốn YAML, xuất summary CSV 24 cột và epoch-metrics CSV (train/validation loss/accuracy) phục vụ đường cong hội tụ.
+- **Hỏi: Vì sao cần epoch-metrics CSV ngoài schema 24 cột?** CSV chuẩn chỉ chứa metrics tổng kết của run, không lưu chuỗi từng epoch; muốn phân tích tốc độ hội tụ phải lấy history từ MLflow.
+- **Hỏi: Vì sao thay activation cả ở convolution và FC?** Thiết kế T0204 kiểm tra chính sách activation thống nhất toàn LargeCNN. Muốn tách riêng vị trí activation cần một nghiên cứu factorial khác.
+- **Trạng thái:** Hạ tầng và forward tests đã chuẩn bị; chưa chạy bốn train runs và chưa kết luận activation tối ưu.
+

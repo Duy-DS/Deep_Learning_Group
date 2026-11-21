@@ -85,6 +85,26 @@ def test_trainer_builds_configured_schedulers():
     assert trainer._build_scheduler() is None
 
 
+def test_trainer_formats_activation_artifact_paths():
+    """Xác nhận checkpoint/CSV có tên riêng theo activation trong ablation."""
+    path = Trainer._format_artifact_path(
+        "/content/drive/MyDrive/BTL02/T0204/checkpoints/large_{activation}.pth",
+        "leaky_relu",
+    )
+    assert str(path).endswith("large_leaky_relu.pth")
+
+
+def test_trainer_optimizer_uses_configured_weight_decay():
+    """Xác nhận Adam nhận đúng weight decay từ YAML ablation."""
+    trainer = Trainer.__new__(Trainer)
+    trainer.model = torch.nn.Linear(2, 2)
+    trainer.lr = 0.001
+    trainer.weight_decay = 0.0125
+    trainer.config = {"optimizer": "adam"}
+    optimizer = trainer._build_optimizer()
+    assert optimizer.param_groups[0]["weight_decay"] == 0.0125
+
+
 def test_empty_mlflow_export_keeps_schema(tmp_path):
     """Experiment chưa có run vẫn phải xuất header đúng hợp đồng 24 cột."""
     logger = MLflowLogger.__new__(MLflowLogger)
@@ -97,8 +117,8 @@ def test_empty_mlflow_export_keeps_schema(tmp_path):
 
 
 def test_mlflow_logger_uses_tracking_uri_environment_variable(monkeypatch):
-    """Xác nhận logger tôn trọng URI Drive được cấu hình qua môi trường."""
-    requested_uri = "file:///content/drive/MyDrive/BTL02/T0203/mlruns"
+    """Xác nhận logger dùng URI Drive đã cấu hình trong môi trường."""
+    requested_uri = "file:///content/drive/MyDrive/BTL02/T0204/mlruns"
     monkeypatch.setenv("MLFLOW_TRACKING_URI", requested_uri)
     with patch("src.train.mlflow_logger.mlflow.set_tracking_uri") as set_uri, patch(
         "src.train.mlflow_logger.mlflow.set_experiment"

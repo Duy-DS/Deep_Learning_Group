@@ -75,7 +75,7 @@ class Trainer:
 
         # Đường dẫn lưu checkpoint
         raw_checkpoint = self.config.get("checkpoint_path", "outputs/checkpoints/best_small_cnn.pth")
-        self.checkpoint_path = Path(raw_checkpoint)
+        self.checkpoint_path = self._format_artifact_path(raw_checkpoint, self.activation)
         self.checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
 
         # 5. Khởi tạo DataLoaders cho 3 phân tập
@@ -103,6 +103,19 @@ class Trainer:
 
         # 8. Khởi tạo MLflowLogger
         self.logger = MLflowLogger()
+
+    @staticmethod
+    def _format_artifact_path(path_template: Union[str, Path], activation: str) -> Path:
+        """Thay thế trường activation trong đường dẫn artefact cấu hình.
+
+        Args:
+            path_template: Đường dẫn có thể chứa ``{activation}``.
+            activation: Tên activation của lần chạy hiện tại.
+
+        Returns:
+            Path: Đường dẫn artefact đã được định dạng.
+        """
+        return Path(str(path_template).format(activation=activation))
 
     def _build_model(self) -> nn.Module:
         """Khởi tạo kiến trúc mô hình tương ứng với tham số architecture."""
@@ -242,7 +255,7 @@ class Trainer:
         Returns:
             Dict[str, Any]: Từ điển chứa kết quả thực nghiệm tổng kết.
         """
-        run_name = f"{self.exp_id}_{self.architecture}"
+        run_name = f"{self.exp_id}_{self.architecture}_{self.activation}"
         print(f"\n{'='*70}")
         print(f"🚀 BẮT ĐẦU THỰC NGHIỆM: {run_name} (Nhóm: {self.exp_group} | Câu hỏi: {self.rq_tag})")
         print(f"{'='*70}")
@@ -349,7 +362,11 @@ class Trainer:
 
         # Đóng phiên chạy MLflow và xuất file CSV tổng kết
         self.logger.end_run()
-        summary_csv = self.logger.export_summary_csv()
+        summary_path = self._format_artifact_path(
+            self.config.get("summary_csv_path", "outputs/logs/mlflow_summary_24col.csv"),
+            self.activation,
+        )
+        summary_csv = self.logger.export_summary_csv(str(summary_path))
         print(f"[*] Đã xuất bảng tổng kết 24 cột tại: {summary_csv}")
 
         return {
