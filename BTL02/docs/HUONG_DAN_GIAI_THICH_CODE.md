@@ -229,3 +229,14 @@ Trả lời: Không thể kết luận như vậy: cả Public và Private đề
   - `MediumCNN` có 2.73M tham số nhưng không có `BatchNorm2d` và chỉ có 1 lớp Dropout ở cuối, dẫn đến các bộ lọc ở khối 3 bị đồng kích hoạt (co-adaptation).
   - `LargeCNN` dù sâu hơn và có 3.92M tham số, nhưng được trang bị `BatchNorm2d` sau mỗi tầng tích chập (giúp phân phối kích hoạt luôn chuẩn hóa) và `Dropout2d` (ngẫu nhiên ngắt toàn bộ kênh đặc trưng trong quá trình học), buộc các bộ lọc phải học các đặc trưng độc lập, chống phụ thuộc lẫn nhau, từ đó ghìm chặt Val Loss ở mức thấp.
 
+## Bổ sung kỹ thuật T0203: chạy Colab và định tuyến MLflow lên Google Drive
+
+- `notebooks/run_t0203_colab.ipynb` tách quy trình thành sáu code cell: mount Drive; clone đúng branch; cài các dependency không thay PyTorch/Torchvision GPU có sẵn của Colab; nạp Kaggle Secret và xác thực ba split; liên kết thư mục checkpoint và chạy ba YAML tuần tự; xuất CSV tổng hợp.
+- Token GitHub/Kaggle được lấy qua `google.colab.userdata`, không ghi literal vào notebook. Với clone private, Git AskPass lấy token từ môi trường tiến trình thay vì đặt trong URL hoặc tham số command line; sau clone, remote URL không chứa credential. Người dùng cần thu hồi token nếu từng commit/paste token vào file khác.
+- Cell cài dependency lọc `torch`/`torchvision` để giữ nguyên bản CUDA của Colab. Nếu runtime là Python 3.13, notebook thay pin scikit-learn 1.5.2 bằng 1.6.1; các phiên bản Python khác vẫn cài theo `requirements.txt`.
+- `MLflowLogger` chọn URI theo thứ tự: đối số `tracking_uri`, biến `MLFLOW_TRACKING_URI`, mặc định `mlruns`. Vì vậy notebook có thể ghi tracking file-store trực tiếp vào Drive. CSV xuất qua `CSV_COLUMNS` cố định, đúng 24 cột.
+- Symlink `outputs/checkpoints` cho phép YAML hiện tại giữ nguyên đường dẫn tương đối nhưng checkpoint được ghi vào Drive. Notebook chỉ thay symlink/thư mục rỗng có `.gitkeep`; nếu phát hiện dữ liệu khác thì dừng, không xóa/ghi đè.
+- **Hỏi: Vì sao không chỉ đặt `MLFLOW_TRACKING_URI` trong notebook?** Trước thay đổi T0203, `MLflowLogger.__init__` luôn gọi URI mặc định `mlruns`, bỏ qua biến môi trường; notebook sẽ ghi sai nơi. Regression test bảo đảm URI Drive được sử dụng.
+- **Hỏi: Vì sao không cài lại torch trong cell requirements?** Colab cung cấp PyTorch/Torchvision tương thích CUDA với runtime của họ; cài pin CPU/version khác có thể thay bản GPU. Notebook lọc hai package này khỏi requirements.
+- **Giới hạn thí nghiệm:** Cấu hình mạng tăng đồng thời channels, độ sâu và regularization; bảng kết quả chỉ so sánh các gói kiến trúc, không cô lập nhân quả riêng số block. Chưa có kết quả T4 thì không được suy luận bão hòa/overfitting.
+

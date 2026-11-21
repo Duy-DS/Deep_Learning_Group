@@ -63,6 +63,7 @@ def test_trainer_builds_configured_schedulers():
     trainer = Trainer.__new__(Trainer)
     trainer.model = torch.nn.Linear(2, 2)
     trainer.lr = 0.01
+    trainer.weight_decay = 0.0
     trainer.epochs = 5
 
     trainer.config = {"optimizer": "Adam", "scheduler": "CosineAnnealingLR"}
@@ -93,3 +94,14 @@ def test_empty_mlflow_export_keeps_schema(tmp_path):
     result = pd.read_csv(tmp_path / "empty.csv")
     assert result.empty
     assert result.columns.tolist() == MLflowLogger.CSV_COLUMNS
+
+
+def test_mlflow_logger_uses_tracking_uri_environment_variable(monkeypatch):
+    """Xác nhận logger tôn trọng URI Drive được cấu hình qua môi trường."""
+    requested_uri = "file:///content/drive/MyDrive/BTL02/T0203/mlruns"
+    monkeypatch.setenv("MLFLOW_TRACKING_URI", requested_uri)
+    with patch("src.train.mlflow_logger.mlflow.set_tracking_uri") as set_uri, patch(
+        "src.train.mlflow_logger.mlflow.set_experiment"
+    ):
+        MLflowLogger()
+    set_uri.assert_called_once_with(requested_uri)

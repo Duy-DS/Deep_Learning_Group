@@ -15,9 +15,9 @@ def test_small_cnn_architecture():
     output = model(dummy_input)
 
     assert output.shape == torch.Size([2, 7])
-    assert count_parameters(model) == 1199495
+    assert count_parameters(model) == 2434823
     assert isinstance(model.get_target_layer(), nn.Conv2d)
-    assert model.get_target_layer().out_channels == 64
+    assert model.get_target_layer().out_channels == 128
 
 
 def test_medium_cnn_architecture():
@@ -27,9 +27,11 @@ def test_medium_cnn_architecture():
     output = model(dummy_input)
 
     assert output.shape == torch.Size([2, 7])
-    assert count_parameters(model) == 2731015
+    assert count_parameters(model) == 2732423
     assert isinstance(model.get_target_layer(), nn.Conv2d)
     assert model.get_target_layer().out_channels == 256
+    assert isinstance(model.bn1, nn.BatchNorm2d)
+    assert isinstance(model.drop1, nn.Dropout2d)
 
 
 def test_large_cnn_architecture():
@@ -42,6 +44,8 @@ def test_large_cnn_architecture():
     assert count_parameters(model) == 3916167
     assert isinstance(model.get_target_layer(), nn.Conv2d)
     assert model.get_target_layer().out_channels == 512
+    assert isinstance(model.bn1, nn.BatchNorm2d)
+    assert isinstance(model.drop1, nn.Dropout2d)
 
 
 @pytest.mark.parametrize("activation", ["relu", "leaky_relu", "gelu", "elu"])

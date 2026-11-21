@@ -153,15 +153,16 @@ class MediumCNN(_CustomCNNBase):
         self.activation_name = activation
         self.dropout_rate = dropout if dropout_rate is None else float(dropout_rate)
         ActivationFactory.create(activation)  # Xác thực trước khi cấp phát các tầng.
-        self._build_blocks(self.channels, activation, False, (0.0, 0.0, 0.0))
+        # BatchNorm và Dropout giúp cấu hình ba khối được so sánh trong RQ1.
+        self._build_blocks(self.channels, activation, True, (0.1, 0.2, 0.3))
         self._build_classifier(
-            self.channels[-1], 3, self.channels[-1], num_classes, self.dropout_rate, False
+            self.channels[-1], 3, self.channels[-1], num_classes, self.dropout_rate, True
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Lan truyền ảnh qua ba khối và bộ phân loại để sinh logits."""
-        x = self._forward_blocks(x, block_count=3, batch_norm=False)
-        return self._forward_classifier(x, batch_norm=False)
+        x = self._forward_blocks(x, block_count=3, batch_norm=True)
+        return self._forward_classifier(x, batch_norm=True)
 
     def get_target_layer(self) -> nn.Module:
         """Trả về tầng tích chập cuối phục vụ Grad-CAM."""

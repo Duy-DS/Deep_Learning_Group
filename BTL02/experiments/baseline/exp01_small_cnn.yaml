@@ -4,7 +4,7 @@
 exp_id: "EXP-01"
 architecture: "SmallCNN"
 activation: "relu"
-exp_group: "Baseline"
+exp_group: "RQ1_Depth"
 rq_tag: "RQ1"
 seed: 42
 image_size: 48
@@ -15,6 +15,7 @@ normalization: "fer2013"
 augmentation: "None"
 optimizer: "Adam"
 lr: 0.001
+weight_decay: 0.0
 scheduler: "None"
 scheduler_params: {}
 batch_size: 64

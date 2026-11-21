@@ -17,11 +17,22 @@ class MLflowLogger:
         "metrics.macro_f1", "metrics.best_epoch", "tags.member",
     ]
 
-    def __init__(self, experiment_name: str = "BTL02_FER2013_PyTorch", tracking_uri: str = "mlruns") -> None:
-        """Khởi tạo logger với tên thực nghiệm và thư mục lưu trữ mlruns."""
+    def __init__(
+        self,
+        experiment_name: str = "BTL02_FER2013_PyTorch",
+        tracking_uri: Optional[str] = None,
+    ) -> None:
+        """Khởi tạo logger, ưu tiên URI tường minh rồi đến biến môi trường.
+
+        Args:
+            experiment_name: Tên experiment trong MLflow.
+            tracking_uri: URI lưu trữ tùy chọn; nếu bỏ trống dùng
+                ``MLFLOW_TRACKING_URI`` hoặc mặc định ``mlruns``.
+        """
         os.environ["MLFLOW_ALLOW_FILE_STORE"] = "true"
         os.environ["MLFLOW_DISABLE_AGENT_HINT"] = "1"
-        mlflow.set_tracking_uri(tracking_uri)
+        resolved_tracking_uri = tracking_uri or os.environ.get("MLFLOW_TRACKING_URI", "mlruns")
+        mlflow.set_tracking_uri(resolved_tracking_uri)
         mlflow.set_experiment(experiment_name)
         self.experiment_name = experiment_name
 

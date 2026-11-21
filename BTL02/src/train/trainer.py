@@ -62,6 +62,7 @@ class Trainer:
         self.augmentation = str(self.config.get("augmentation", "None"))
         self.batch_size = int(self.config.get("batch_size", 64))
         self.lr = float(self.config.get("lr", 1e-3))
+        self.weight_decay = float(self.config.get("weight_decay", 0.0))
         self.epochs = int(self.config.get("epochs", 50))
         self.dropout = float(self.config.get("dropout", 0.5))
         self.activation = str(self.config.get("activation", "relu"))
@@ -136,9 +137,9 @@ class Trainer:
         """Khởi tạo bộ tối ưu hóa theo cấu hình."""
         opt_name = str(self.config.get("optimizer", "Adam")).lower()
         if opt_name == "adam":
-            return optim.Adam(self.model.parameters(), lr=self.lr)
+            return optim.Adam(self.model.parameters(), lr=self.lr, weight_decay=self.weight_decay)
         elif opt_name == "adamw":
-            return optim.AdamW(self.model.parameters(), lr=self.lr, weight_decay=1e-4)
+            return optim.AdamW(self.model.parameters(), lr=self.lr, weight_decay=self.weight_decay)
         elif opt_name in ("sgd", "sgd_nesterov"):
             return optim.SGD(self.model.parameters(), lr=self.lr, momentum=0.9, nesterov=True)
         else:
@@ -259,6 +260,7 @@ class Trainer:
             "augmentation": self.augmentation,
             "optimizer": str(self.config.get("optimizer", "Adam")),
             "lr": self.lr,
+            "weight_decay": self.weight_decay,
             "scheduler": str(self.config.get("scheduler", "None")),
             "batch_size": self.batch_size,
             "dropout": self.dropout,
