@@ -309,15 +309,13 @@ pip install -r requirements.txt
 ```
 
 ### Bước 2: Chuẩn bị Dữ liệu FER2013 & Trọng số Pretrained Checkpoints
-Do quy định không đẩy tệp dung lượng lớn lên GitHub, bạn có thể tải tự động qua script hoặc tải từ Google Drive của nhóm:
+Do quy định không đẩy tệp dung lượng lớn lên GitHub, hãy chấp nhận điều lệ cuộc thi Kaggle, copy `.env.example` thành `.env` và điền API Access Token vào `KAGGLE_API_TOKEN` tại máy cá nhân. Downloader tự nạp `.env` bằng python-dotenv, không ghi đè biến shell. Không commit `.env` hoặc dùng token đã công khai. Có thể dùng `~/.kaggle/access_token` thay thế. Sau đó tải và xác thực tự động bằng `kagglehub`:
 ```bash
-# Cách 1: Chạy script tự động tải và giải nén vào data/raw/
 bash scripts/download_data.sh
-
-# Cách 2: Tải thủ công fer2013.csv từ link Google Drive ở Mục I và đặt vào:
-# BTL02/data/raw/fer2013.csv
-# Tải trọng số tốt nhất best_resnet50.pth đặt vào: BTL02/outputs/checkpoints/
+# Windows: python -m src.data.downloader
+# Chỉ xác thực CSV đã có: python -m src.data.downloader --verify-only
 ```
+Downloader lấy dữ liệu từ Kaggle qua `kagglehub.competition_download`, xử lý archive nhiều lớp và chỉ cài `data/raw/fer2013.csv` sau khi xác thực đủ 35.887 mẫu cùng split chuẩn; SHA-256 được in ra để đối chiếu. Credentials cũ vẫn được hỗ trợ. Google Drive dự phòng chưa tồn tại; Kaggle là nguồn chuẩn duy nhất. Chi tiết: `data/README.md`.
 
 ### Bước 3: Chạy Kiểm thử Đơn vị (Unit Tests) Xác minh Pipeline
 Trước khi huấn luyện, kiểm tra tính toàn vẹn của `DataLoader`, kích thước Tensor đầu vào/đầu ra và hàm khóa `Seed = 42`:
@@ -378,11 +376,11 @@ Dự án được thực hiện bởi nhóm 5 thành viên, phân bổ vào 6 G�
 
 | STT | Họ và Tên | MSSV | GitHub | Vai trò & Gói Công việc Phụ trách | Danh sách Task ID | Module Sở hữu Chính | Tỷ lệ Đóng góp |
 | :-: | :--- | :---: | :---: | :--- | :---: | :--- | :---: |
-| **1** | **Thành viên 1**<br>*(Nhóm trưởng)* | `-` | `@member1_lead` | **Lead ML & Hạ tầng Dữ liệu (`WP1`, `WP6`)**<br>Khởi tạo Repo, tích hợp MLflow 24 cột & `seed_everything(42)`, xây dựng `FER2013Dataset`, huấn luyện `Baseline CNN`, rà soát PR & đóng gói nộp bài. | `T0101` – `T0104`<br>`T0201`, `T0603` | `src/data/dataset.py`<br>`src/train/utils.py`<br>`src/models/baseline.py` | **20.0%** |
-| **2** | **Thành viên 2** | `-` | `@member2_cnn` | **Kiến trúc Custom CNN & Tối ưu (`WP2`, `WP4`)**<br>Thiết kế `MediumCNN`, `LargeCNN`; thực nghiệm `RQ1` (độ sâu mạng), Ablation Activation (`ReLU`, `LeakyReLU`, `GELU`, `ELU`), Optimizer & Regularization. | `T0202` – `T0205`<br>`T0403` | `src/models/custom_cnn.py`<br>`experiments/baseline/`<br>`experiments/ablation/` | **20.0%** |
-| **3** | **Thành viên 3** | `-` | `@member3_sota` | **Transfer Learning & SOTA Models (`WP3`)**<br>Pipeline đa kích thước ($128\times128\times3$), Fine-tuning `VGG16`, `ResNet50`, `EfficientNet-B0`; thực nghiệm `RQ2` và tối ưu LR Scheduler vượt mốc 71%. | `T0301` – `T0305` | `src/models/pretrained.py`<br>`src/data/transforms_sota.py`<br>`experiments/sota/` | **20.0%** |
-| **4** | **Thành viên 4** | `-` | `@member4_ablation` | **Ablation Studies & Giải thích Mô hình (`WP4`, `WP5`)**<br>Thực nghiệm `RQ3` (Augmentation, `Class Weights`, `Focal Loss` cho lớp `Disgust`); vẽ Confusion Matrix, bản đồ nhiệt **Grad-CAM** (`RQ4`) & phân tích True/Fail Cases. | `T0105`, `T0401`<br>`T0402`, `T0501`<br>`T0502`, `T0503` | `src/train/losses.py`<br>`src/evaluate/metrics.py`<br>`src/evaluate/gradcam.py`<br>`src/evaluate/error_analysis.py` | **20.0%** |
-| **5** | **Thành viên 5** | `-` | `@member5_demo` | **Web Demo, Tài liệu & Báo cáo (`WP5`, `WP6`)**<br>Đóng gói `EmotionPredictor`, xây dựng ứng dụng Streamlit/Gradio thời gian thực, biên soạn `README.md`, Báo cáo in, Slide `.pptx` & Poster. | `T0102`, `T0504`<br>`T0601`, `T0602` | `src/inference/predictor.py`<br>`demo/app.py`<br>`README.md`, `docs/thesis/` | **20.0%** |
+| **1** | **Thành viên 1**<br>*(Nhóm trưởng)* | `3124000001` | `@member1_lead` | **Lead ML & Hạ tầng Dữ liệu (`WP1`, `WP6`)**<br>Khởi tạo Repo, tích hợp MLflow 24 cột & `seed_everything(42)`, xây dựng `FER2013Dataset`, huấn luyện `Baseline CNN`, rà soát PR & đóng gói nộp bài. | `T0101` – `T0104`<br>`T0201`, `T0603` | `src/data/dataset.py`<br>`src/train/utils.py`<br>`src/models/baseline.py` | **20.0%** |
+| **2** | **Thành viên 2** | `3124000002` | `@member2_cnn` | **Kiến trúc Custom CNN & Tối ưu (`WP2`, `WP4`)**<br>Thiết kế `MediumCNN`, `LargeCNN`; thực nghiệm `RQ1` (độ sâu mạng), Ablation Activation (`ReLU`, `LeakyReLU`, `GELU`, `ELU`), Optimizer & Regularization. | `T0202` – `T0205`<br>`T0403` | `src/models/custom_cnn.py`<br>`experiments/baseline/`<br>`experiments/ablation/` | **20.0%** |
+| **3** | **Thành viên 3** | `3124000003` | `@member3_sota` | **Transfer Learning & SOTA Models (`WP3`)**<br>Pipeline đa kích thước ($128\times128\times3$), Fine-tuning `VGG16`, `ResNet50`, `EfficientNet-B0`; thực nghiệm `RQ2` và tối ưu LR Scheduler vượt mốc 71%. | `T0301` – `T0305` | `src/models/pretrained.py`<br>`src/data/transforms_sota.py`<br>`experiments/sota/` | **20.0%** |
+| **4** | **Thành viên 4** | `3124000004` | `@member4_ablation` | **Ablation Studies & Giải thích Mô hình (`WP4`, `WP5`)**<br>Thực nghiệm `RQ3` (Augmentation, `Class Weights`, `Focal Loss` cho lớp `Disgust`); vẽ Confusion Matrix, bản đồ nhiệt **Grad-CAM** (`RQ4`) & phân tích True/Fail Cases. | `T0105`, `T0401`<br>`T0402`, `T0501`<br>`T0502`, `T0503` | `src/train/losses.py`<br>`src/evaluate/metrics.py`<br>`src/evaluate/gradcam.py`<br>`src/evaluate/error_analysis.py` | **20.0%** |
+| **5** | **Thành viên 5** | `3124000005` | `@member5_demo` | **Web Demo, Tài liệu & Báo cáo (`WP5`, `WP6`)**<br>Đóng gói `EmotionPredictor`, xây dựng ứng dụng Streamlit/Gradio thời gian thực, biên soạn `README.md`, Báo cáo in, Slide `.pptx` & Poster. | `T0102`, `T0504`<br>`T0601`, `T0602` | `src/inference/predictor.py`<br>`demo/app.py`<br>`README.md`, `docs/thesis/` | **20.0%** |
 | **TỔNG** | | | | **Cam kết đồng thuận 100% từ toàn bộ 5 thành viên** | **25 Tasks** | **Toàn bộ Repository** | **100.0%** |
 
 ---

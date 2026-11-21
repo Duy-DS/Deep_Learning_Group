@@ -13,8 +13,20 @@ venv/
 env/
 
 # Data rules (Ignore heavy datasets, keep doc and tracking files)
+*.csv
+*.zip
+*.tar.gz
+*.tgz
+.env
+.env.*
+!.env.example
+access_token
+kaggle.json
 data/raw/*
 data/processed/*
+data/**/*.zip
+data/**/*.tar.gz
+data/**/*.tgz
 !data/README.md
 !data/raw/.gitkeep
 !data/processed/.gitkeep
@@ -27,12 +39,13 @@ data/processed/*
 *.onnx
 
 # Program outputs & artifacts (Ignore generated files but preserve directory structure)
-outputs/*
+outputs/**
 !outputs/**/
 !**/.gitkeep
 
 # Experiment tracking & Personal drafts
 mlruns/
+mlartifacts/
 drafts/
 
 # OS generated files
