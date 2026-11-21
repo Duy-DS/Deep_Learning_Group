@@ -1,0 +1,33 @@
+# EXP-08: Ablation bộ tối ưu trên LargeCNN; recipe Adam.
+exp_id: "EXP-08"
+architecture: "LargeCNN"
+activation: "relu"
+channels: [64, 128, 256, 512]
+exp_group: "EXP-08"
+rq_tag: "Ablation_Optimizer"
+seed: 42
+image_size: 48
+in_channels: 1
+num_workers: 0
+num_classes: 7
+normalization: "fer2013"
+split_counts:
+  Training: 28709
+  PublicTest: 3589
+  PrivateTest: 3589
+augmentation: "None"
+optimizer: "adam"
+lr: 0.001
+weight_decay: 0.0001
+momentum: 0.9
+nesterov: false
+scheduler: "None"
+scheduler_params: {}
+batch_size: 64
+epochs: 50
+dropout: 0.5
+member: "Thành viên 2"
+patience: 10
+checkpoint_path: "outputs/checkpoints/exp08_large_{optimizer}.pth"
+summary_csv_path: "outputs/logs/exp08_{optimizer}_24col.csv"
+csv_path: "data/raw/fer2013.csv"
