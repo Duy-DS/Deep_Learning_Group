@@ -45,10 +45,8 @@ class _HorizonModel(nn.Module):
         """
         preds = self.model(x)
         if preds.ndim == 2:
-            # Mô hình trả về dạng [B, H] -> trích xuất thành [B, 1]
             return preds[:, self.target_horizon_idx : self.target_horizon_idx + 1]
         elif preds.ndim == 3:
-            # Mô hình trả về dạng [B, H, 1] -> trích xuất thành [B, 1]
             return preds[:, self.target_horizon_idx, :]
         else:
             raise ValueError(f"Dự báo mô hình có số chiều không hợp lệ: {preds.shape}")
@@ -100,7 +98,6 @@ class SHAPExplainer:
 
         shap_values = np.asarray(shap_values)
 
-        # Chuẩn hóa về đúng 3 chiều [N, L, D] nếu bị dính chiều output [N, L, D, 1]
         if shap_values.ndim == 4 and shap_values.shape[-1] == 1:
             shap_values = np.squeeze(shap_values, axis=-1)
 
@@ -174,14 +171,12 @@ class SHAPExplainer:
         sorted_feats = list(importance_dict.keys())[:top_k]
         sorted_scores = list(importance_dict.values())[:top_k]
 
-        # Đảo ngược thứ tự để biến quan trọng nhất nằm trên cùng
         sorted_feats.reverse()
         sorted_scores.reverse()
 
         fig, ax = plt.subplots(figsize=(10, 6), dpi=150)
         bars = ax.barh(sorted_feats, sorted_scores, color="#2563eb", edgecolor="#1e40af", alpha=0.85)
 
-        # Ghi giá trị số lên đầu mỗi cột
         for bar in bars:
             width = bar.get_width()
             ax.text(
@@ -202,9 +197,168 @@ class SHAPExplainer:
         if save_path:
             Path(save_path).parent.mkdir(parents=True, exist_ok=True)
             fig.savefig(save_path, dpi=200, bbox_inches="tight")
-            print(f"[INFO] Đã lưu biểu đồ SHAP tại: {save_path}")
+            print(f"[INFO] Đã lưu biểu đồ Xếp hạng tại: {save_path}")
 
         return fig
+
+    def plot_temporal_profile(
+        self,
+        shap_values: np.ndarray,
+        save_path: Optional[str] = None,
+        top_k: int = 6,
+        title: str = "Độ ảnh hưởng của 96 giờ quá khứ theo từng biến (Temporal SHAP Profile)",
+    ) -> plt.Figure:
+        """Vẽ biểu đồ đường thể hiện mức độ quan trọng qua 96 bước thời gian quan sát.
+
+        Args:
+            shap_values: Mảng SHAP có kích thước [N, L=96, D].
+            save_path: Đường dẫn file PNG để lưu biểu đồ.
+            top_k: Số biến hàng đầu cần vẽ đường diễn biến thời gian.
+            title: Tiêu đề biểu đồ.
+
+        Returns:
+            Đối tượng Figure của Matplotlib.
+        """
+        if shap_values.ndim == 4 and shap_values.shape[-1] == 1:
+            shap_values = np.squeeze(shap_values, axis=-1)
+
+        # Tính mean(|SHAP|) theo từng bước thời gian: [L, D]
+        temporal_imp = np.mean(np.abs(shap_values), axis=0)
+        lookback = temporal_imp.shape[0]
+        hours = np.arange(-lookback, 0)
+
+        importance_dict = self.get_global_feature_importance(shap_values)
+        top_feats = list(importance_dict.keys())[:top_k]
+
+        fig, ax = plt.subplots(figsize=(11, 5), dpi=150)
+        colors = ["#dc2626", "#2563eb", "#16a34a", "#d97706", "#9333ea", "#0891b2"]
+
+        for idx, feat in enumerate(top_feats):
+            feat_idx = self.feature_names.index(feat)
+            curve = temporal_imp[:, feat_idx]
+            color = colors[idx % len(colors)]
+            ax.plot(hours, curve, label=feat, color=color, linewidth=2, alpha=0.9)
+
+        ax.set_xlabel("Thời gian quá khứ (từ t-96 đến t-1 giờ)", fontsize=11, fontweight="bold")
+        ax.set_ylabel("mean(|SHAP value|)", fontsize=11, fontweight="bold")
+        ax.set_title(title, fontsize=13, fontweight="bold", pad=12)
+        ax.axvline(x=-24, color="gray", linestyle=":", label="Mốc 24h trước")
+        ax.axvline(x=-12, color="orange", linestyle=":", label="Mốc 12h trước")
+        ax.grid(True, linestyle="--", alpha=0.5)
+        ax.legend(loc="upper left", frameon=True)
+        plt.tight_layout()
+
+        if save_path:
+            Path(save_path).parent.mkdir(parents=True, exist_ok=True)
+            fig.savefig(save_path, dpi=200, bbox_inches="tight")
+            print(f"[INFO] Đã lưu biểu đồ Temporal Profile tại: {save_path}")
+
+        return fig
+
+    def plot_domain_groups(
+        self,
+        shap_values: np.ndarray,
+        save_path: Optional[str] = None,
+        title: str = "Tỷ trọng đóng góp theo nhóm đặc trưng (Domain Groups Breakdown)",
+    ) -> plt.Figure:
+        """Vẽ biểu đồ tròn Donut phân rã đóng góp theo 4 nhóm biến khoa học.
+
+        Args:
+            shap_values: Mảng SHAP có kích thước [N, L, D].
+            save_path: Đường dẫn file PNG để lưu biểu đồ.
+            title: Tiêu đề biểu đồ.
+
+        Returns:
+            Đối tượng Figure của Matplotlib.
+        """
+        importance_dict = self.get_global_feature_importance(shap_values)
+
+        groups = {
+            "Bụi tự hồi quy\n(PM2.5, PM10)": 0.0,
+            "Khí phát thải\n(SO2, NO2, CO, O3)": 0.0,
+            "Khí tượng & Gió\n(TEMP, DEW, PRES, WD...)": 0.0,
+            "Chu kỳ thời gian\n(Giờ & Tháng sin/cos)": 0.0,
+        }
+
+        for feat, score in importance_dict.items():
+            feat_lower = feat.lower()
+            if feat_lower in ["pm2.5", "pm10"]:
+                groups["Bụi tự hồi quy\n(PM2.5, PM10)"] += score
+            elif feat_lower in ["so2", "no2", "co", "o3"]:
+                groups["Khí phát thải\n(SO2, NO2, CO, O3)"] += score
+            elif any(k in feat_lower for k in ["hour_", "month_"]):
+                groups["Chu kỳ thời gian\n(Giờ & Tháng sin/cos)"] += score
+            else:
+                groups["Khí tượng & Gió\n(TEMP, DEW, PRES, WD...)"] += score
+
+        labels = list(groups.keys())
+        values = list(groups.values())
+        colors = ["#ef4444", "#f59e0b", "#3b82f6", "#10b981"]
+
+        fig, ax = plt.subplots(figsize=(8, 6), dpi=150)
+        wedges, texts, autotexts = ax.pie(
+            values,
+            labels=labels,
+            autopct="%1.1f%%",
+            startangle=140,
+            colors=colors,
+            pctdistance=0.75,
+            wedgeprops=dict(width=0.45, edgecolor="white", linewidth=2),
+        )
+
+        for autotext in autotexts:
+            autotext.set_color("white")
+            autotext.set_fontsize(10)
+            autotext.set_fontweight("bold")
+
+        ax.set_title(title, fontsize=13, fontweight="bold", pad=12)
+        plt.tight_layout()
+
+        if save_path:
+            Path(save_path).parent.mkdir(parents=True, exist_ok=True)
+            fig.savefig(save_path, dpi=200, bbox_inches="tight")
+            print(f"[INFO] Đã lưu biểu đồ Nhóm đặc trưng tại: {save_path}")
+
+        return fig
+
+    def plot_beeswarm_summary(
+        self,
+        shap_values: np.ndarray,
+        test_samples: torch.Tensor,
+        save_path: Optional[str] = None,
+        top_k: int = 12,
+    ) -> None:
+        """Vẽ biểu đồ Beeswarm thể hiện chiều hướng tác động (dương/âm) của các biến.
+
+        Args:
+            shap_values: Mảng SHAP có kích thước [N, L, D].
+            test_samples: Tensor dữ liệu kiểm tra [N, L, D].
+            save_path: Đường dẫn file PNG để lưu biểu đồ.
+            top_k: Số lượng biến cần hiển thị.
+        """
+        if shap_values.ndim == 4 and shap_values.shape[-1] == 1:
+            shap_values = np.squeeze(shap_values, axis=-1)
+
+        # Rút gọn qua chiều thời gian để đưa vào shap.summary_plot [N, D]
+        mean_shap = np.mean(shap_values, axis=1)
+        mean_x = np.mean(test_samples.cpu().numpy(), axis=1)
+
+        plt.figure(figsize=(10, 6), dpi=150)
+        shap.summary_plot(
+            mean_shap,
+            mean_x,
+            feature_names=self.feature_names,
+            max_display=top_k,
+            show=False,
+        )
+        plt.title("SHAP Beeswarm: Chiều hướng ảnh hưởng của các biến hàng đầu", fontsize=12, fontweight="bold", pad=10)
+        plt.tight_layout()
+
+        if save_path:
+            Path(save_path).parent.mkdir(parents=True, exist_ok=True)
+            plt.savefig(save_path, dpi=200, bbox_inches="tight")
+            plt.close()
+            print(f"[INFO] Đã lưu biểu đồ Beeswarm tại: {save_path}")
 
 
 def load_model_and_checkpoint(
@@ -263,7 +417,6 @@ def load_model_and_checkpoint(
     else:
         raise ValueError(f"Không hỗ trợ mô hình: {model_name}")
 
-    # Áp dụng ResidualAnchorWrapper nếu checkpoint được huấn luyện kèm wrapper này
     if "res_scale" in ckpt.get("model_state_dict", {}):
         from training_loop import ResidualAnchorWrapper
 
@@ -385,7 +538,6 @@ def run_t0401_pipeline(
     for rank, (feat, score) in enumerate(list(importance_scores.items())[:10], start=1):
         print(f"   Top {rank:2d}: {feat:<12} | mean(|SHAP|) = {score:.6f}")
 
-    # Xuất kết quả JSON & Biểu đồ PNG
     out_path = Path(output_dir)
     out_path.mkdir(parents=True, exist_ok=True)
 
@@ -395,8 +547,22 @@ def run_t0401_pipeline(
         json.dump(dashboard_data, f, indent=2, ensure_ascii=False)
     print(f"[INFO] Đã lưu kết quả JSON tại: {json_file}")
 
-    chart_file = str(out_path / "shap_global_importance.png")
-    explainer.plot_feature_importance(shap_vals, save_path=chart_file, top_k=15)
+    print("[INFO] 6. Xuất bộ 4 biểu đồ trực quan hóa chi tiết:")
+    # 1. Bar chart xếp hạng
+    chart_1 = str(out_path / "shap_global_importance.png")
+    explainer.plot_feature_importance(shap_vals, save_path=chart_1, top_k=15)
+
+    # 2. Line chart theo 96 giờ quá khứ
+    chart_2 = str(out_path / "shap_temporal_profile.png")
+    explainer.plot_temporal_profile(shap_vals, save_path=chart_2, top_k=6)
+
+    # 3. Donut chart phân rã theo nhóm biến
+    chart_3 = str(out_path / "shap_domain_groups.png")
+    explainer.plot_domain_groups(shap_vals, save_path=chart_3)
+
+    # 4. Beeswarm summary plot
+    chart_4 = str(out_path / "shap_beeswarm_summary.png")
+    explainer.plot_beeswarm_summary(shap_vals, test_tensor, save_path=chart_4, top_k=12)
 
     return dashboard_data
 
