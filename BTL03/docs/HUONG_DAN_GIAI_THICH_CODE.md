@@ -84,3 +84,39 @@ Mười notebook trong `legacy_keras/` được giữ nguyên. `scripts/extract_
 - [ ] SegNet khớp 7-class pixel target, thứ tự trục, upsampling và class-index/one-hot loss contract.
 - [ ] ObjDet không dùng `accuracy` legacy làm IoU/mAP; xác định metric và cách tạo score-map rõ trước khi so sánh.
 - [ ] Params parity chỉ chốt sau khi tái tạo summary bằng code PyTorch; không lấy giá trị suy luận làm kết quả kiểm chứng.
+
+---
+
+## 6. Kiến trúc MLOps — `ExperimentLogger` và `CheckpointManager` (T0104)
+
+### Trách nhiệm OOP
+
+- `ExperimentLogger` sở hữu metadata của một run, TensorBoard `SummaryWriter`, file CSV epoch và append tổng kết vào master CSV. Mỗi run có `Run_ID` riêng, tạo ra đường dẫn:
+  `experiments/tensorboard/<Model_Group>/<Model_Name>/<Exp_Type>_s<Seed>_<YYYYMMDD_HHMMSS>/`.
+- Mỗi epoch ghi `Loss/Train`, `Loss/Validation`, `Metric/Train/<Tên metric>`, `Metric/Validation/<Tên metric>`, `Hyperparameters/Learning_Rate` và thời gian epoch. `metric_name` có thể là `Accuracy`, `MAE` hoặc `Pixel_Acc`.
+- Khi `finish_run()` được gọi, logger ghi HParams cùng các metric tóm tắt và append đúng một dòng vào `master_experiment_runs.csv`. Lược đồ 18 cột được cố định trong `ExperimentLogger.MASTER_COLUMNS`; thứ tự không được đổi.
+- `CheckpointManager` lưu `epoch`, `model_state_dict`, `optimizer_state_dict`, `best_metric`, `seed`, `config`. Lưu cục bộ atomically trước; Drive root được resolve theo thứ tự tham số `drive_root` → `BTL03_GOOGLE_DRIVE_ROOT` → `project.drive_mount_root` trong YAML. Chỉ copy mirror nếu đường dẫn đã tồn tại; không mount Drive, gọi API mạng hay chứa credential trong lớp.
+
+### Vòng đời run đề xuất
+
+1. Gọi `seed_everything(42)`, khởi tạo model/optimizer và truyền alias thành viên thật vào `ExperimentLogger`.
+2. Mỗi epoch gọi `log_epoch(...)` với train/validation loss, metric, learning rate và elapsed seconds.
+3. Khi validation metric cải thiện, gọi `CheckpointManager.save(...)` với config/seed/optimizer state.
+4. Kết thúc bằng `finish_run(...)`, sau đó đóng logger (khuyến nghị dùng context manager); master CSV chỉ thêm một row cho run.
+5. Smoke test dùng `Exp_Type="SmokeTest"` và sandbox tạm; không dùng smoke metric làm kết quả khoa học.
+
+### Vì sao TensorBoard tạo event binary?
+
+`SummaryWriter` serialize scalar/HParams thành event files `events.out.tfevents*` dưới run directory. TensorBoard đọc các event này để dựng đồ thị; file binary là artifact tái sinh được, không phải tài liệu nguồn, vì vậy bị `.gitignore` chặn. CSV là bản trao đổi gọn để review/đồng bộ Sheets.
+
+### Hỏi đáp nhanh
+
+**CSV có đúng schema Sheets không?** `ExperimentLogger.MASTER_COLUMNS` định nghĩa đúng 18 tên và thứ tự; khởi tạo sẽ từ chối master CSV đã tồn tại nếu header lệch.
+
+**`Test_Metric` có bắt buộc không?** Không. Nếu chưa có test evaluation độc lập, để trống; không chép `Val_Metric` sang cột test.
+
+**Logger có tự dùng tên người chạy không?** Không. Phải truyền `member_alias`, đặt `MEMBER_ALIAS`, hoặc dùng `member_id` để đọc `MEMBER_XX_NAME` từ `.env`; thiếu alias thì khởi tạo báo lỗi.
+
+**Checkpoint có tự ghi lên Google Drive không?** Chỉ mirror khi thư mục mount được truyền/cấu hình và tồn tại. Không có mount thì checkpoint vẫn nằm ở `outputs/checkpoints/`.
+
+**Đa tiến trình có ghi master CSV an toàn tuyệt đối không?** Logger dùng khóa trong process và kiểm tra Run_ID trùng trước append; nếu nhiều process/host đồng ghi một file, cần một writer trung tâm hoặc backend giao dịch thay vì chia sẻ CSV qua mạng.

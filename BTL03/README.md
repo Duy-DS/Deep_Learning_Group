@@ -11,7 +11,7 @@
 
 *Đồ án Môn học Học sâu (Deep Learning) — Tái cấu trúc, đối chiếu tương đương toán học (Parity Check), trực quan hóa không gian đặc trưng và thực nghiệm Ablation Studies trên 5 nhóm bài toán cốt lõi.*
 
-[Tài liệu Đặc tả (Project Charter)](https://docs.google.com/document/d/1Gt5v48e-EyodjnOs945TWbnQfQImbx_Y91LqQj07xow/edit) • [Bảng Điều hành & Logs (Google Sheets)](https://docs.google.com/spreadsheets/d/1AlhGgOKEFaE3nRGZG-8sFny83aw9wHYcynhrsRIwWQE/edit) • [Google Drive Checkpoints & Data](#)
+[Tài liệu Đặc tả (Project Charter)](https://docs.google.com/document/d/1Gt5v48e-EyodjnOs945TWbnQfQImbx_Y91LqQj07xow/edit) • [Bảng Điều hành & Logs (Google Sheets)](https://docs.google.com/spreadsheets/d/1AlhGgOKEFaE3nRGZG-8sFny83aw9wHYcynhrsRIwWQE/edit) • [Google Drive Checkpoints & Data](https://drive.google.com/drive/folders/1gbN1b39s5LE4Mm0rDSEFRO3Qrsv7U3n9?usp=sharing)
 
 </div>
 
@@ -146,7 +146,8 @@ BTL03/
 │   ├── train.py                 # Script huấn luyện thống nhất qua CLI
 │   ├── evaluate.py              # Script đánh giá metrics & kiểm tra Parity
 │   ├── inference.py             # Script suy luận & trích xuất đặc trưng (PCA/Heatmap)
-│   └── utils.py                 # Cố định Random Seed, vẽ biểu đồ, quản lý Logger
+│   ├── utils.py                 # Cố định Random Seed, vẽ biểu đồ, quản lý Logger
+│   └── logger.py                # ExperimentLogger + CheckpointManager (CSV/TensorBoard/Drive mirror)
 ├── app/                         # Ứng dụng Demo tương tác (Streamlit / Gradio)
 ├── notebooks/                   # Notebook adapter; dùng chung lõi OOP trong src/
 │   ├── colab/                   # Google Colab GPU, mount Google Drive
@@ -233,6 +234,21 @@ tensorboard --logdir experiments/tensorboard/
 
 # Khởi chạy giao diện Demo tương tác (Streamlit)
 streamlit run app/demo_app.py
+```
+
+### Bước 5: Checkpoints, CSV Logs & TensorBoard
+
+- Cấu hình đường dẫn trong `configs/paths.yaml`; Kaggle adapter dùng `configs/kaggle_paths.yaml`. Google Drive gốc: [BTL03 Drive](https://drive.google.com/drive/folders/1gbN1b39s5LE4Mm0rDSEFRO3Qrsv7U3n9?usp=sharing).
+- Cấu trúc Drive dự kiến: `MyDrive/BTL03/data/raw/` và `MyDrive/BTL03/checkpoints/{01_mlp,02_cnn_mlp,03_cnn_lstm,04_training_utilities,05_others}/`.
+- Chỉ gọi `CheckpointManager` với `drive_root` hoặc biến môi trường `BTL03_GOOGLE_DRIVE_ROOT` trỏ tới thư mục Drive **đã mount**. Lõi `src/` không tự mount Drive; checkpoint luôn được lưu cục bộ trước, rồi mirror tùy chọn.
+- `ExperimentLogger` ghi một CSV epoch `<Run_ID>_epochs.csv`, một dòng/run vào `experiments/csv_logs/master_experiment_runs.csv` (18 cột chuẩn), và TensorBoard event dưới `experiments/tensorboard/<Model_Group>/<Model_Name>/<Exp_Type>_s<Seed>_<YYYYMMDD_HHMMSS>/`.
+- `Member_Alias` phải được truyền rõ hoặc đọc từ `.env` bằng `member_id`; logger không tự gán tên AI hay alias mặc định.
+- TensorBoard event, checkpoints và outputs là artifact runtime, bị `.gitignore` chặn; chỉ CSV logs nhẹ được giữ để đối chiếu. Không commit `.env`/credentials.
+- Chạy kiểm thử an toàn trong sandbox tạm (không sinh artifact trong repo):
+
+```bash
+python -m pip install -r requirements.txt
+python scripts/smoke_test_logger.py
 ```
 
 ### Bước 5: Chọn nền tảng Notebook/GPU

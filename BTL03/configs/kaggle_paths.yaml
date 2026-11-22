@@ -1,0 +1,19 @@
+# Đường dẫn Kaggle adapter. Input là read-only; output chỉ ghi trong working.
+project:
+  code: BTL03
+  drive_folder_url: https://drive.google.com/drive/folders/1gbN1b39s5LE4Mm0rDSEFRO3Qrsv7U3n9?usp=sharing
+
+kaggle:
+  input_root: /kaggle/input
+  working_root: /kaggle/working
+  artifacts_zip: /kaggle/working/BTL03_artifacts.zip
+  checkpoints: /kaggle/working/checkpoints
+  csv_logs: /kaggle/working/csv_logs
+  tensorboard_runs: /kaggle/working/tensorboard
+  use_data_parallel_if_multiple_cuda_devices: true
+
+local:
+  data_raw: data/raw
+  checkpoints: outputs/checkpoints
+  csv_logs: experiments/csv_logs
+  tensorboard_runs: experiments/tensorboard

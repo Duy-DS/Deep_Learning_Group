@@ -48,7 +48,12 @@ outputs/**
 # Experiment tracking & Personal drafts
 mlruns/
 mlartifacts/
+experiments/tensorboard/*
+!experiments/tensorboard/.gitkeep
 drafts/
+experiments/tensorboard/*
+!experiments/tensorboard/.gitkeep
+events.out.tfevents*
 
 # OS generated files
 .DS_Store
