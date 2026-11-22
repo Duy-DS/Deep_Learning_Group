@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 import pytest
 import torch
+import mlflow
 
 from src.train.mlflow_logger import MLflowLogger
 from src.train.trainer import Trainer
@@ -59,6 +60,38 @@ def test_mlflow_csv_has_exact_ordered_schema(tmp_path):
     assert exported.loc[0, "Source Name"] == "None"
     assert exported.loc[0, "metrics.train_loss"] == "None"
     assert "extra.unwanted" not in exported.columns
+
+
+def test_mlflow_csv_sanitizes_numpy_scalars_and_arrays(tmp_path):
+    """CSV exporter normalizes NumPy scalar/array values before rebuilding a frame."""
+    logger = MLflowLogger.__new__(MLflowLogger)
+    logger.experiment_name = "numpy-export-test"
+    fake_runs = pd.DataFrame(
+        {
+            "run_id": ["run-numpy"],
+            "status": ["FINISHED"],
+            "tags.mlflow.runName": ["numpy-run"],
+            "params.seed": [np.int64(42)],
+            "metrics.train_acc": [np.float64(91.5)],
+            "tags.member": [np.bool_(True)],
+            "metrics.extra": [np.array([1.0, 2.0])],
+        }
+    )
+    output_path = tmp_path / "numpy-summary.csv"
+
+    with patch("src.train.mlflow_logger.mlflow.search_runs", return_value=fake_runs), patch(
+        "src.train.mlflow_logger.mlflow.set_tracking_uri"
+    ), patch("src.train.mlflow_logger.mlflow.set_experiment"), patch(
+        "src.train.mlflow_logger.mlflow.get_tracking_uri", return_value="file:///tmp/mlruns"
+    ):
+        logger.export_summary_csv(str(output_path))
+
+    exported = pd.read_csv(output_path, keep_default_na=False)
+    assert exported.columns.tolist() == MLflowLogger.CSV_COLUMNS
+    assert exported.loc[0, "params.seed"] == 42
+    assert exported.loc[0, "metrics.train_acc"] == 91.5
+    assert exported.loc[0, "tags.member"] in ("True", True)
+    assert exported.loc[0, "metrics.train_loss"] == "None"
 
 
 def test_trainer_builds_configured_schedulers():
@@ -218,6 +251,40 @@ def test_mlflow_logger_uses_tracking_uri_environment_variable(monkeypatch):
     monkeypatch.setenv("MLFLOW_TRACKING_URI", requested_uri)
     with patch("src.train.mlflow_logger.mlflow.set_tracking_uri") as set_uri, patch(
         "src.train.mlflow_logger.mlflow.set_experiment"
-    ):
+    ), patch.object(MLflowLogger, "_ensure_file_store_trash_directory"):
         MLflowLogger()
     set_uri.assert_called_once_with(requested_uri)
+
+
+def test_mlflow_logger_recreates_missing_file_store_trash_directory(tmp_path, monkeypatch):
+    """FileStore vẫn ghi được metric nếu mount làm mất thư mục .trash."""
+    tracking_root = tmp_path / "mlruns"
+    monkeypatch.setenv("MLFLOW_TRACKING_URI", tracking_root.as_uri())
+    logger = MLflowLogger(experiment_name="trash-directory-regression")
+    assert (tracking_root / ".trash").is_dir()
+
+    logger.start_run("missing-trash-regression")
+    (tracking_root / ".trash").rmdir()
+    logger.log_metrics({"epoch_loss": 1.25}, step=1)
+
+    assert (tracking_root / ".trash").is_dir()
+    try:
+        from mlflow.tracking import MlflowClient
+
+        run_id = mlflow.active_run().info.run_id
+        history = MlflowClient(tracking_uri=tracking_root.as_uri()).get_metric_history(run_id, "epoch_loss")
+        assert len(history) == 1
+        assert history[0].value == 1.25
+    finally:
+        logger.end_run()
+
+
+def test_mlflow_logger_creates_local_file_store_root_and_trash(tmp_path):
+    """Logger tạo đồng thời tracking root và trash cho local file URI."""
+    tracking_root = tmp_path / "nested" / "mlruns"
+    logger = MLflowLogger(
+        experiment_name="new-local-store-regression",
+        tracking_uri=tracking_root.as_uri(),
+    )
+    assert tracking_root.is_dir()
+    assert (tracking_root / ".trash").is_dir()

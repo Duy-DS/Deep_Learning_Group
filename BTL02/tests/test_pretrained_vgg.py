@@ -87,7 +87,7 @@ class TestPretrainedVGG16:
         with config_path.open("r", encoding="utf-8") as file:
             config = yaml.safe_load(file)
         assert config["exp_group"] == "EXP-04"
-        assert config["rq_tag"] == "RQ2_TransferLearning"
+        assert config["rq_tag"] == "RQ2_SOTA_Pretrained_128"
         assert config["transform_mode"] == "sota"
         assert config["image_size"] == 128
 
