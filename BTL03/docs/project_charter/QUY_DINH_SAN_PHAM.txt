@@ -1,0 +1,53 @@
+QUY ĐỊNH NỘP SẢN PHẨM CUỐI KỲ – MÔN HỌC SÂU (DEEP LEARNING)
+1. Sản phẩm nộp
+Mỗi nhóm nộp đầy đủ các sản phẩm của đề tài, bao gồm:
++ Báo cáo hoàn chỉnh, trình bày rõ bài toán, câu hỏi nghiên cứu (Research Questions – RQs), kiến trúc mô hình, phương pháp huấn luyện, thiết lập thực nghiệm, kết quả so sánh, Ablation Studies, phân tích và kết luận.
++ Slide thuyết trình và poster giới thiệu đề tài.
++ Mã nguồn bằng PyTorch, bao gồm các chương trình tiền xử lý, huấn luyện, đánh giá, suy luận (inference) và các file cấu hình cần thiết.
++ Dataset hoặc đường dẫn truy cập nếu dữ liệu có dung lượng lớn; mô tả cách tổ chức và xử lý dữ liệu.
++ Kết quả thực nghiệm: bảng so sánh mô hình, kết quả Ablation Studies, biểu đồ huấn luyện (loss/metrics), hình ảnh minh họa, kết quả phân tích lỗi và các tài liệu minh chứng liên quan.
++ Mô hình đã huấn luyện (checkpoints/weights) hoặc đường dẫn tải về; hướng dẫn sử dụng để tái lập kết quả.
++ Các tài nguyên hỗ trợ: Jupyter Notebook, README.md, file requirements.txt/environment.yml, tài liệu tham khảo, video demo và ứng dụng minh họa bằng Streamlit/Gradio (nếu có).
++ Bảng thông tin thành viên: Họ tên, MSSV, vai trò/nhiệm vụ, công việc đã thực hiện và tỷ lệ đóng góp (%). Tổng tỷ lệ đóng góp của nhóm phải bằng 100%.
+
+2. Hình thức nộp
++ Nộp một file nén theo mẫu: Nhom??_TenDeTai_HoTen_MaSV.zip.
++ HoTen_MaSV là thông tin của nhóm trưởng.
++ Ví dụ: Nhom03_PhanLoaiBenhLaCay_NguyenVanA_3124123456.zip.
++ Chỉ nhóm trưởng thực hiện nộp bài đại diện cho nhóm.
++ Đối với dataset, checkpoints hoặc tài nguyên dung lượng lớn, có thể cung cấp đường dẫn Google Drive, Hugging Face hoặc nguồn lưu trữ phù hợp. Phải bảo đảm giảng viên có quyền truy cập.
+
+Ngoài bản điện tử, mỗi nhóm chuẩn bị:
++ 01 cuốn báo cáo hoàn chỉnh (bản in).
++ Slide phục vụ thuyết trình.
++ Poster đề tài theo yêu cầu của giảng viên.
+
+3. Quản lý mã nguồn bằng GitHub
++ Mỗi sinh viên phải có tài khoản GitHub cá nhân và chia sẻ với giảng viên.
++ Mỗi nhóm sử dụng một GitHub Repository chính để quản lý mã nguồn PyTorch, notebooks, cấu hình thực nghiệm, tài liệu và các thành phần liên quan.
++ Repository phải thể hiện được lịch sử phát triển, bao gồm commit history, người thực hiện, nội dung và thời điểm cập nhật.
++ Khuyến khích tổ chức mã nguồn thành các thành phần rõ ràng: data, models, train, evaluate, inference, experiments, demo.
++ Không đưa trực tiếp dataset hoặc checkpoints dung lượng lớn lên GitHub thông thường; sử dụng Git LFS hoặc cung cấp đường dẫn tải về khi phù hợp.
++ Không khuyến khích chỉ tải toàn bộ mã nguồn lên GitHub một lần vào sát thời điểm nộp bài.
+
+4. Yêu cầu cập nhật tiến độ
++ Trong suốt quá trình thực hiện, nhóm phải cập nhật tiến độ thường xuyên lên GitHub. Các commit phải có nội dung rõ ràng, phản ánh đúng công việc đã thực hiện.
++ Lưu lại cấu hình và kết quả các lần thực nghiệm, bao gồm mô hình baseline, mô hình cải tiến và các biến thể Ablation Studies.
++ Khuyến khích sử dụng:
+  * README.md để mô tả đề tài và hướng dẫn tái lập thực nghiệm.
+  * GitHub Issues/Projects để phân công và theo dõi công việc.
+  * Branch/Pull Request khi có nhiều thành viên cùng phát triển.
+  * GitHub Insights/Contributors để minh chứng mức độ tham gia.
+  * TensorBoard, Weights & Biases hoặc CSV logs để theo dõi quá trình huấn luyện.
+Lưu ý: Lịch sử GitHub, kết quả thực nghiệm, báo cáo và phần trình bày cá nhân có thể được sử dụng làm căn cứ đánh giá mức độ đóng góp của từng sinh viên.
+
+5. Yêu cầu về tính tái lập và trung thực thực nghiệm
++ Toàn bộ mô hình phải được triển khai, huấn luyện hoặc fine-tuning bằng PyTorch.
++ Mỗi câu hỏi nghiên cứu phải có thực nghiệm tương ứng để kiểm chứng; không chỉ đưa ra nhận định dựa trên lý thuyết.
++ Ablation Studies là yêu cầu bắt buộc, phải làm rõ tác động của các thành phần hoặc kỹ thuật được lựa chọn.
++ Phải có baseline và thiết lập so sánh công bằng; ghi rõ cách chia dữ liệu, tham số huấn luyện, độ đo đánh giá, môi trường thực nghiệm và random seed.
++ Khuyến khích sử dụng các kiến trúc hiện đại/SOTA phù hợp, có phân tích hiệu quả và chi phí tính toán.
++ Khuyến khích xây dựng ứng dụng minh họa thực tiễn bằng Streamlit, Gradio hoặc API.
++ Mã nguồn, mô hình và kết quả phải có khả năng kiểm tra, chạy lại; ghi rõ nguồn dataset, pretrained weights, mã nguồn tham khảo và công cụ AI được sử dụng.
+
+Việc sử dụng mô hình pretrained hoặc mã nguồn tham khảo được cho phép nhưng nhóm phải hiểu, giải thích được kiến trúc, quy trình huấn luyện và kết quả thực nghiệm. Không chấp nhận việc chỉ chạy lại notebook có sẵn mà thiếu đóng góp và phân tích của nhóm.

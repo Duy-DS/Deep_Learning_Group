@@ -1,0 +1,62 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+*/.ipynb_checkpoints/*
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Data rules (Ignore heavy datasets, keep doc and tracking files)
+*.csv
+*.zip
+*.tar.gz
+*.tgz
+.env
+.env.*
+!.env.example
+access_token
+kaggle.json
+data/raw/*
+data/processed/*
+data/**/*.zip
+data/**/*.tar.gz
+data/**/*.tgz
+!data/README.md
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!**/.gitkeep
+
+# Model weights & Checkpoints
+*.pth
+*.pt
+*.ckpt
+*.onnx
+
+# Program outputs & artifacts (Ignore generated files but preserve directory structure)
+outputs/**
+!outputs/**/
+!**/.gitkeep
+
+# Experiment tracking & Personal drafts
+mlruns/
+mlartifacts/
+drafts/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Temporary & intermediate output caches
+.pytest_cache/
+
+# Evidence tracking & templates in docs/
+!docs/
+!docs/**/
+!docs/**/*.md
+!docs/**/.gitkeep

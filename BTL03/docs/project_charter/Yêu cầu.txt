@@ -1,0 +1,38 @@
++ Làm theo hướng dẫn
++ Chuyển code từ keras sang pytorch
++ Nộp kèm report+ code đã chuyển + file liên quan
++ Tất cả nén lại ghi rõ BTL03_Keras-to-PyTorch_HoTen_MaSV.zip (nhóm trưởng nộp)
+
+Các tài liệu liên quan trong dự án BTL02
+- 01_Introduction-to-Python-TensorFlow-and-Keras.pdf
+- 02_KerasExamples.pdf
+- 1. MLP/Func_apxm_MLP.txt
+- 1. MLP/MNIST_MLP.txt
+- 2. CNN + MLP/1_MNIST_CNN.txt
+- 2. CNN + MLP/2_Human_Gender_CNN.txt
+- 2. CNN + MLP/3_Emotion_Reg_CNN.txt
+- 3. CNN + LSTM/MNIST_CNN_LSTM.txt
+- 4. Training Utilities/2_Human_Gender_CNN.txt
+- 4. Training Utilities/3_Emotion_Reg_CNN.txt
+- 4. Training Utilities/checkpoints.PNG
+- 4. Training Utilities/tfboard.PNG
+- 5. Others/1_segnet.txt
+- 5. Others/2_obj_detection.txt
+
+
+Phải thực hiện các yêu cầu:
+- code bằng PyTorch
+- Có trực quan và debug sau khi train, giải thích thành công/thất bại của mô hình
+
+Khi làm dự án nên cài đặt cách quản lý cộng tác:
++ Quản lý code: github
++Quản lý thí nghiệm:
+  * Kết quả thí nghiệm: google drive
+  * Nhật ký thí nghiệm: Google Excel
++ Quản lý vẽ hình, và kết quả visual:
+   * Google PowerPoint, Canvas
++ Quản lý kế hoạch / viết: Google Docs
+
+Phân công theo trục dọc và ngang:
++ Trục dọc là theo nhóm công việc: viết báo cáo, slides, thí nghiệm, phân tích khám phá, --> có người chịu trách nhiệm
++ Trục ngang: là chia nhỏ vấn đề thành nhiều tasks cho các thành viên
