@@ -120,3 +120,96 @@ Mười notebook trong `legacy_keras/` được giữ nguyên. `scripts/extract_
 **Checkpoint có tự ghi lên Google Drive không?** Chỉ mirror khi thư mục mount được truyền/cấu hình và tồn tại. Không có mount thì checkpoint vẫn nằm ở `outputs/checkpoints/`.
 
 **Đa tiến trình có ghi master CSV an toàn tuyệt đối không?** Logger dùng khóa trong process và kiểm tra Run_ID trùng trước append; nếu nhiều process/host đồng ghi một file, cần một writer trung tâm hoặc backend giao dịch thay vì chia sẻ CSV qua mạng.
+
+---
+
+## 7. T0106 — Core Engine OOP & Reproducibility
+
+### `BaseMigratedModel`: hợp đồng chung của model
+
+`src/models/base_model.py` cung cấp abstract class `BaseMigratedModel(nn.Module, ABC)`. Mỗi model con cài `forward()`; khi input là ảnh 4D, `validate_input_shape()` xác thực `(Batch, Channels, Height, Width)` và báo lỗi dễ hiểu nếu nhận tensor NHWC thường gặp từ Keras. `count_parameters()` trả ba bộ đếm độc lập:
+
+```text
+total_params = trainable_params + non_trainable_params
+```
+
+`summary(input_size)` đăng ký hook tạm trên leaf modules, chạy một forward giả trong `eval()`/`no_grad()`, ghi output shape và params từng layer, rồi luôn gỡ hook và khôi phục trạng thái train/eval ban đầu. Đây là bảng fallback nội bộ, không tuyên bố tương đương mọi tính năng của `torchinfo`.
+
+### Feature extraction bằng forward hooks
+
+1. Gọi `register_feature_hooks(["features.0", ...])` với tên chính xác trong `model.named_modules()`.
+2. Gọi `output, features = model.extract_features(x)`. Output hook được `detach()` để không giữ computation graph cho PCA/visualization.
+3. Gọi `clear_hooks()` sau khi trích xuất; `extract_features()` không tự gỡ hooks để có thể lấy nhiều batch.
+
+Hook chỉ giữ activation của layer được yêu cầu; không nên đăng ký cả mạng cho dataset lớn vì sẽ tăng RAM/VRAM.
+
+### `BaseTrainer`: vòng lặp và ranh giới gradient
+
+`src/engine/trainer.py` đóng gói model, optimizer, criterion, metric và device. Model chuyển sang CUDA nếu khả dụng, nếu không dùng CPU; có thể truyền device tường minh. API nhận `nn.Module` tổng quát để WP02 tích hợp dần, nhưng `BaseMigratedModel` được validator NCHW gọi tự động cho input ảnh 4D.
+
+```text
+train: model.train → zero_grad → forward → loss → backward → optimizer.step
+valid: model.eval  → torch.inference_mode → forward → loss/metric
+```
+
+Loss được nhân với batch size rồi chia tổng số mẫu, tránh batch cuối nhỏ bị tính trọng số ngang batch đầy đủ. `fit()` ghi epoch qua `ExperimentLogger`, lưu checkpoint khi `val_loss` cải thiện và gọi callback `on_epoch_end(trainer, epoch, logs)`; callback trả `True` để yêu cầu dừng. `Best_Epoch` phải tường minh, không tự suy ra nếu logger yêu cầu summary.
+
+### Tái lập seed trên CPU/CUDA
+
+`seed_everything(42)` seed Python `random`, NumPy, Torch CPU và CUDA, đồng thời bật `torch.use_deterministic_algorithms(True)`, `cudnn.deterministic=True`, `cudnn.benchmark=False`. `get_torch_generator(42)` kiểm soát shuffle của DataLoader; `seed_worker` đồng bộ Python/NumPy/Torch trong mỗi worker.
+
+`PYTHONHASHSEED` được gán để tiến trình con thừa hưởng cấu hình. Tuy nhiên Python đã chọn hash seed khi interpreter khởi chạy; đổi biến trong runtime không thể sửa hash seed của tiến trình hiện tại. Muốn hash iteration cố định ngay từ đầu, đặt `PYTHONHASHSEED=42` trước khi launch Python.
+
+Strict deterministic mode có thể raise nếu một toán tử CUDA không có implementation tất định. Kết quả bitwise cũng không được bảo đảm xuyên phiên bản thư viện/driver/phần cứng; cần ghi runtime cùng kết quả thực nghiệm. Môi trường T0106 này chỉ có PyTorch CPU, vì vậy CUDA behavior chưa được chạy kiểm chứng.
+
+### Hỏi đáp core engine
+
+**Vì sao `BaseTrainer` nhận `nn.Module` chứ không bắt buộc `BaseMigratedModel`?** Để không chặn quá trình chuyển đổi từng model ở WP02. Model kế thừa base class nhận thêm validation NCHW/hook/summary thống nhất; model cũ vẫn có thể chạy trainer trong giai đoạn chuyển tiếp.
+
+**Validation có cập nhật gradient hoặc BatchNorm statistics không?** Trainer đặt `eval()` và dùng `inference_mode()`, nên không tạo graph gradient; các module có train/eval behavior dùng trạng thái eval.
+
+**Hai lần chạy cùng seed có luôn giống bitwise trên mọi GPU không?** Không. Test CPU hiện chứng minh cùng môi trường cho cùng initial weights, history và final weights. CUDA strict mode từ chối một số phép toán không deterministic; driver/GPU/PyTorch khác nhau vẫn cần được ghi nhận.
+
+**Vì sao seed DataLoader cần cả generator lẫn worker init?** Generator kiểm soát thứ tự lấy mẫu/shuffle; `seed_worker` seed các RNG Python/NumPy/Torch bên trong từng worker process.
+
+**Tại sao `PYTHONHASHSEED` trong hàm không đủ?** Hash seed được interpreter khởi tạo lúc process start. Hàm đặt biến để child process dùng; process hiện tại cần được launch với biến môi trường có sẵn nếu cần hash iteration cố định.
+
+---
+
+## 7. Kiến trúc lõi huấn luyện — T0106
+
+### `BaseMigratedModel`
+
+`src/models/base_model.py` định nghĩa abstract class kế thừa `nn.Module` và `ABC`. Mô hình con cài `forward()`; với ảnh 4D, có thể gọi `validate_input_shape()` để kiểm tra NCHW và phát hiện tensor NHWC thường gặp (channel cuối bằng 1/3/4 nhưng chiều channel thứ hai là chiều không gian). `count_parameters()` trả riêng total/trainable/non-trainable để đối chiếu Keras.
+
+`summary(input_size)` đăng ký hook tạm trên leaf modules, chạy một forward giả ở `eval()` + `no_grad()`, ghi output shapes/params, sau đó luôn gỡ hook và khôi phục training mode. Đây là summary gọn nội bộ, không thay thế đầy đủ mọi tính năng của `torchinfo`.
+
+Feature hooks được đăng ký bằng tên chính xác từ `named_modules()`. `extract_features(x)` trả output chính và activation `detach()` theo tên layer; gọi `clear_hooks()` sau khi dùng để tránh giữ tham chiếu tensor. `init_weights_keras_style()` áp Glorot/Xavier Uniform cho Linear/Conv2d và zero bias; các lớp khác không bị thay đổi.
+
+### `BaseTrainer`
+
+`src/engine/trainer.py` nhận bất kỳ `nn.Module` tương thích, optimizer, criterion, metric tùy chọn và thiết bị. Chấp nhận rộng `nn.Module` để các model WP02 có thể chuyển dần; nếu model là `BaseMigratedModel` thì validator NCHW được gọi tự động với ảnh 4D.
+
+- Train: `train()` → `zero_grad(set_to_none=True)` → forward → criterion → `backward()` → `step()`.
+- Validation: `eval()` và `torch.no_grad()`; không cập nhật optimizer/gradient.
+- Loss/metric được trung bình theo sample count, kể cả batch cuối nhỏ hơn.
+- `fit()` đo thời gian epoch, gọi logger T0104, lưu checkpoint khi `val_loss` cải thiện và gọi callback `on_epoch_end(trainer, epoch, logs)`; callback trả `True` để dừng sớm.
+- Khi gắn logger, phải truyền logger đã khởi tạo bằng alias thành viên thật; trainer từ chối logger không có alias. Checkpoint manager tiếp tục nhận seed/config theo schema T0104.
+
+### Reproducibility, CPU và CUDA
+
+`seed_everything(seed=42, deterministic=True)` đặt `PYTHONHASHSEED`, Python `random`, NumPy, CPU/CUDA Torch và bật `torch.use_deterministic_algorithms(True)` cùng `cudnn.deterministic=True`, `cudnn.benchmark=False`. `seed_worker` đồng bộ seed cho Python/NumPy/Torch trong DataLoader worker; `get_torch_generator` cấp generator riêng cho shuffle.
+
+Tính tất định phụ thuộc operator, backend, driver và phần cứng. Nếu CUDA operator không có implementation deterministic, strict mode có thể báo lỗi thay vì âm thầm cho kết quả không xác định. `PYTHONHASHSEED` đặt trong tiến trình hiện tại không thể đảo ngược hash seed đã khởi tạo; muốn cố định hash iteration phải đặt biến trước khi khởi động Python. CPU reproducibility được kiểm thử trong môi trường này; CUDA được kiểm thử có điều kiện khi GPU khả dụng.
+
+### Câu hỏi vấn đáp
+
+**Vì sao validation dùng `no_grad()`?** Để không tạo graph/backward gradient, giảm bộ nhớ và đảm bảo validation không cập nhật trọng số.
+
+**Tại sao average loss phải nhân batch size?** Nếu batch cuối nhỏ hơn, trung bình đơn giản các batch sẽ cho mỗi batch trọng số bằng nhau; cộng `loss × số mẫu` rồi chia tổng sample count cho trung bình theo mẫu.
+
+**`cudnn.deterministic=True` đảm bảo tuyệt đối mọi máy cho cùng kết quả không?** Không. Nó buộc chọn thuật toán cuDNN deterministic khi có, còn deterministic algorithms strict có thể từ chối operator không hỗ trợ; khác biệt phần cứng/driver/phiên bản vẫn cần được ghi nhận.
+
+**Forward hook ảnh hưởng gradient không?** Activation được lưu bằng `detach()` để chỉ phục vụ trực quan/feature analysis, không giữ graph. Hook phải được gỡ sau tác vụ.
+
+**Vì sao BaseTrainer nhận `nn.Module`, không chỉ `BaseMigratedModel`?** Để chuyển đổi 10 kiến trúc theo từng task mà vẫn dùng trainer chung; validator NCHW được gọi tự động khi model có method đó.
