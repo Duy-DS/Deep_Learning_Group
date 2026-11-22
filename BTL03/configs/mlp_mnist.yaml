@@ -1,0 +1,17 @@
+# Cấu hình MLP MNIST đối chiếu notebook Keras.
+seed: 42
+model_group: 01_mlp
+model_name: MNISTMLP
+learning_rate: 0.01
+optimizer: SGD
+batch_size: 128
+epochs: 30
+dropout: 0.2
+validation_fraction: 0.16666666666666666
+num_workers: 0
+data_root: data/raw/mnist
+checkpoint_root: outputs/checkpoints
+checkpoint_name: mnist_mlp_best.pt
+feature_output: outputs/features/mnist_mlp_fc2_features.npz
+csv_root: experiments/csv_logs
+tensorboard_root: experiments/tensorboard

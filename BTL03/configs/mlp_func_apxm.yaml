@@ -1,0 +1,21 @@
+# Cấu hình thí nghiệm Gaussian MLP theo lưới và sweep legacy.
+seed: 42
+model_group: 01_mlp
+model_name: FuncApxmMLP
+learning_rate: 0.01
+batch_size: 128
+default_A: 800
+default_B: 16
+default_B_C: 128
+default_C: 100
+grid:
+  train_size: 32
+  test_size: 10
+sweeps:
+  A: [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000]
+  B: [8, 16, 32, 64, 128, 256, 512]
+  C: [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190]
+paths:
+  csv_root: experiments/csv_logs
+  tensorboard_root: experiments/tensorboard
+  sweep_csv: experiments/csv_logs/t0201_func_apxm_abc_sweep.csv

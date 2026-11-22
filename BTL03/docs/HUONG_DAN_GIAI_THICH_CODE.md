@@ -213,3 +213,67 @@ Tính tất định phụ thuộc operator, backend, driver và phần cứng. N
 **Forward hook ảnh hưởng gradient không?** Activation được lưu bằng `detach()` để chỉ phục vụ trực quan/feature analysis, không giữ graph. Hook phải được gỡ sau tác vụ.
 
 **Vì sao BaseTrainer nhận `nn.Module`, không chỉ `BaseMigratedModel`?** Để chuyển đổi 10 kiến trúc theo từng task mà vẫn dùng trainer chung; validator NCHW được gọi tự động khi model có method đó.
+
+---
+
+## 8. T0201/T0202 — Nhóm 1 MLP PyTorch
+
+### `FuncApxmMLP`: xấp xỉ mật độ Gaussian hai biến
+
+`src/datasets/mlp_datasets.py` tạo chính xác lưới legacy `np.mgrid[-3.0:3.0:32j, -3.0:3.0:32j]` (1.024 điểm) và lưới test `10j` (100 điểm). Nhãn dùng mật độ chuẩn với `mu=[0,0]`, `Sigma=diag([1,1])`:
+
+```text
+f(x1,x2) = exp(-0.5 * (x1²+x2²)) / (2π)
+```
+
+Chỉ số train dùng `RandomState(seed).choice(range(1,1001), A, replace=False)`, như notebook gốc; do đó A tối đa 1.000 và cùng seed tái tạo cùng mẫu. Dataset giữ riêng `full_inputs/full_targets` để tính lỗi trên toàn lưới 1.024 điểm, không nhầm với subset dùng cập nhật gradient.
+
+`FuncApxmMLP` giữ tên tầng `fc` và `gauss_apxm`: `(N,2) → Linear(2,B) → Sigmoid → Linear(B,1) → Sigmoid → (N,1)`. Cả hai activation sigmoid đều có trong notebook legacy. Số tham số là `(2B+B)+(B+1)=4B+1`, tức 65 khi B=16. SGD dùng lr 0.01, batch 128, `MSELoss`; các sweep giữ đúng các mốc A=100..1000 (B=16,C=100), B=8..512 theo lũy thừa 2 (A=800,C=100), và C=10..190 (A=800,B=128) như notebook gốc.
+
+Notebook Keras cũ không lưu đường cong hội tụ hay MSE số của EXP-01. Vì thế log PyTorch có epoch curve và bảng sweep có thể tái lập; đối chiếu định lượng Keras chỉ có thể bổ sung sau khi chạy lại notebook legacy trên cùng dữ liệu/seed/runtime. Không được trình bày metric Keras bị thiếu như thể đã quan sát.
+
+### `MNISTMLP`: phân loại chữ số và parity tham số
+
+Luồng tương đương Keras là:
+
+```text
+(N,28,28) hoặc (N,1,28,28)
+→ Flatten (N,784)
+→ fc1: Linear(784,512) → ReLU → Dropout(0.2)
+→ fc2: Linear(512,512) → ReLU → Dropout(0.2)
+→ fc3_10ways_softmax: Linear(512,10) logits
+```
+
+Tổng tham số: `(784×512+512)+(512×512+512)+(512×10+10)=669,706`, khớp Keras. Tầng cuối PyTorch trả logits thô: `nn.CrossEntropyLoss` nội bộ tính log-softmax và negative log likelihood, nên **không** thêm softmax trước loss. Keras `categorical_crossentropy` nhận vector one-hot cùng xác suất softmax; khi đổi sang PyTorch, nhãn one-hot được đổi về chỉ số lớp `torch.long` (0..9). `predict_proba()` chỉ áp dụng `softmax(dim=1)` khi thật sự cần xác suất suy luận.
+
+Keras dùng `validation_data=(x_test,y_test)` rồi đánh giá lại đúng split đó; baseline test accuracy 0.9648 vì vậy không phải holdout độc lập với validation. Runner PyTorch giữ test chuẩn 10.000 ảnh ngoài vòng chọn checkpoint: validation được tách từ 60.000 train, checkpoint chọn theo validation loss, còn test chỉ đánh giá sau khi chọn checkpoint.
+
+### Forward hook đặc trưng `fc2`
+
+`fc2` là phép tuyến tính; activation cần cho PCA là đầu ra ReLU ngay sau đó. Vì vậy model đặt `self.fc2` và `self.relu2` thành module riêng; đăng ký `register_feature_hooks(["relu2"])` trong `eval()` bắt đúng activation sau ReLU, trước dropout. `extract_features()` trả tensor đã `detach()`; runner ghép batch theo thứ tự test, gỡ hook bằng `clear_hooks()`, rồi lưu `features: (10000,512)` và `labels: (10000,)` vào NPZ. Dropout ở eval không làm rơi feature.
+
+### Bảng đối chiếu layer
+
+| Keras | PyTorch | Shape/đầu ra | Tham số |
+|---|---|---:|---:|
+| `Flatten` | `nn.Flatten(start_dim=1)` | `(N,28,28)→(N,784)` | 0 |
+| `Dense(512,relu)` | `fc1` + `relu1` | `(N,784)→(N,512)` | 401,920 |
+| `Dropout(0.2)` | `dropout1` | `(N,512)` | 0 |
+| `Dense(512,relu)` | `fc2` + `relu2` | `(N,512)→(N,512)` | 262,656 |
+| `Dropout(0.2)` | `dropout2` | `(N,512)` | 0 |
+| `Dense(10,softmax)` | `fc3_10ways_softmax` logits | `(N,512)→(N,10)` | 5,130 |
+| **Tổng** |  |  | **669,706** |
+
+### Câu hỏi vấn đáp
+
+**Vì sao không softmax logits trước `CrossEntropyLoss`?** PyTorch loss đã kết hợp log-softmax ổn định số học với NLL; softmax trước đó vừa thừa vừa làm sai thang đầu vào.
+
+**Vì sao Keras one-hot được đổi thành `torch.long`?** `CrossEntropyLoss` mặc định nhận một class index nguyên cho mỗi ảnh, không phải vector one-hot; class index cũng giảm bộ nhớ nhãn.
+
+**Hook đặt ở `fc2` hay `relu2`?** Tên `fc2` giữ phép `Linear` đúng kiến trúc. Đặc trưng sau kích hoạt ReLU phải hook `relu2`; hook `fc2` sẽ giữ cả giá trị âm trước ReLU.
+
+**Dropout có làm thay đổi PCA giữa các lượt trích xuất?** Không khi gọi `model.eval()`: Dropout bị vô hiệu, các activation và feature cố định theo weights/input.
+
+**Test accuracy có dùng chọn checkpoint không?** Không. Chỉ validation split từ train chọn checkpoint; test được mở một lần sau khi nạp checkpoint tốt nhất.
+
+**Vì sao kết quả có thể lệch baseline Keras 96.48%?** Khác biệt thứ tự batch/shuffle, initializer và backend SGD có thể tạo quỹ đạo tối ưu khác. Cần cố định split/seed, initializer, batch/epochs và so sánh trong cùng runtime; không diễn giải sai số một lần chạy thành lỗi kiến trúc.

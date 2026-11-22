@@ -93,7 +93,8 @@ class _ImageClassificationDataset(Dataset[tuple[torch.Tensor, torch.Tensor]]):
         if not np.issubdtype(array.dtype, np.integer):
             if not np.isfinite(array).all() or not np.equal(array, np.floor(array)).all():
                 raise ValueError("Nhãn phân loại phải là số nguyên hoặc one-hot hợp lệ.")
-        labels_tensor = torch.as_tensor(array, dtype=torch.long)
+        # Sao chép cả nguồn mmap readonly trước khi tạo Tensor có thể ghi.
+        labels_tensor = torch.from_numpy(np.array(array, copy=True)).to(torch.long)
         if labels_tensor.numel() and (
             int(labels_tensor.min()) < 0 or int(labels_tensor.max()) >= num_classes
         ):

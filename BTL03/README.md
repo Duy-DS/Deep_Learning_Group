@@ -176,8 +176,8 @@ BTL03/
 
 | Mã EXP | Nhóm Bài toán | Tệp Keras Gốc | Module PyTorch (`src/models/`) | Số Tham số | Metric Đánh giá | Baseline Keras | Mục tiêu PyTorch |
 | :--- | :--- | :--- | :--- | :---: | :---: | :---: | :---: |
-| **EXP-01** | **Nhóm 1:** MLP | `Func_apxm_MLP.txt` | `mlp.py` (`FuncApxmMLP`) | `561` | Test MSE Loss | `0.0012` | $\le 0.0015$ |
-| **EXP-02** | **Nhóm 1:** MLP | `MNIST_MLP.txt` | `mlp.py` (`MNISTMLP`) | `669,706` | Test Accuracy | `96.48%` | $\ge 96.00\%$ |
+| **EXP-01** | **Nhóm 1:** MLP | `Func_apxm_MLP.ipynb` | `mlp.py` (`FuncApxmMLP`) | `4B+1` (B thay đổi; 65 khi B=16) | Test MSE Loss | `NOT_RECORDED` | Chưa đặt (cần Keras numeric baseline) |
+| **EXP-02** | **Nhóm 1:** MLP | `MNIST_MLP.ipynb` | `mlp.py` (`MNISTMLP`) | `669,706` | Test Accuracy | `96.48%` | $\ge 96.00\%$ |
 | **EXP-03** | **Nhóm 2:** CNN + MLP | `1_MNIST_CNN.txt` | `cnn.py` (`MNISTCNN`) | `1,199,882` | Test Accuracy | `98.84%` | $\ge 98.50\%$ |
 | **EXP-04** | **Nhóm 2:** CNN + MLP | `2_Human_Gender_CNN.txt` | `cnn.py` (`GenderCNN`) | `1,735,442` | Test Accuracy | `87.73%` | $\ge 87.00\%$ |
 | **EXP-05** | **Nhóm 2:** CNN + MLP | `3_Emotion_Reg_CNN.txt` | `cnn.py` (`EmotionCNN`) | `19,012,487` | Test Accuracy | `59.54%` | $\ge 59.00\%$ |
