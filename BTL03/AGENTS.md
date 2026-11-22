@@ -39,6 +39,7 @@ Chuyển đổi trọn vẹn **10 tệp mã nguồn mẫu thuộc 5 nhóm bài t
 *   **100% PyTorch & Reproducibility:** Mọi mô hình, hàm mất mát, DataLoader và vòng lặp huấn luyện phải viết bằng PyTorch và gọi hàm `seed_everything(42)` trước khi khởi tạo dữ liệu/mô hình.
 *   **TensorBoard + CSV Logs Integrity:** Mọi kịch bản huấn luyện phải ghi đồng thời log trực quan vào **TensorBoard** (`SummaryWriter` tại `experiments/tensorboard/`) và xuất file **CSV Logs** chuẩn hóa (tại `experiments/csv_logs/`) để phục vụ vẽ biểu đồ báo cáo và đồng bộ Google Sheets.
 *   **Config Decoupling:** Mọi siêu tham số (`learning_rate`, `batch_size`, `image_size`, `epochs`, `dropout`, `seed=42`, đường dẫn dữ liệu) phải được nạp từ `configs/` hoặc `experiments/configs/*.yaml`.
+*   **Dual-Platform Notebook Parity (Thiết kế Notebook Song song Colab & Kaggle):** Mọi Jupyter Notebook phục vụ huấn luyện, trực quan hóa hoặc chạy thực nghiệm mô hình **bắt buộc** phải được thiết kế và duy trì đồng thời hai phiên bản tách biệt tại `notebooks/colab/` (tích hợp mount Google Drive) và `notebooks/kaggle/` (tích hợp `/kaggle/input/`, `/kaggle/working/` và nén artifact `.zip`). Hai phiên bản phải gọi chung lõi mã nguồn hướng đối tượng trong `src/`, dùng chung `Seed=42` và xuất cùng lược đồ `CSV Logs` / TensorBoard. Notebook chỉ là lớp điều hợp nền tảng; không nhân đôi logic mô hình/huấn luyện trong notebook.
 *   **Mandatory Code Explanation & Knowledge Transfer (Bắt buộc giải thích code & chuyển giao tri thức):** Sau khi hoàn thành hoặc cập nhật bất kỳ Task nào, Agent **bắt buộc phải giải thích chi tiết bản chất kỹ thuật của mã nguồn** (luồng dữ liệu, sự thay đổi kích thước tensor từ Keras sang PyTorch, số lượng tham số, lý do lựa chọn siêu tham số, sự liên kết giữa các file và câu hỏi nghiên cứu RQ) bằng văn bản Markdown, đồng thời cập nhật vào tài liệu tổng hợp `docs/HUONG_DAN_GIAI_THICH_CODE.md` kèm bộ câu hỏi/trả lời vấn đáp thường gặp.
 
 **Ask First (Phải xin ý kiến trước khi làm):**
@@ -53,6 +54,7 @@ Chuyển đổi trọn vẹn **10 tệp mã nguồn mẫu thuộc 5 nhóm bài t
 *   **No Evidence, No Completion & Anti-Freeform Red Line:** **TUYỆT ĐỐI KHÔNG** tuyên bố hoàn thành Task hoặc đóng phiên làm việc mà chưa tạo file log/report trong thư mục `docs/` theo đúng định dạng. **TUYỆT ĐỐI KHÔNG** chỉnh sửa nội dung hoặc xóa bỏ các file `TEMPLATE-*.md` / `*_template.md` gốc trong thư mục `docs/`.
 *   **Git Pollution Red Line:** **TUYỆT ĐỐI KHÔNG** commit dữ liệu ảnh/NumPy (`data/raw/`, `data/processed/`), trọng số mô hình (`*.pth`, `*.pt`), thư mục `outputs/`, `.venv/` hoặc `drafts/` lên Git.
 *   **Procedural Spaghetti Code:** **TUYỆT ĐỐI KHÔNG** viết code xử lý dữ liệu hay kiến trúc mô hình dưới dạng script thủ tục rời rạc không đóng gói vào Class OOP, hoặc viết docstring bằng tiếng Anh.
+*   **Notebook Platform Isolation:** **TUYỆT ĐỐI KHÔNG** đặt rời rạc notebook huấn luyện/thực nghiệm ngoài `notebooks/colab/` hoặc `notebooks/kaggle/`; không hardcode đường dẫn riêng của Colab/Drive (`/content/...`) vào lõi dùng chung trong `src/`. Đường dẫn nền tảng chỉ được phép ở notebook adapter hoặc cấu hình riêng theo nền tảng.
 *   **Branch Naming Violation:** **TUYỆT ĐỐI KHÔNG** commit trực tiếp lên nhánh `main` hoặc đặt tên nhánh sai cấu trúc `[chức năng]/BTL03_[Task ID]_[tên công việc]`.
 
 ---
@@ -270,7 +272,9 @@ BTL03/
 │   ├── inference.py             # [Đóng gói suy luận độc lập]
 │   └── utils.py                 # [seed_everything(42), đếm tham số, vẽ biểu đồ]
 ├── app/                         # [READ & WRITE; WP5: Ứng dụng demo giao diện Streamlit / Gradio]
-├── notebooks/                   # [READ & WRITE; Jupyter Notebooks EDA & trực quan hóa nhanh]
+├── notebooks/                   # [READ & WRITE; Jupyter Notebooks thực nghiệm đa nền tảng]
+│   ├── colab/                   # [Google Colab GPU; mount Drive cho dữ liệu/checkpoints/logs]
+│   └── kaggle/                  # [Kaggle GPU P100/T4x2; /kaggle/input và /kaggle/working]
 ├── scripts/                     # [READ & WRITE; Script CLI tải data & chạy thực nghiệm hàng loạt]
 ├── experiments/                 # [READ & WRITE; Cấu hình YAML & logs chạy thực nghiệm]
 │   ├── configs/                 # [Cấu hình thực nghiệm YAML theo từng bài toán & Ablation]

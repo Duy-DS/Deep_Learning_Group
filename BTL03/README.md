@@ -148,7 +148,9 @@ BTL03/
 │   ├── inference.py             # Script suy luận & trích xuất đặc trưng (PCA/Heatmap)
 │   └── utils.py                 # Cố định Random Seed, vẽ biểu đồ, quản lý Logger
 ├── app/                         # Ứng dụng Demo tương tác (Streamlit / Gradio)
-├── notebooks/                   # Jupyter Notebooks thử nghiệm nhanh & EDA
+├── notebooks/                   # Notebook adapter; dùng chung lõi OOP trong src/
+│   ├── colab/                   # Google Colab GPU, mount Google Drive
+│   └── kaggle/                  # Kaggle GPU, /kaggle/input và /kaggle/working
 ├── scripts/                     # Scripts tự động hóa tải dữ liệu và chạy hàng loạt
 ├── experiments/                 # Nhật ký thực nghiệm thô (TensorBoard event files & CSV logs)
 ├── outputs/                     # Kết quả chính thức đưa vào báo cáo
@@ -232,6 +234,26 @@ tensorboard --logdir experiments/tensorboard/
 # Khởi chạy giao diện Demo tương tác (Streamlit)
 streamlit run app/demo_app.py
 ```
+
+### Bước 5: Chọn nền tảng Notebook/GPU
+
+Notebook huấn luyện, trực quan hóa và thực nghiệm phải có hai adapter song song trong `notebooks/colab/` và `notebooks/kaggle/`. Hai adapter gọi chung module OOP trong `src/`, giữ `Seed=42` và cùng schema CSV/TensorBoard; không sao chép logic mô hình giữa các nền tảng. Các thư mục hiện được khởi tạo để tiếp nhận notebook; runner cụ thể sẽ được bổ sung theo từng task.
+
+#### Google Colab
+
+1. Mở notebook tương ứng trong `notebooks/colab/`.
+2. Chọn runtime GPU theo quota khả dụng; xác nhận GPU trước khi chạy mô hình nặng.
+3. Mount Google Drive theo quyền truy cập của nhóm, đọc dữ liệu/checkpoint từ vị trí đã cấu hình và lưu checkpoint, CSV/TensorBoard logs về Drive.
+4. Không ghi credential/token vào notebook hoặc Git; đường dẫn Drive phải nằm trong cấu hình/runtime adapter, không hardcode trong `src/`.
+
+#### Kaggle — phương án dự phòng khi Colab hết hạn mức GPU
+
+1. Mở notebook tương ứng trong `notebooks/kaggle/`.
+2. Bật Accelerator GPU (P100 hoặc T4 x2 nếu được cấp) và Internet khi nguồn dữ liệu cần tải.
+3. Gắn Kaggle Dataset; đọc dữ liệu từ `/kaggle/input/` (read-only). Với T4 x2, chỉ bật `nn.DataParallel`/đa GPU sau khi cấu hình và kiểm thử tương thích; không mặc định giả định mọi notebook sẽ dùng được hai GPU.
+4. Ghi checkpoints/logs/kết quả vào `/kaggle/working/`; đóng gói các artifact được phép thành `.zip` để tải về. Không đưa dataset, secrets hoặc trọng số nặng lên Git.
+
+Hai nền tảng phải dùng chung `src/`, seed và lược đồ CSV/TensorBoard; chỉ phần mount, đường dẫn và đóng gói artifact khác nhau. Nếu thư mục adapter chưa có notebook cho một mô hình, cần tạo cả hai phiên bản tương ứng trước khi coi hỗ trợ đa nền tảng là hoàn tất.
 
 ---
 
