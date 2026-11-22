@@ -226,6 +226,17 @@ Dự án gồm **24 nhiệm vụ** phân bổ cho **5 thành viên** theo 6 gói
     - Tác giả commit (`Author` & `Committer`) **BẮT BUỘC** là tên thành viên thật (ví dụ: `Duy-DS`).
     - **CẤM TUYỆT ĐỐI** để tên tác giả commit hoặc chuỗi `Co-authored-by:` là `Codex`, `GitHub Copilot`, `Cursor`, `Claude`, `Antigravity` hay bất kỳ AI Agent nào. Nếu phát hiện `git config user.name` đang mang tên công cụ tự động, Agent phải dừng thao tác commit và yêu cầu người dùng cấu hình lại tên thành viên.
 
+-  **Cơ chế Tra cứu Định danh Tự động qua `.env` (`.env` Identity Resolution):**
+    -   Thông tin ánh xạ giữa mã thành viên (`MEMBER_01` đến `MEMBER_05`) với `NAME` (GitHub Username) và `EMAIL` (GitHub Email) được lưu trữ cục bộ tại tệp `.env` ở thư mục gốc dự án (tham chiếu cấu trúc từ `.env.example`).
+    -   **Quy trình bắt buộc trước khi `git commit`:**
+        1. Agent phải xác định thành viên phụ trách Task hiện tại dựa trên bảng phân công WBS (hoặc chỉ định trực tiếp trong prompt).
+        2. Đọc tệp `.env` để trích xuất cặp biến `MEMBER_XX_NAME` và `MEMBER_XX_EMAIL` tương ứng.
+        3. Thực thi lệnh commit với cờ `--author` tường minh để không làm sai lệch cấu hình global của máy:
+           ```bash
+           git commit --author="<MEMBER_XX_NAME> <<MEMBER_XX_EMAIL>>" -m "[BTL03_<Task ID>] <type>(<scope>): <mô tả>"
+           ```
+        4. Nếu tệp `.env` chưa tồn tại hoặc thiếu thông tin của thành viên phụ trách, Agent **bắt buộc phải dừng thao tác commit** và yêu cầu người dùng cập nhật tệp `.env` trước khi tiếp tục.
+
 ### **8. Mandatory Evidence Logging & File Naming Rules (Hệ thống Bằng chứng Bắt buộc)**
 Dự án áp dụng cơ chế kiểm soát **"Evidence-First & Template-Locked"** nghiêm ngặt. Mọi kết quả thực thi, sửa lỗi, nhật ký hàng ngày và thực nghiệm phải được lưu trữ thành file Markdown tại 4 thư mục con trong `docs/`. Khi tạo file, Agent **bắt buộc phải copy nguyên vẹn cấu trúc từ file template gốc tương ứng**, ghi rõ tên thành viên phụ trách (tuyệt đối không ghi tên AI Agent) và tuân thủ 100% định dạng đặt tên file:
 
