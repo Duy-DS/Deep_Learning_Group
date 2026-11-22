@@ -1,0 +1,19 @@
+# FER2013 notebook: 2304 pixel columns, followed by seven one-hot labels.
+name: fer_emotion
+input_shape_nhwc: [48, 48, 1]
+input_shape_nchw: [1, 48, 48]
+num_classes: 7
+class_names: [angry, disgust, fear, happy, neutral, sad, surprise]
+normalization: preserve_if_unit_range
+raw_dir: data/raw/fer2013
+files:
+  train_csv: fer2013_training_onehot.csv
+  validation_csv: fer2013_publictest_onehot.csv
+pixel_columns: 2304
+label_columns: 7
+download_urls:
+  train_csv: null
+  validation_csv: null
+google_drive_file_ids:
+  train_csv: null
+  validation_csv: null
