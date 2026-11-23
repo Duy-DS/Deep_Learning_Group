@@ -189,7 +189,7 @@ Hai mô hình này được thiết kế để giải quyết câu hỏi nghiên
 * *Trả lời:* Đây là nguyên tắc vàng **Chống rò rỉ dữ liệu (No Data Leakage)**. Trong bài toán thực tế, mô hình không hề biết trước dữ liệu tương lai (tập Test). Việc lấy tập Test tính Mean/Std sẽ làm lộ phân phối dữ liệu kiểm thử vào quá trình tiền xử lý, khiến kết quả đánh giá không còn khách quan.
 
 **Q3: Nhóm đã thực hiện quá trình huấn luyện thực nghiệm ở đâu và mất bao lâu?**
-* *Trả lời:* Nhóm xây dựng notebook chuẩn hóa `notebooks/02_colab_training.ipynb` và thực hiện huấn luyện tự động toàn bộ 3 mô hình trên phần cứng GPU NVIDIA Tesla T4 của Google Colab:
+* *Trả lời:* Nhóm xây dựng notebook chuẩn hóa `notebooks/colab/02_colab_training.ipynb` và thực hiện huấn luyện tự động toàn bộ 3 mô hình trên phần cứng GPU NVIDIA Tesla T4 của Google Colab:
   - `SmallCNN`: 18 epochs, mất 3 phút 13 giây.
   - `MediumCNN`: 30 epochs, mất 5 phút 55 giây.
   - `LargeCNN`: 42 epochs, mất 10 phút 19 giây.
@@ -203,6 +203,26 @@ Hai mô hình này được thiết kế để giải quyết câu hỏi nghiên
 
 **Q6: Tại sao ở mô hình LargeCNN, độ chính xác trên Private Test (64.95%) lại cao hơn Validation Acc (63.83%)?**
 * *Trả lời:* Trong quá trình huấn luyện, mô hình được áp dụng cơ chế điều hòa rất mạnh: `Dropout2d (0.2–0.3)` ở các tầng Conv và `Dropout (0.5)` ở tầng Fully Connected. Khi bước sang pha đánh giá (`model.eval()`), toàn bộ Dropout được tắt đi, 100% neuron hoạt động đồng thời. Tập Private Test chứa nhiều khuôn mặt có biểu cảm rõ nét, giúp mô hình phát huy tối đa năng lực khái quát hóa mà không bị bias bởi tập Validation.
+
+---
+
+## 8. TASK T0401 — CHUẨN HÓA HẠ TẦNG NOTEBOOK CLOUD
+
+### 8.1. Phân tầng runner
+
+Notebook được tổ chức trong `notebooks/colab/` và `notebooks/kaggle/`; `notebooks/01_eda_fer2013.ipynb` vẫn ở cấp thư mục gốc. Năm notebook Colab đã được chuyển nguyên trạng vào `colab/`; các tham chiếu kiểm thử T0304 cũng trỏ tới vị trí mới. Đây là thay đổi tổ chức hạ tầng, chưa triển khai thí nghiệm Ablation T0401 hay runner T0401.
+
+### 8.2. Hợp đồng vận hành cloud và giới hạn phục hồi
+
+- Runner Colab/Kaggle của các task huấn luyện nặng dùng chung cấu hình YAML, MLflow và schema CSV 24 cột; secret `GITHUB_TOKEN` và `KAGGLE_API_TOKEN` được đọc tại runtime, không lưu trong notebook hoặc Git.
+- Kaggle ưu tiên competition input FER2013; downloader là phương án dự phòng. Đầu ra phiên Kaggle cần được gom vào `/kaggle/working/BTL02/<TASK_ID>/` để có thể lưu phiên bản và tải xuống.
+- Chép `mlruns/` từ Drive giúp runner nhận diện các run `FINISHED` để Auto-Skip, nhưng không tự khôi phục tiến trình của run bị ngắt giữa epoch. Muốn resume run dở, mã huấn luyện phải lưu/nạp checkpoint cùng trạng thái optimizer và epoch. Artifact URI có thể tham chiếu vị trí cũ; phải kiểm tra artifact/checkpoint khả dụng sau khi di chuyển.
+
+**Hỏi: Vì sao không đặt mọi notebook trong cùng một thư mục?**
+Trả lời: Tách `colab/` và `kaggle/` làm rõ runtime, cách lấy Secrets và vị trí lưu output riêng của mỗi nền tảng, trong khi giữ chung hợp đồng cấu hình và schema kết quả.
+
+**Hỏi: Chép thư mục MLflow có tiếp tục một epoch đang chạy dở không?**
+Trả lời: Không. MLflow chứa tracking và trạng thái run, không mặc nhiên chứa đủ trạng thái optimizer/model để tiếp tục epoch. Auto-Skip chỉ áp dụng cho run `FINISHED`; resume cần checkpoint được pipeline hỗ trợ.
 
 ## Bổ sung kỹ thuật ngày 2026-11-18: Audit và kagglehub
 

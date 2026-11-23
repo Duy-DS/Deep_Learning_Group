@@ -216,7 +216,7 @@ Dự án gồm 25 nhiệm vụ phân bổ vào 6 gói công việc (`WP1` – `W
         2. Đọc tệp `.env` để trích xuất cặp biến `MEMBER_XX_NAME` và `MEMBER_XX_EMAIL` tương ứng.
         3. Thực thi lệnh commit với cờ `--author` tường minh để không làm sai lệch cấu hình global của máy:
            ```bash
-           git commit --author="<MEMBER_XX_NAME> <<MEMBER_XX_EMAIL>>" -m "[BTL03_<Task ID>] <type>(<scope>): <mô tả>"
+           git commit --author="<MEMBER_XX_NAME> <<MEMBER_XX_EMAIL>>" -m "[BTL02_<Task ID>] <type>(<scope>): <mô tả>"
            ```
         4. Nếu tệp `.env` chưa tồn tại hoặc thiếu thông tin của thành viên phụ trách, Agent **bắt buộc phải dừng thao tác commit** và yêu cầu người dùng cập nhật tệp `.env` trước khi tiếp tục.
 
@@ -261,7 +261,9 @@ BTL02/
 │   ├── ablation/                # [Configs cho RQ1, RQ2, RQ3]
 │   ├── baseline/                # [Config cho Small CNN Baseline]
 │   └── sota/                    # [Config cho VGG16, ResNet50, EfficientNet-B0]
-├── notebooks/                   # [READ & WRITE; Chỉ dùng cho EDA & phân tích nhanh]
+├── notebooks/                   # [READ & WRITE; Notebook EDA & Runner tự động hóa GPU]
+│   ├── colab/                   # [Runner chuyên dụng cho Google Colab: run_<task>_colab.ipynb]
+│   ├── kaggle/                  # [Runner chuyển đổi dự phòng cho Kaggle GPU: run_<task>_kaggle.ipynb]
 │   └── 01_eda_fer2013.ipynb
 ├── outputs/                     # [WRITE-ONLY; Sản phẩm chạy code, gitignored]
 │   ├── checkpoints/             # [Trọng số mô hình .pt, .pth - đồng bộ lên Google Drive]
@@ -348,6 +350,12 @@ Thumbs.db
 ```
 
 ### **10. Standard Execution Commands & Completion Checklist**
+
+**Chính sách Cloud GPU Runner (bắt buộc cho WP2, WP3, WP4):**
+- Khi một task thuộc `WP2`, `WP3` hoặc `WP4` cung cấp runner tự động hóa huấn luyện, phải cung cấp đồng bộ hai notebook theo mẫu `notebooks/colab/run_<task_id>_colab.ipynb` và `notebooks/kaggle/run_<task_id>_kaggle.ipynb`. Runner phải dùng chung chuẩn MLflow và CSV đúng 24 cột để có thể chuyển môi trường mà không lặp lại các run đã hoàn tất.
+- Notebook Kaggle phải lưu đầu ra có thể tải qua **Save Version → Quick Save** dưới `/kaggle/working/BTL02/<TASK_ID>/`, bao gồm `mlruns/`, `checkpoints/*.pth` và CSV 24 cột. Giữ nguyên PyTorch/CUDA có sẵn trên image Kaggle; chỉ cài các dependency còn thiếu.
+- Runner phải lấy `GITHUB_TOKEN` và `KAGGLE_API_TOKEN` từ cơ chế Secrets của nền tảng, không nhúng hoặc in token. Có thể thêm FER2013 competition input trực tiếp; nếu không có, runner dùng `python -m src.data.downloader` với Kaggle API token.
+- Khi chuyển `mlruns` giữa nền tảng, kiểm tra các run `FINISHED` và cấu hình tracking trước khi Auto-Skip. Auto-Skip chỉ tránh chạy lại run đã hoàn tất; nó **không** tiếp tục một run dở giữa epoch. Checkpoint training chỉ cho phép resume nếu pipeline hỗ trợ rõ trạng thái optimizer/epoch. Kiểm tra artifact URI và khả năng truy cập checkpoint sau khi di chuyển; đường dẫn tuyệt đối cũ không mặc nhiên hợp lệ trên nền tảng mới.
 
 **Các lệnh thực thi chuẩn trên Terminal:**
 ```bash

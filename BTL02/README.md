@@ -263,7 +263,9 @@ BTL02/
 │   ├── ablation/                # Cấu hình thực nghiệm cắt bỏ (RQ1, RQ2, RQ3)
 │   ├── baseline/                # Cấu hình mô hình SmallCNN Baseline
 │   └── sota/                    # Cấu hình VGG16, ResNet50, EfficientNet-B0
-├── notebooks/                   # Jupyter Notebook phục vụ khám phá dữ liệu (EDA)
+├── notebooks/                   # EDA và runner tự động hóa huấn luyện trên cloud GPU
+│   ├── colab/                   # Runner Google Colab: run_<task>_colab.ipynb
+│   ├── kaggle/                  # Runner dự phòng Kaggle: run_<task>_kaggle.ipynb
 │   └── 01_eda_fer2013.ipynb
 ├── outputs/                     # Sản phẩm đầu ra khi chạy chương trình (Gitignored)
 │   ├── checkpoints/             # Trọng số mô hình (.pt, .pth) - đồng bộ lên Google Drive
@@ -289,7 +291,40 @@ BTL02/
 
 ---
 
-## 🚀 VI. Hướng Dẫn Cài Đặt & Tái Lập Kết Quả (Reproducibility)
+## ☁️ VI. Quy Trình Chạy Thực Nghiệm trên Cloud GPU (Google Colab & Kaggle)
+
+Runner cloud được tổ chức theo cặp `notebooks/colab/run_<task_id>_colab.ipynb` và `notebooks/kaggle/run_<task_id>_kaggle.ipynb`. Hai môi trường dùng cùng cấu hình YAML, tracking MLflow và schema CSV 24 cột. Mở notebook tương ứng, bật GPU trong cài đặt runtime, rồi chạy các cell từ đầu theo hướng dẫn trong notebook.
+
+### Secrets và xác thực riêng tư
+
+- **Google Colab:** mở bảng **Secrets** (biểu tượng chìa khóa), thêm `GITHUB_TOKEN` để clone/pull repository riêng tư (hoặc khi cần xác thực GitHub) và `KAGGLE_API_TOKEN` để downloader lấy FER2013. Cho notebook quyền đọc từng secret cần thiết; không viết token trực tiếp vào cell, URL, output hoặc Git. Với Kaggle API token dạng JSON, lưu giá trị `key` vào secret `KAGGLE_API_TOKEN`.
+- **Kaggle Notebooks:** vào **Add-ons → Secrets**, tạo các secret cùng tên `GITHUB_TOKEN` và `KAGGLE_API_TOKEN`, rồi cấp notebook quyền truy cập. Runner đọc secrets bằng `kaggle_secrets.UserSecretsClient()`. GitHub PAT classic (`ghp_...`) và fine-grained (`github_pat_...`) phải chỉ được gửi trong header xác thực; notebook không được in token.
+- Bật Internet cho Kaggle Notebook nếu cần clone repository hoặc tải dữ liệu. PyTorch/CUDA có sẵn của image Kaggle được giữ nguyên; chỉ cài dependency bổ sung mà dự án yêu cầu.
+
+### Dữ liệu, lưu đầu ra và chuyển tiến độ Colab → Kaggle
+
+1. Trên Kaggle, ưu tiên thêm FER2013 competition qua **Add Input**. Runner tìm archive `fer2013.tar.gz` trong competition input và xác thực dữ liệu; nếu không có input, tải bằng `python -m src.data.downloader` với `KAGGLE_API_TOKEN` và quyền truy cập competition đã được chấp nhận.
+2. Đầu ra notebook Kaggle được gom dưới `/kaggle/working/BTL02/<TASK_ID>/` để tải bằng **Save Version → Quick Save**, gồm `mlruns/`, `checkpoints/` và CSV log 24 cột. Kiểm tra phiên bản đã lưu thành công trước khi kết thúc session.
+3. Trước khi Colab hết hạn mức, chờ runner đồng bộ xong `mlruns/`, checkpoint và CSV vào thư mục backup trên Google Drive. Tạo Kaggle Dataset riêng từ bản backup (không công khai dữ liệu nhạy cảm), rồi **Add Input** dataset đó vào Kaggle Notebook. Chép `mlruns/` từ `/kaggle/input/datasets/.../mlruns` vào thư mục output của task trước khi dựng manifest và bắt đầu vòng lặp.
+4. Auto-Skip dựa trên các run có trạng thái `FINISHED` trong MLflow, giúp không lặp lại thí nghiệm đã hoàn tất. Đây **không phải** tiếp tục run còn dở giữa epoch: chỉ resume checkpoint nếu training code lưu và nạp đầy đủ trạng thái cần thiết (ít nhất model, optimizer và epoch). Sau khi chuyển, xác nhận MLflow tracking URI và đường dẫn artifact/checkpoint vẫn dùng được; copy `mlruns` một mình không đảm bảo mọi artifact nằm ngoài thư mục tracking cũng đã được chuyển.
+5. Sau khi hoàn thành, tải output Kaggle và hợp nhất/đối chiếu CSV theo đúng header 24 cột; không chép token hoặc dữ liệu/weights vào repository.
+
+### Ví dụ đọc secrets (không hiển thị giá trị)
+
+```python
+# Colab: chỉ đọc secret trong runtime; không print giá trị.
+from google.colab import userdata
+github_token = userdata.get("GITHUB_TOKEN")
+kaggle_token = userdata.get("KAGGLE_API_TOKEN")
+
+# Kaggle: đọc secret trong runtime; không print giá trị.
+from kaggle_secrets import UserSecretsClient
+secrets = UserSecretsClient()
+github_token = secrets.get_secret("GITHUB_TOKEN")
+kaggle_token = secrets.get_secret("KAGGLE_API_TOKEN")
+```
+
+## 🚀 VII. Hướng Dẫn Cài Đặt & Tái Lập Kết Quả (Reproducibility)
 
 Mọi thành viên và giảng viên chấm bài có thể tái lập chính xác 100% kết quả thực nghiệm của nhóm thông qua 6 bước tiêu chuẩn dưới đây:
 
@@ -355,7 +390,7 @@ streamlit run demo/app.py
 
 ---
 
-## 🛡️ VII. Hệ Thống Bằng Chứng Nghiệm Thu & Quy Chuẩn Dự Án (Evidence-First)
+## 🛡️ VIII. Hệ Thống Bằng Chứng Nghiệm Thu & Quy Chuẩn Dự Án (Evidence-First)
 
 Dự án **BTL02** áp dụng cơ chế kiểm soát chất lượng **"Evidence-First & Template-Locked"** theo quy định tại [`AGENTS.md`](./AGENTS.md):
 
@@ -370,7 +405,7 @@ Dự án **BTL02** áp dụng cơ chế kiểm soát chất lượng **"Evidence
 
 ---
 
-## 👥 VIII. Bảng Phân Công Nhiệm Vụ & Tỷ Lệ Đóng Góp (100%)
+## 👥 IX. Bảng Phân Công Nhiệm Vụ & Tỷ Lệ Đóng Góp (100%)
 
 Dự án được thực hiện bởi nhóm 5 thành viên, phân bổ vào 6 Gói công việc (`WP1` – `WP6`) với **25 nhiệm vụ (`T0101` – `T0603`)**:
 
@@ -385,7 +420,7 @@ Dự án được thực hiện bởi nhóm 5 thành viên, phân bổ vào 6 G�
 
 ---
 
-## 📚 IX. Tài Liệu Tham Khảo & Nguồn Kế Thừa (References & Acknowledgments)
+## 📚 X. Tài Liệu Tham Khảo & Nguồn Kế Thừa (References & Acknowledgments)
 
 1. **Dataset Gốc:** Goodfellow, I. J., et al. (2013). *"Challenges in representation learning: A report on three machine learning contests."* Neural Networks, 64, 59-63. (Kaggle FER2013 Challenge).
 2. **Kiến trúc SOTA & Giải thích Mô hình:**

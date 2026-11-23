@@ -136,9 +136,9 @@ class TestT0304RQ2Configurations:
 
     def test_colab_notebook_is_valid_and_runs_all_nine_configs(self) -> None:
         """Notebook hợp lệ về JSON/cú pháp và liệt kê đủ ma trận YAML."""
-        notebook = json.loads((self._ROOT / "notebooks" / "run_t0304_colab.ipynb").read_text(encoding="utf-8"))
+        notebook = json.loads((self._ROOT / "notebooks" / "colab" / "run_t0304_colab.ipynb").read_text(encoding="utf-8"))
         assert notebook["nbformat"] == 4
-        assert len(notebook["cells"]) == 8
+        assert len(notebook["cells"]) == 9
         code_cells = [cell for cell in notebook["cells"] if cell["cell_type"] == "code"]
         assert len(code_cells) == 8
         for index, cell in enumerate(code_cells, start=1):
@@ -170,9 +170,10 @@ class TestT0304RQ2Configurations:
 
     def test_notebook_manifest_sanitizer_handles_numpy_2_values(self) -> None:
         """Hàm sanitizer trong notebook xử lý scalar/array NumPy trước DataFrame."""
-        notebook = json.loads((self._ROOT / "notebooks" / "run_t0304_colab.ipynb").read_text(encoding="utf-8"))
+        notebook = json.loads((self._ROOT / "notebooks" / "colab" / "run_t0304_colab.ipynb").read_text(encoding="utf-8"))
         namespace = {"np": np}
-        code = "".join(notebook["cells"][4]["source"])
+        code_cells = [cell for cell in notebook["cells"] if cell["cell_type"] == "code"]
+        code = "".join(code_cells[4]["source"])
         start = code.index("def sanitize_to_python_scalars")
         end = code.index("raw_configs = []")
         exec(code[start:end], namespace)
@@ -202,8 +203,9 @@ class TestT0304RQ2Configurations:
         import shutil
         import time
 
-        notebook = json.loads((self._ROOT / "notebooks" / "run_t0304_colab.ipynb").read_text(encoding="utf-8"))
-        cell_five = "".join(notebook["cells"][4]["source"])
+        notebook = json.loads((self._ROOT / "notebooks" / "colab" / "run_t0304_colab.ipynb").read_text(encoding="utf-8"))
+        code_cells = [cell for cell in notebook["cells"] if cell["cell_type"] == "code"]
+        cell_five = "".join(code_cells[4]["source"])
         config_source = cell_five[cell_five.index("CONFIG_FILES = [") : cell_five.index("from mlflow.tracking import MlflowClient")]
         config_source = config_source.replace("manifest = pd.DataFrame([sanitize_to_python_scalars(record) for record in raw_configs])", "manifest = None")
         config_source = config_source.replace("manifest = manifest.astype({'pretrained': bool, 'image_size': int, 'seed': int, 'batch_size': int, 'epochs': int, 'lr': float})", "manifest = None")
@@ -220,7 +222,7 @@ class TestT0304RQ2Configurations:
             )
             assert config["run_name"] == expected
 
-        cell_two = "".join(notebook["cells"][1]["source"])
+        cell_two = "".join(code_cells[1]["source"])
         sync_source = cell_two[cell_two.index("def sync_tree_new_files") : cell_two.index("# Resume:")]
         sync_namespace = {"os": os, "Path": Path, "shutil": shutil, "time": time}
         exec(sync_source, sync_namespace)
