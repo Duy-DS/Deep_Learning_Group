@@ -119,6 +119,65 @@ Mười notebook trong `legacy_keras/` được giữ nguyên. `scripts/extract_
 
 **Checkpoint có tự ghi lên Google Drive không?** Chỉ mirror khi thư mục mount được truyền/cấu hình và tồn tại. Không có mount thì checkpoint vẫn nằm ở `outputs/checkpoints/`.
 
+---
+
+## 8. T0210 — SegNet: phân vùng ngữ nghĩa
+
+### Dataset và hợp đồng tensor
+
+Notebook `legacy_keras/05_others/1_segnet.ipynb` đọc ảnh depth grayscale, resize nearest-neighbor về `96×96`, và mask palette `{255,43,85,128,170,212,0}` tương ứng lớp `{0,1,2,3,4,5,6}`. `SemanticSegmentationDataset` chuyển ảnh `(N,H,W,1)` thành float32 `(N,1,H,W)`, đồng thời chuyển mask one-hot/palette sang class-index `(N,H,W)` kiểu `torch.long`. Vì thế `DataLoader` trả logits `(B,7,H,W)` và target `(B,H,W)` đúng hợp đồng `nn.CrossEntropyLoss()`; không thêm chiều kênh hoặc softmax trước loss.
+
+### Kiến trúc và parameter parity
+
+Encoder gồm 5 khối VGG-style `(64×2, 128×2, 256×3, 512×3, 512×3)`, mỗi khối kết thúc bằng max-pooling 2×2. Decoder thực hiện đúng 5 lần `nn.Upsample(scale_factor=2, mode="nearest")`, lần lượt với số convolution `(512×3, 512×2+256, 256×2+128, 128+64, 64)`, rồi head `Conv2d(64,7,1)` và BatchNorm cuối như legacy. Trong Keras, thứ tự mỗi khối là Conv→BatchNormalization→ReLU. Nearest upsampling lặp giá trị lân cận để nhân đôi H/W mà không học thêm trọng số; `ConvTranspose2d` thay vào đó học kernel upsampling và có số tham số/đáp ứng khác, nên không thay thế tương đương chính xác.
+
+| Thành phần | Trainable params | Non-trainable BN state | Tổng đối chiếu |
+|---|---:|---:|---:|
+| Encoder khối 1 | 37,824 | 256 | 38,080 |
+| Encoder khối 2 | 221,952 | 512 | 222,464 |
+| Encoder khối 3 | 1,476,864 | 1,536 | 1,478,400 |
+| Encoder khối 4 | 5,902,848 | 3,072 | 5,905,920 |
+| Encoder khối 5 | 7,082,496 | 3,072 | 7,085,568 |
+| Decoder khối 1 | 7,082,496 | 3,072 | 7,085,568 |
+| Decoder khối 2 | 5,902,080 | 2,560 | 5,904,640 |
+| Decoder khối 3 | 1,476,480 | 1,280 | 1,477,760 |
+| Decoder khối 4 | 221,760 | 384 | 222,144 |
+| Decoder khối 5 | 37,056 | 128 | 37,184 |
+| Head `1×1` + BatchNorm | 469 | 14 | 483 |
+| **SegNet tổng** | **29,442,325** | **15,886** | **29,458,211** |
+
+PyTorch BatchNorm lưu running mean/variance dưới dạng buffers, không phải `Parameter`; `count_parameters()` cộng hai buffer đó khi lập tổng parity với `model.summary()` Keras và loại `num_batches_tracked` vốn không có trong Keras. Baseline Keras đã lưu là validation pixel accuracy `0.7732` ở 15 epoch; con số này không phải kết quả chạy PyTorch hiện tại. Để báo cáo pixel accuracy PyTorch, cần train bằng dữ liệu depth/mask thật.
+
+### Độ đo
+
+Pixel accuracy là số pixel có class argmax đúng chia tổng pixel. mIoU tính từng lớp `intersection / union`, sau đó lấy trung bình macro trên các lớp có union khác 0. Hai số này khác nhau: pixel accuracy có thể cao khi nền chiếm đa số, trong khi mIoU phạt các lớp hiếm bị bỏ sót.
+
+## 9. T0211 — FCN score-map object detection
+
+### Dense trên cửa sổ và convolution trượt
+
+Notebook detection thực chất đã biểu diễn các tầng head bằng Conv2D có tên `dense1`/`dense2`: backbone Conv(3×3, 10 channels) hai lần + MaxPool(8×8), rồi Conv(8×8, 10→128), ReLU, Dropout, Conv(1×1,128→1), tanh. Trên đặc trưng `10×8×8`, một Dense `10·8·8 → 128` có kernel `(128,640)` và bias 128, tức 82,048 tham số. Conv2d 8×8 giữ kernel tương đương dưới reshape `(128,10,8,8)`; mỗi vị trí đặc trưng ảnh lớn áp dụng cùng phép nhân ma trận cho một patch trượt. Tầng `1×1` tương đương Dense cuối `(128→1)` tại từng vị trí, có `128+1=129` tham số. Tổng mạng là 83,367 params.
+
+Ảnh được chuyển NHWC→NCHW và chuẩn hóa chính xác `x / 127.5 - 1.0`. Target legacy là xe `+1`, nền `-1`; đầu ra tanh và loss MSE. Vì đây là score regression chứ không phải softmax classifier, confidence heatmap ánh xạ `(score+1)/2` về `[0,1]`; metric sign accuracy tương ứng accuracy legacy, không gọi là IoU/mAP. Kích thước ảnh lớn tạo heatmap `(B,1,Hout,Wout)` nhờ convolution trượt, không cần cắt từng patch rồi gọi model lặp.
+
+Một điểm đáng chú ý trong notebook là MaxPool 8×8 có stride mặc định 8. Vì vậy tọa độ ô `(r,c)` trên heatmap ánh xạ về góc trên trái ảnh `(c×8,r×8)`; box kết thúc ở `(min(c×8+64,W), min(r×8+64,H))`. NMS cục bộ giữ cực đại có score cao, sau đó loại các cửa sổ 64×64 giao nhau.
+
+### Giới hạn kiểm chứng
+
+Baseline Keras ghi 83,367 params, MSE validation 0.0642 và `accuracy` 0.9523; accuracy này là metric Keras trên score regression, không phải mAP/IoU. Notebook không ghi learning rate tường minh (Keras Adam mặc định); cấu hình PyTorch khai báo 0.001 để minh bạch, nhưng chưa thể khẳng định trajectory huấn luyện đồng nhất nếu khác phiên bản optimizer/initializer. Không có ảnh/data local thì heatmap synthetic chỉ chứng minh shape và vẽ hình, không chứng minh phát hiện xe đúng.
+
+### Câu hỏi vấn đáp
+
+**Vì sao dùng Upsample thay ConvTranspose2d trong SegNet?** Để khớp `UpSampling2D` nearest của Keras, tránh học trọng số bổ sung và tránh thay đổi parameter count.
+
+**Vì sao CrossEntropyLoss không nhận mask one-hot?** `nn.CrossEntropyLoss` yêu cầu logits `(B,C,H,W)` và class index `(B,H,W)` kiểu long; class dimension được loss xử lý nội bộ.
+
+**Conv 8×8 có thực sự tương đương Dense?** Có trên một patch 8×8 phẳng với cùng thứ tự flatten/weights; trên ảnh lớn convolution chia sẻ đúng ma trận đó cho từng patch. Để weight-surgery số học khớp, cần reshape kernel theo layout Keras/PyTorch đúng và kiểm tra phép flatten—không thể chỉ chép bytes không đổi.
+
+**Có thể dùng softmax cho score detector không?** Không nên: legacy học scalar tanh với MSE và target ±1, không có logits nhiều lớp. Ánh xạ tuyến tính sang confidence giữ nguyên ý nghĩa score hơn softmax.
+
+**Smoke synthetic chứng minh đạt 77% pixel accuracy không?** Không. Mọi metric trên synthetic chỉ xác minh loop và shape; nghiệm thu accuracy cần split thật, seed/config đã khóa và ghi rõ trong báo cáo.
+
 **Đa tiến trình có ghi master CSV an toàn tuyệt đối không?** Logger dùng khóa trong process và kiểm tra Run_ID trùng trước append; nếu nhiều process/host đồng ghi một file, cần một writer trung tâm hoặc backend giao dịch thay vì chia sẻ CSV qua mạng.
 
 ---

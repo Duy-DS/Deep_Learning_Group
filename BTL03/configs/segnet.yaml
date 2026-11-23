@@ -1,0 +1,26 @@
+seed: 42
+model_name: SegNet
+model_group: 05_others
+image_size: 96
+in_channels: 1
+num_classes: 7
+learning_rate: 0.0001
+batch_size: 8
+epochs: 15
+num_workers: 0
+synthetic_samples: 4
+synthetic_fallback: false
+normalize: preserve
+data:
+  train_images: data/raw/segnet/train/depth
+  train_masks: data/raw/segnet/train/labels
+  validation_images: data/raw/segnet/test/depth
+  validation_masks: data/raw/segnet/test/labels
+logging:
+  exp_type: PyTorch
+  csv_root: experiments/csv_logs
+  tensorboard_root: experiments/tensorboard
+checkpoint:
+  path: outputs/checkpoints/05_others/segnet_best.pt
+  sync_to_drive: true
+figure_path: outputs/figures/t0210_segnet_segmentation_preview.png

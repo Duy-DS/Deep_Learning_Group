@@ -3,6 +3,7 @@
 from .vision_datasets import FEREmotionDataset, MNISTDataset, WikiGenderDataset
 from .seq_mnist_dataset import SequentialMNISTDataset
 from .mlp_datasets import BivariateNormalDataset
+from .seg_det_datasets import FCNObjectDetectionDataset, SemanticSegmentationDataset
 
 __all__ = [
     "MNISTDataset",
@@ -10,4 +11,6 @@ __all__ = [
     "FEREmotionDataset",
     "BivariateNormalDataset",
     "SequentialMNISTDataset",
+    "SemanticSegmentationDataset",
+    "FCNObjectDetectionDataset",
 ]
