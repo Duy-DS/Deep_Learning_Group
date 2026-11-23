@@ -2,6 +2,8 @@
 \section{Vòng lặp huấn luyện và logits}
 PyTorch biểu diễn chu trình \texttt{zero\_grad}, forward, loss, backward và optimizer step. Phân loại dùng logits với \texttt{CrossEntropyLoss}; không áp softmax trước loss. Parameter-count parity không tự chứng minh output hoặc metric parity.
 
+Mô hình phân loại xuất logits $z\in\mathbb{R}^{B\times K}$ và class-index target. So sánh với Keras cần ghi nhãn, initialization, reduction và preprocessing; cùng số tham số chưa đủ để khẳng định cùng phép tính.
+
 \section{NHWC sang NCHW}
 Keras thường dùng $(N,H,W,C)$, PyTorch convolution nhận $(N,C,H,W)$:
 \[
@@ -12,11 +14,20 @@ WIKI áp dụng phép xoay legacy \texttt{np.rot90(k=3, axes=(1,2))} trên NHWC 
 \section{CNN-LSTM}
 Thay \texttt{TimeDistributed(CNN)} bằng reshape $(B,T,C,H,W)\to(BT,C,H,W)$, chạy CNN, rồi khôi phục $(B,T,F)$ trước LSTM. Tương đương shape không chứng minh tương đương metric.
 
+Phải giữ nguyên thứ tự frame khi gộp và tách chiều. CNN xử lý từng frame, LSTM nhận lại chuỗi có thứ tự. Parameter count CNN-LSTM khác nhau giữa reports T0206/T0207; cần đối chiếu source snapshot và cách đếm bias/buffer trước khi chốt.
+
 \section{SegNet và upsampling}
 Đối chiếu \texttt{UpSampling2D} với \texttt{nn.Upsample}; PyTorch dùng logits phân lớp từng pixel và mask class-index cho cross-entropy. Báo riêng total/trainable/non-trainable theo quy ước Keras.
+
+Với batch ảnh, logits thường có shape $(B,K,H,W)$, còn class-index mask có shape $(B,H,W)$. Pixel accuracy và mean IoU không phải một metric; giữ đúng tên/chỉ số có bằng chứng.
 
 \section{FCN score-map và chuẩn hóa}
 Giữ chuẩn hóa legacy $x/127.5-1.0$ khi đúng đầu vào. Score-map regression và metric notebook tên accuracy không tự trở thành IoU/mAP.
 
+Nếu chuyển score grid thành tọa độ, ghi rõ stride và phép ánh xạ. Heatmap hoặc output từ model chưa huấn luyện không chứng minh detection quality.
+
 \section{Chuẩn hóa và giao thức đánh giá}
 Nêu preprocessing theo dataset. Nếu validation/public-test được tái sử dụng, kết quả không đại diện independent final holdout.
+
+\section{Các yếu tố ảnh hưởng đến parity}
+Kiểm tra riêng initializer, padding/pooling, Dropout ở train/eval, BatchNorm statistics/epsilon/momentum, layout, thứ tự class labels, loss reduction, optimizer và seed. Parameter count chỉ kiểm tra cấu trúc một phần.

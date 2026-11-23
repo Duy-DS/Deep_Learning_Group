@@ -2,6 +2,8 @@
 \section{Quy trình huấn luyện}
 Phân biệt API mức cao với vòng lặp tường minh PyTorch, logits, softmax và hàm mất mát.
 
+Một mô hình phân loại xuất logits $z\in\mathbb{R}^{B\times K}$. Khi dùng \texttt{CrossEntropyLoss}, mục tiêu là class-index và không cần áp softmax trước loss. Khi so với Keras cần ghi rõ nhãn, phép khởi tạo, reduction và preprocessing; parameter count bằng nhau chưa đủ để khẳng định cùng phép tính.
+
 \section{Định dạng ảnh NHWC và NCHW}
 Ảnh Keras thường có shape $(N,H,W,C)$; các phép chập PyTorch nhận $(N,C,H,W)$. Phép đổi trục là
 \[
@@ -12,11 +14,20 @@ Với WIKI, phép xoay legacy $\texttt{np.rot90}(k=3,\texttt{axes=(1,2)})$ xảy
 \section{CNN kết hợp LSTM}
 Thay \texttt{TimeDistributed(CNN)} bằng gộp batch và thời gian $(B,T,C,H,W)\to(BT,C,H,W)$, trích đặc trưng rồi khôi phục $(B,T,F)$ cho LSTM. Tương đương shape không tự chứng minh tương đương trọng số hoặc metric.
 
+Thứ tự frame phải được giữ nguyên qua reshape/tách chiều. CNN xử lý độc lập từng frame; LSTM nhận lại cùng thứ tự thời gian. Ở báo cáo này số tham số CNN-LSTM còn khác nhau giữa report T0206 và T0207; không xóa bất đồng trước khi kiểm tra đúng source snapshot và cách đếm bias/buffer.
+
 \section{Upsampling và phân đoạn}
 Đối chiếu \texttt{UpSampling2D} với \texttt{nn.Upsample}, logits theo lớp và mask class-index cho CrossEntropy. Báo riêng total, trainable, non-trainable theo quy ước Keras.
+
+Với đầu vào một batch ảnh, logits segmentation thường có shape $(B,K,H,W)$; mask class-index có shape $(B,H,W)$. Pixel accuracy và mean Intersection-over-Union là hai phép đo khác nhau; giữ nguyên metric thực sự có trong legacy output.
 
 \section{FCN và chuẩn hóa}
 Giữ chuẩn hóa legacy $x/127.5-1.0$ khi áp dụng đúng đầu vào. Score-map hồi quy không tự động là detector được đánh giá bằng IoU/mAP.
 
+Mọi đổi kích thước/lưới score phải ghi hệ số stride và cách quy đổi tọa độ nếu tạo box. Không suy ra metric detector từ hình heatmap hoặc từ một đầu ra chưa huấn luyện.
+
 \section{Chuẩn hóa và giao thức đánh giá}
 Nêu chuẩn hóa theo dataset, tách train/validation/test và cảnh báo khi notebook tái sử dụng validation/public-test để in metric mang nhãn Test.
+
+\section{Khởi tạo, chuẩn hóa lớp và các yếu tố parity}
+Khi đối chiếu framework cần kiểm tra riêng kernel/bias initialization, padding và pooling, Dropout train/eval, BatchNorm running statistics/epsilon/momentum, layout, thứ tự class labels, loss reduction, optimizer và seed. Bằng chứng parameter count là cần thiết cho cấu trúc nhưng không kiểm tra đầy đủ các hợp đồng này.

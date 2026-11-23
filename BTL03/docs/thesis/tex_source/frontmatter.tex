@@ -1,0 +1,73 @@
+\begin{titlepage}
+\thispagestyle{empty}
+\begin{center}
+\vspace*{1.4cm}
+{\Large\bfseries [TÊN TRƯỜNG / KHOA — CẦN XÁC NHẬN]}\\[1.5cm]
+{\Large\bfseries BÁO CÁO TỔNG KẾT BTL03}\\[0.6cm]
+{\LARGE\bfseries CHUYỂN ĐỔI MÃ NGUỒN DEEP LEARNING\\ TỪ KERAS SANG PYTORCH}\\[0.8cm]
+Snapshot: T0212\\
+Commit nguồn: \texttt{33dcd74599e86404bbc8128c8057afba82810093}\\
+Ngày chốt evidence: 2026-11-23
+
+\vfill
+\begin{tabularx}{\textwidth}{c p{0.26\textwidth} p{0.24\textwidth} X}
+\toprule
+STT & Thành viên / alias & Họ tên / MSSV & Vai trò / task evidence \\
+\midrule
+1 & Duy-DS & [CẦN NHÓM XÁC NHẬN] & T0101/T0201/T0202 reports; không suy ra tỷ lệ \\
+2 & nguyenthanhdat180905-cloud & [CẦN NHÓM XÁC NHẬN] & Nhóm 2 theo task reports \\
+3 & nguyen-cong-tri & [CẦN NHÓM XÁC NHẬN] & Nhóm 3 theo task reports \\
+4 & TonOfWeight072501 & [CẦN NHÓM XÁC NHẬN] & Utilities theo task reports \\
+5 & CHIVY2005 & [CẦN NHÓM XÁC NHẬN] & Nhóm 5 theo task reports \\
+\midrule
+\multicolumn{2}{l}{Giảng viên/lớp: [CẦN XÁC NHẬN]} & \multicolumn{2}{l}{Tỷ lệ đóng góp: [NHÓM XÁC NHẬN; tổng 100\%]} \\
+\bottomrule
+\end{tabularx}
+\vfill
+[ĐỊA ĐIỂM], 2026
+\end{center}
+\end{titlepage}
+
+\chapter*{Tóm tắt}
+\addcontentsline{toc}{chapter}{Tóm tắt}
+BTL03 tái cấu trúc mười cấu hình thuộc năm nhóm Keras sang PyTorch. Tại T0212, report ghi parameter-count audit và 10/10 synthetic one-epoch smoke cases. Đây là kiểm tra cấu trúc/wiring, không phải training metric trên dữ liệu thật. Logger bị BLOCKED do protobuf/TensorBoard; full suite theo shard ghi 78 passed và 4 failed trên 82 test. T0212 chưa đủ điều kiện nghiệm thu/merge. T0201/T0202 là kết quả riêng, không đại diện full training cho mười cấu hình.
+
+\noindent\textbf{Từ khóa:} Keras; PyTorch; parameter audit; reproducibility; synthetic smoke-test; provenance.
+
+\chapter*{Danh mục viết tắt}
+\addcontentsline{toc}{chapter}{Danh mục viết tắt}
+\begin{tabularx}{\textwidth}{lY}
+\toprule Viết tắt & Ý nghĩa \\
+\midrule
+CNN & Convolutional Neural Network \\
+FCN & Score-map model theo legacy; không mặc nhiên là mAP detector \\
+NCHW/NHWC & Batch–channel–height–width / batch–height–width–channel \\
+OOP & Lập trình hướng đối tượng \\
+PR & Pull Request / nhánh tích hợp được audit \\
+RQ & Câu hỏi nghiên cứu \\
+\bottomrule
+\end{tabularx}
+
+\chapter*{Câu hỏi nghiên cứu}
+\addcontentsline{toc}{chapter}{Câu hỏi nghiên cứu}
+Nguồn Project Charter Markdown đúng tên và RQ nguyên văn chưa được xác minh tại snapshot. Không dựng RQ từ README. Chỉ điền ma trận khi có charter chính thức:
+\begin{longtable}{p{0.12\textwidth}p{0.43\textwidth}p{0.28\textwidth}p{0.14\textwidth}}
+\toprule RQ ID & Câu hỏi nguyên văn từ charter đã xác minh & Evidence cần & Trạng thái \\
+\midrule
+[RQ ID] & [Chờ xác minh] & [Run/report/test] & [Chưa kết luận nếu thiếu run] \\
+\bottomrule
+\end{longtable}
+
+\chapter*{Mở đầu}
+\addcontentsline{toc}{chapter}{Mở đầu}
+\section*{Bối cảnh và mục tiêu}
+BTL03 khảo sát chuyển đổi notebook/mô hình thực hành từ Keras sang PyTorch OOP. Báo cáo tập trung snapshot T0212, phân biệt implementation với thực nghiệm còn bị chặn.
+
+\section*{Đối tượng, phạm vi và phương pháp}
+Đối tượng gồm mười cấu hình trong năm nhóm; phạm vi dừng tại commit T0212 nêu trên. Phương pháp là đối chiếu task reports, notebook/CSV provenance, source/config, tests và Git history; không suy diễn metric thiếu nguồn.
+
+\section*{Đóng góp đã xác minh và giới hạn}
+Nêu deliverable có nguồn; giữ nguyên trạng thái BLOCKED, synthetic smoke, logger blocker và task chưa nghiệm thu.
+
+\section*{Cấu trúc báo cáo}
+Chương 1 tổng quan; chương 2 khác biệt framework; chương 3 kiến trúc/pipeline; chương 4 audit và trạng thái; chương 5 kết luận/giới hạn/hướng tiếp theo.

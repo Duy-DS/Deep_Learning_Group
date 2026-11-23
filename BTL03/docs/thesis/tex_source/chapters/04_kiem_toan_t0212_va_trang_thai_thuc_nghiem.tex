@@ -2,6 +2,9 @@
 \section{Nguồn và snapshot}
 Bằng chứng tích hợp chính là report \texttt{docs/reports/T0212\_261123\_2130.md}, tại commit nguồn 33dcd745. Trích dẫn nội bộ: \cite{btl03_t0212_internal}. Số liệu baseline legacy được phân biệt với kết quả PyTorch.
 
+\section{Thiết kế kiểm toán}
+Phân tách unit/model tests, parameter-count audit, synthetic smoke, Keras notebook outputs và PyTorch full-data runs. Mỗi kết quả cần report/source, task/snapshot và Run_ID (nếu có); test count không thay thế metric khoa học.
+
 \section{Parameter-count audit}
 \begin{longtable}{p{0.29\textwidth}r r r p{0.19\textwidth}}
 \toprule Cấu hình & Keras & PyTorch & Lệch & Ghi chú \\
@@ -46,3 +49,22 @@ WP04 & \textbf{[CHƯA THỰC HIỆN - DỰ KIẾN Ở GIAI ĐOẠN TIẾP THEO]}
 \bottomrule
 \end{longtable}
 Các trạng thái WP03/WP04 cần xác minh lại ở snapshot tương lai; không hồi tố kết quả mới vào T0212.
+
+\section{Kết quả, thảo luận và tính hợp lệ}
+Các phát hiện chỉ có hiệu lực cho snapshot T0212. Parameter audit là phép đếm, synthetic smoke là kiểm tra một epoch trên fixture, còn T0201/T0202 là các run độc lập có protocol khác nhau. Logger blocked và suite failures phải được xét trước khi kết luận chất lượng.
+
+\begin{table}[htbp]
+\centering
+\caption{Ma trận evidence và giới hạn suy luận tại snapshot T0212.}
+\label{tab:t0212-evidence-matrix}
+\begin{tabularx}{\textwidth}{p{0.22\textwidth}p{0.30\textwidth}Y}
+\toprule Loại evidence & Quan sát có nguồn & Không cho phép kết luận \\
+\midrule
+Parameter audit & 10 cấu hình được tổng hợp; CNN-LSTM có bất đồng T0206/T0207 cần kiểm tra & Accuracy, output parity hoặc gradient parity \\
+Synthetic smoke & 10/10 one-epoch train/validation cases PASS & Full training/generalization trên dữ liệu thật \\
+Logger/full suite & Logger BLOCKED; 78 pass, 4 fail theo shard & Không được gọi T0212 overall PASS \\
+T0201/T0202 & 36 sweep configs và một MNIST MLP 30 epoch theo task report & Không đại diện cả mười cấu hình hoặc protocol đồng nhất \\
+\bottomrule
+\end{tabularx}
+\evidence{\texttt{docs/reports/T0201\_261122\_2112.md}, \texttt{T0202\_261122\_2112.md}, \texttt{T0212\_261123\_2130.md}; xem manifest nội bộ.}
+\end{table}

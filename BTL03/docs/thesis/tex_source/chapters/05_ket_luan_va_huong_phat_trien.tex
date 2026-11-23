@@ -1,17 +1,23 @@
 \chapter{Kết luận, hạn chế và hướng phát triển}
+\section{Kết quả chính trong phạm vi snapshot}
+Tóm tắt deliverable, kiểm thử và run thực tế có evidence. Phân biệt code/shape test, synthetic smoke, baseline legacy và PyTorch full run; không mở rộng kết luận vượt split hoặc cấu hình đã chạy.
+
 \section{Kết luận trong phạm vi T0212}
 Snapshot ghi nhận chuyển đổi mã, parameter-count audit và synthetic smoke/test có bằng chứng. Tuy nhiên, logger/full suite còn BLOCKED và thiếu full-training/parity metric cho phần lớn cấu hình.
 
 \section{Hạn chế}
 Dữ liệu một số nhóm chưa có; smoke synthetic, CPU-only, metadata legacy không đồng nhất, protocol validation/public-test có reuse và protobuf/TensorBoard chặn logger. Parameter parity chỉ kiểm tra số tham số. README tổng quan có chỗ không khớp report chi tiết; ưu tiên provenance task-level và chú thích xung đột.
 
-\section{Kế hoạch tiếp theo}
+\section{Bài học kinh nghiệm}
+Cần kiểm soát compatibility của dependency/runtime, protocol split, semantics đếm tham số và truy vết report/Run_ID. Không gán nguyên nhân hoặc kết luận nhân quả khi chưa có kiểm chứng.
+
+\section{Kiến nghị và hướng phát triển}
 \begin{enumerate}
-\item Tương thích dependency TensorBoard/protobuf và chạy lại logger/full suite.
-\item Xác nhận dữ liệu, split, seed, config và runtime; chạy full training WP03, lưu CSV/checkpoint/report.
-\item Thực hiện ablation, visualization và error analysis; dùng metric chuyên biệt và đối chứng để trả lời RQ.
-\item Hoàn thiện demo/đóng gói WP04; xác nhận họ tên, MSSV và tỷ lệ đóng góp; kiểm toán và duyệt PDF.
+\item Tương thích dependency TensorBoard/protobuf và chạy lại logger/full suite; xác nhận SummaryWriter thật hoạt động.
+\item Xác nhận dữ liệu, split, seed, config và runtime; chạy full training WP03, lưu CSV/checkpoint/report và Run_ID.
+\item Thực hiện ablation, visualization và error analysis; dùng metric chuyên biệt, ground truth và đối chứng để trả lời RQ.
+\item Hoàn thiện demo/đóng gói WP04; xác nhận họ tên, MSSV và tỷ lệ đóng góp; kiểm toán và duyệt PDF theo yêu cầu chính thức.
 \end{enumerate}
 
 \section{Kết luận}
-T0212 chưa phải nghiệm thu cuối kỳ. Chỉ bổ sung kết quả full training, ablation, demo và kiểm chứng khi có evidence mới; không suy diễn chúng từ bản thảo này.
+Kết luận chỉ trong giới hạn evidence snapshot, nhắc lại blocker quan trọng và xác nhận T0212 chưa phải nghiệm thu cuối kỳ. Chỉ bổ sung kết quả full training, ablation, demo và kiểm chứng khi có evidence mới.

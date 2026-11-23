@@ -1,23 +1,16 @@
-\chapter*{Thông tin đề tài và nhóm thực hiện}
-\addcontentsline{toc}{chapter}{Thông tin đề tài và nhóm thực hiện}
-\begin{center}
-{\Large\bfseries BÁO CÁO TỔNG KẾT BTL03}\\[0.5em]
-{\large Chuyển đổi mã nguồn Deep Learning từ Keras sang PyTorch}\\[1em]
-Snapshot: T0212 / commit \texttt{33dcd74599e86404bbc8128c8057afba82810093}\\
-Ngày chốt evidence: 2026-11-23\\[0.5em]
-Alias thành viên có bằng chứng: Duy-DS; nguyenthanhdat180905-cloud; nguyen-cong-tri; TonOfWeight072501; CHIVY2005\\
-Họ tên, MSSV, giảng viên và tỷ lệ đóng góp: [CẦN NHÓM XÁC NHẬN; tổng tỷ lệ phải bằng 100\%]
-\end{center}
-
 \chapter{Tổng quan dự án}
+
 \section{Bối cảnh và mục tiêu}
-BTL03 chuyển đổi các mô hình tham chiếu Keras sang PyTorch theo cấu trúc hướng đối tượng, đồng thời kiểm tra layout, loss, vòng lặp huấn luyện và quản lý thực nghiệm. Báo cáo này là snapshot tiến độ, không phải bản nghiệm thu cuối.
+BTL03 chuyển đổi mười cấu hình thuộc năm nhóm từ mã Keras sang PyTorch OOP. Chương này xác định phạm vi và snapshot; source code có sẵn không tự chứng minh full training.
 
-\section{Phạm vi}
-Mười cấu hình thuộc năm nhóm: MLP; CNN+MLP; CNN+LSTM; utilities/callbacks; SegNet và FCN score-map. Hai cấu hình utilities dùng lại Gender/Emotion, do đó mười cấu hình không phải mười kiến trúc độc lập.
+\section{Đối tượng và phạm vi}
+Nhóm mô hình gồm MLP, CNN+MLP, CNN+LSTM, training utilities và advanced vision. Hai utilities configs dùng lại Gender/Emotion, do đó không phải mười kiến trúc độc lập. Snapshot chốt tại commit T0212 ghi ở bìa.
 
-\section{Trạng thái tại T0212}
-Report T0212 ghi 10/10 synthetic one-epoch cases và parameter-count audit đạt, nhưng logger bị chặn bởi protobuf/TensorBoard; full suite có bốn lỗi blocker. Trạng thái tổng thể là \textbf{BLOCKED}, không đủ cơ sở tuyên bố nghiệm thu.
+\section{Phương pháp kiểm toán}
+Đối chiếu task reports, notebook/baseline CSV, source/config, tests và Git history. Không chạy lại Keras, nội suy metric thiếu hoặc dùng synthetic smoke như kết quả dữ liệu thật.
 
-\section{Tổ chức báo cáo}
-Chương 2 trình bày khác biệt framework; chương 3 mô tả kiến trúc; chương 4 kiểm toán/thực nghiệm; chương 5 nêu giới hạn và hướng phát triển.
+\section{Trạng thái T0212}
+Report tích hợp ghi parameter-count audit và 10/10 synthetic one-epoch cases; logger bị chặn do protobuf/TensorBoard, full suite có bốn lỗi theo shard. Overall result là \textbf{BLOCKED}, chưa đủ điều kiện nghiệm thu/merge.
+
+\section{RQ và cấu trúc báo cáo}
+RQ nguyên văn phải lấy từ charter chính thức đã xác minh; charter Markdown đúng tên chưa có trong snapshot nên không tự dựng RQ từ README. Chương 2 trình bày framework/data contract; chương 3 pipeline/OOP; chương 4 audit/evidence; chương 5 thảo luận và kế hoạch.

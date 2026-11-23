@@ -2,6 +2,9 @@
 \section{Nguồn, snapshot và phương pháp}
 Ghi commit snapshot, report T0212, CSV baseline, báo cáo task và quy tắc provenance. Report nội bộ được dẫn tại \cite{btl03_t0212_internal}.
 
+\section{Thiết kế kiểm toán và protocol}
+Mỗi kết quả phải chỉ rõ loại bằng chứng: model/code test, parameter count, synthetic smoke, legacy notebook metric hay PyTorch full-data run. Bảng acceptance cần ghi trạng thái, test/split, runtime, Run_ID và giới hạn; test count không thay thế metric khoa học.
+
 \section{Kiểm toán PR và trạng thái cổng chất lượng}
 Chỉ ghi kết quả audit có trong report; nêu trạng thái blocked và lý do. Không diễn giải audit nhánh thành xác nhận chất lượng mô hình.
 
@@ -48,3 +51,23 @@ WP04 & \textbf{[CHƯA THỰC HIỆN - DỰ KIẾN Ở GIAI ĐOẠN TIẾP THEO]}
 
 \section{Full-training metrics}
 Snapshot không có bảng PyTorch full-training cho mười cấu hình. Không đưa metric Keras vào cột PyTorch. Chỉ bổ sung khi có run, split, seed, config, runtime, CSV/checkpoint và protocol xác nhận.
+
+\section{Kết quả, thảo luận và tính hợp lệ}
+Kết luận trong chương này chỉ áp dụng cho snapshot T0212. Parameter-count audit đánh giá số tham số, smoke đánh giá một epoch synthetic, còn T0201/T0202 là run riêng có phạm vi/protocol riêng. Logger bị chặn và bốn test lỗi cần được trình bày trước mọi diễn giải chất lượng.
+
+\begin{table}[htbp]
+\centering
+\caption{Ma trận evidence và giới hạn suy luận tại snapshot T0212.}
+\label{tab:t0212-evidence-matrix}
+\begin{tabularx}{\textwidth}{p{0.22\textwidth}p{0.30\textwidth}Y}
+\toprule
+Loại evidence & Quan sát có nguồn & Không cho phép kết luận \\
+\midrule
+Parameter audit & 10 cấu hình được tổng hợp; CNN-LSTM có mâu thuẫn T0206/T0207 cần đối chiếu & Accuracy, output parity, gradient parity \\
+Synthetic smoke & 10/10 one-epoch train/validation cases PASS & Full training, generalization hoặc metric trên dữ liệu thật \\
+Logger/full suite & Logger BLOCKED; 78 pass, 4 fail theo shard & Không được mô tả T0212 là overall PASS \\
+T0201/T0202 runs & 36 sweep configs và một MNIST MLP run 30 epoch theo task report & Không đại diện cho tất cả mười cấu hình hoặc protocol đồng nhất \\
+\bottomrule
+\end{tabularx}
+\evidence{\texttt{docs/reports/T0201\_261122\_2112.md}, \texttt{T0202\_261122\_2112.md}, \texttt{T0212\_261123\_2130.md}; chi tiết trong manifest nội bộ.}
+\end{table}

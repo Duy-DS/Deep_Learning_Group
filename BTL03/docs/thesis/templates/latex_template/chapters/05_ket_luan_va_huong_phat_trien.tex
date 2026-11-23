@@ -1,17 +1,23 @@
 \chapter{Kết luận, hạn chế và hướng phát triển}
+\section{Kết quả chính trong phạm vi snapshot}
+Tóm tắt những deliverable, kiểm thử và run thực tế có evidence. Phân biệt code/shape test, synthetic smoke, baseline legacy và PyTorch full run; không mở rộng kết luận vượt khỏi split hoặc cấu hình đã chạy.
+
 \section{Kết luận trong phạm vi T0212}
 Tóm lược chuyển đổi mã, parameter-count audit và smoke/test có bằng chứng. Nêu rõ logger/full-suite bị chặn và thiếu full-training/parity metric cho phần lớn cấu hình.
 
 \section{Hạn chế và nguy cơ sai lệch}
 Thảo luận dữ liệu thiếu, synthetic fixtures, CPU-only, khác biệt protocol, metadata legacy chưa đủ, validation/public-test reuse, dependency logger và khác biệt giữa README tổng quan với evidence chi tiết.
 
-\section{Kế hoạch giai đoạn tiếp theo}
+\section{Bài học kinh nghiệm}
+Ghi các bài học có liên hệ trực tiếp với bằng chứng: cần kiểm soát dependency/runtime, protocol split, parameter-count semantics và truy vết report/Run_ID. Không gán nguyên nhân hoặc hiệu quả nhân quả nếu chưa có kiểm chứng.
+
+\section{Kiến nghị và hướng phát triển}
 \begin{enumerate}
-\item Sửa/xác minh TensorBoard-protobuf; chạy logger tests và full suite.
-\item Cung cấp dữ liệu có provenance, chốt split/seed và chạy full training WP03.
-\item Chạy ablation/RQ, metric chuyên biệt, trực quan hóa và error analysis; lưu logs/artifacts/reports.
-\item Hoàn thiện demo/đóng gói WP04; xác nhận thành viên, MSSV, tỷ lệ đóng góp và duyệt PDF.
+\item Sửa/xác minh TensorBoard-protobuf; chạy logger tests và full suite. Điều kiện nghiệm thu: test/logger chạy thật, không thay writer giả.
+\item Cung cấp dữ liệu có provenance, chốt split/seed và chạy full training WP03. Điều kiện nghiệm thu: config, Run_ID, metrics, logs/checkpoint và protocol được lưu.
+\item Chạy ablation/RQ, metric chuyên biệt, trực quan hóa và error analysis; lưu nguồn hình, labels, logs và phân tích có giới hạn.
+\item Hoàn thiện demo/đóng gói WP04; xác nhận thành viên, MSSV, tỷ lệ đóng góp và duyệt PDF theo quy định đã được nhóm xác minh.
 \end{enumerate}
 
 \section{Kết luận}
-Kết luận trong giới hạn snapshot; không suy diễn rằng mục tiêu học thuật hoặc nộp bài cuối kỳ đã hoàn tất.
+Kết luận điều mà evidence snapshot chứng minh, nhắc lại blocker quan trọng và xác nhận rõ đây chưa phải nghiệm thu cuối kỳ. Không suy diễn rằng mục tiêu học thuật hoặc nộp bài đã hoàn tất.
