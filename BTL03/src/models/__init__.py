@@ -2,9 +2,11 @@
 
 from .base_model import BaseMigratedModel
 from .cnn_models import EmotionCNN, HumanGenderCNN, MNISTCNN
+from .cnn_lstm import MNISTCNNLSTM
 from .mlp import FuncApxmMLP, MNISTMLP
 
 __all__ = [
     "BaseMigratedModel", "FuncApxmMLP", "MNISTMLP",
     "MNISTCNN", "HumanGenderCNN", "EmotionCNN",
+    "MNISTCNNLSTM",
 ]

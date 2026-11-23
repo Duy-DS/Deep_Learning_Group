@@ -329,3 +329,51 @@ Log Keras legacy cho epoch 15: Train accuracy 0.8660, validation accuracy 0.5954
 **Có thể ghi WIKI 87.7% là kết quả T0204 không?** Không cho baseline basic: số đó thuộc biến thể callbacks. Baseline basic CSV ghi 82.64%; split và biến thể phải được nêu rõ.
 
 **Các smoke-test có thể xác nhận accuracy mục tiêu không?** Không. Chúng chỉ kiểm tra shape, preprocessing, parameter parity, hook và wiring bằng dữ liệu giả. Accuracy cần train/evaluate trên dữ liệu thật.
+
+---
+
+## 10. T0206/T0207 — Chuỗi MNIST và CNN-LSTM
+
+### Sinh chuỗi zero-padded có thể tái lập
+
+`SequentialMNISTDataset` nhận ảnh/nhãn MNIST qua pipeline `MNISTDataset`, nên mỗi frame được đổi từ byte sang float32 `[0,1]` rồi layout `(1,28,28)`. Với mỗi mẫu, bộ sinh chọn `numToAdd = ceil(U×8)` (1..8), lấy chỉ số ảnh có hoàn lại, đặt ảnh ở đầu chuỗi và giữ các frame còn lại bằng 0. Target là tổng digit của đúng các frame đã chọn. Mỗi item trả `(8,1,28,28)` cùng target float32 `(1,)`; DataLoader ghép thành `(B,8,1,28,28)` và `(B,1)`.
+
+Kế hoạch số lượng frame và chỉ số nguồn được sinh một lần bằng `np.random.default_rng(42)` cùng stream tách riêng cho train/test; dataset lưu index/kế hoạch chứ không nhân đôi cả tập thành mảng 5D trong RAM. Cùng seed và cùng split tái tạo giống nhau; train/test không dùng chung luồng RNG. Notebook gốc đặt seed NumPy 2018 cho toàn bộ vòng lặp; bản chuyển đổi tuân thủ seed toàn cục dự án 42 nhưng giữ thuật toán phân phối, zero-padding và lấy mẫu có hoàn lại. Hình minh họa được tạo bằng `--dataset-only` ở `outputs/figures/t0206_seq_mnist_samples.png`; nếu chạy smoke thì đó là dữ liệu giả, không phải ảnh MNIST thật.
+
+### CNN thay `TimeDistributed`
+
+Đầu vào `(B,T,C,H,W)=(B,8,1,28,28)` được reshape thành `(B×8,1,28,28)` để Conv2d xử lý các frame độc lập cùng trọng số. Ba block Conv 3×3 padding 1 + ReLU + MaxPool2d + Dropout cho kích thước `28→14→7→3`; frame cuối có `(B×8,256,3,3)`. Flatten thành `(B×8,2304)`, sau đó reshape trở lại `(B,8,2304)` theo đúng thứ tự batch/time ban đầu.
+
+LSTM thứ nhất có `batch_first=True`, nhận `(B,8,2304)` và giữ output toàn chuỗi `(B,8,128)`, tương đương `return_sequences=True`. LSTM thứ hai nhận toàn chuỗi, cho `(B,8,128)`; chỉ lấy `[:, -1, :]` thành `(B,128)`, tương đương `return_sequences=False`. Dropout 0.22 và Linear 128→1 tạo dự đoán tổng `(B,1)`. Đầu ra là số hồi quy, không có softmax.
+
+### Parameter parity và LSTM bias
+
+| Layer | PyTorch shape | Params |
+|---|---|---:|
+| Conv1 1→64, 3×3 | 64×28×28 → pool 64×14×14 | 640 |
+| Conv2 64→128, 3×3 | 128×14×14 → pool 128×7×7 | 73,856 |
+| Conv3 128→256, 3×3 | 256×7×7 → pool 256×3×3 | 295,168 |
+| LSTM1 2304→128 | input/recurrent kernels và bias | 1,245,696 |
+| LSTM2 128→128 | input/recurrent kernels và bias | 131,584 |
+| Linear 128→1 | hồi quy tổng | 129 |
+| **Tổng** |  | **1,747,073** |
+
+Keras LSTM lưu một vector bias kích thước `4H`, trong khi PyTorch `nn.LSTM` mặc định có `bias_ih` và `bias_hh` (tổng `8H`). Để parity tuyệt đối, model đăng ký `bias_hh_l0=None`, giữ `bias_ih_l0` học được; tổng số tham số của mỗi LSTM khi đó đúng công thức Keras `4H×input + 4H×H + 4H`. Initializer tùy chỉnh dùng Glorot cho input kernels, orthogonal cho recurrent kernels và bias forget bằng 1 theo mặc định Keras.
+
+### Cấu hình, metric và giới hạn baseline
+
+YAML giữ `seq_len=8`, seed dự án 42, SGD `0.01`, MAE, batch 128, 30 epoch, Dropout CNN 0.2 và LSTM 0.22. Runner đánh giá `mean(abs(prediction-target))`, lưu epoch history, chọn checkpoint theo validation MAE và ghi Test_Metric sau đánh giá checkpoint. Keras legacy đã dùng đúng MNIST test split làm `validation_data`, và baseline cuối ghi `val_loss=0.6502`; không có test evaluate độc lập lưu trong notebook. Vì vậy kết quả rerun trên cùng split phải ghi là validation/public-test theo protocol legacy, không gọi là test holdout độc lập. Ngưỡng MAE `0.04` là mục tiêu riêng cần kiểm chứng; không thể suy ra đã đạt từ baseline 0.6502 hay từ parameter parity.
+
+### Câu hỏi vấn đáp
+
+**Vì sao gộp B và T trước CNN?** Mỗi frame đi qua cùng một CNN và không tương tác với frame khác ở tầng không gian; gộp thành batch lớn hơn tương đương `TimeDistributed` và tận dụng convolution batch hiệu quả.
+
+**Vì sao reshape lại `(B,T,F)` trước LSTM?** LSTM cần giữ trục thời gian và thứ tự frame; nếu không phục hồi đúng B/T, recurrent state sẽ trộn chuỗi khác nhau.
+
+**LSTM thứ nhất và thứ hai khác gì?** Tầng đầu phát output cho mọi timestep để tầng hai xử lý chuỗi; tầng hai chỉ lấy output timestep cuối làm embedding toàn chuỗi.
+
+**Vì sao bỏ `bias_hh_l0`?** PyTorch mặc định tách bias input/recurrent, còn Keras dùng một bias. Bỏ một vector bias PyTorch cho mỗi gate/layer giúp khớp 1,747,073 tham số mà vẫn giữ một bias hiệu dụng có thể học.
+
+**Zero padding có làm LSTM dừng ở frame zero đầu tiên không?** Không; LSTM vẫn xử lý đủ 8 timestep và không có masking. Đây cũng là hành vi legacy; các frame zero cuối vẫn ảnh hưởng trạng thái recurrent qua bias/hidden dynamics.
+
+**Có thể tuyên bố MAE ≤0.04 chỉ từ smoke test không?** Không. Smoke chỉ xác nhận shape, tính tái lập, parameter parity, forward/backward wiring và artifacts. MAE cần đánh giá mô hình đã huấn luyện trên split MNIST được ghi rõ.
