@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional, Tuple, Union
 
 import numpy as np
-from sklearn.metrics import f1_score
+from sklearn.metrics import classification_report, f1_score
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -32,6 +32,7 @@ from src.models import (
     SmallCNN,
 )
 from src.train.mlflow_logger import MLflowLogger
+from src.train.losses import LossFactory
 from src.train.utils import count_parameters, get_device, seed_everything
 
 
@@ -92,12 +93,19 @@ class Trainer:
         self.channels = self.config.get("channels")
         self.num_workers = int(self.config.get("num_workers", 0))
         self.num_classes = int(self.config.get("num_classes", 7))
+        self.loss_config = dict(self.config.get("loss") or {})
+        self.loss_name = str(self.loss_config.get("name", "cross_entropy")).strip().lower()
+        self.loss_gamma = float(self.loss_config.get("gamma", 2.0)) if self.loss_name == "focal" else None
+        self.loss_configured = "loss" in self.config
         self.normalization = str(self.config.get("normalization", "fer2013"))
         self.transform_mode = str(self.config.get("transform_mode", "custom"))
         self.use_augmentation = bool(self.config.get("use_augmentation", True))
         if self.augmentation_mode == "none":
             self.use_augmentation = False
-        self.aug_config = self.config.get("aug_config")
+        self.aug_config = self.config.get(
+            "aug_config",
+            augmentation_config.get("aug_config") if isinstance(augmentation_config, dict) else None,
+        )
         self.pretrained = bool(self.config.get("pretrained", True))
         self.freeze_backbone = bool(self.config.get("freeze_backbone", False))
         self.dropout_rate = float(self.config.get("dropout_rate", self.dropout))
@@ -134,13 +142,23 @@ class Trainer:
         self.model = self._build_model().to(self.device)
         print(f"[*] Khởi tạo thành công mô hình {self.architecture}: {count_parameters(self.model):,} tham số.")
 
-        # 7. Khởi tạo Hàm mất mát và Bộ tối ưu hóa (Optimizer)
-        self.criterion = nn.CrossEntropyLoss()
+        # 7. Class weights chỉ được tính từ nhãn của Dataset thuộc train_loader.
+        train_dataset = getattr(self.train_loader, "dataset", None)
+        train_labels = getattr(train_dataset, "labels", None)
+        self.criterion = LossFactory.create(
+            config=self.loss_config,
+            train_labels=train_labels,
+            num_classes=self.num_classes,
+            device=self.device,
+        )
+        # Dùng cùng một loss không trọng số để so sánh validation/test giữa các ablation.
+        self.eval_criterion = nn.CrossEntropyLoss().to(self.device)
+        self.last_classification_report: Dict[str, Any] = {}
         self.optimizer = self._build_optimizer()
         self.lr_scheduler = self._build_scheduler()
 
         # 8. Khởi tạo MLflowLogger
-        self.logger = MLflowLogger()
+        self.logger = MLflowLogger(tracking_uri=self.config.get("mlflow_tracking_uri"))
 
     @staticmethod
     def _format_artifact_path(
@@ -172,8 +190,9 @@ class Trainer:
         pretrained: Optional[bool] = None,
         image_size: Optional[int] = None,
         augmentation_mode: Optional[str] = None,
+        loss_name: Optional[str] = None,
     ) -> str:
-        """Tạo tên run phân biệt cấu hình SOTA mà vẫn giữ tên các run CNN cũ."""
+        """Tạo tên run khác biệt theo kiến trúc, augmentation và loss khi được cấu hình."""
         sota_architectures = {
             "VGG16", "PretrainedVGG16", "ResNet50", "PretrainedResNet50",
             "EfficientNetB0", "PretrainedEfficientNetB0",
@@ -181,8 +200,13 @@ class Trainer:
         if architecture in sota_architectures:
             weight_mode = "pretrained" if pretrained else "scratch"
             base_name = f"{exp_id}_{architecture}_{weight_mode}_{image_size}_{optimizer}"
-            return f"{base_name}_aug-{augmentation_mode}" if augmentation_mode else base_name
-        return f"{exp_id}_{architecture}_{activation}_{optimizer}"
+            if augmentation_mode:
+                base_name = f"{base_name}_aug-{augmentation_mode}"
+        else:
+            base_name = f"{exp_id}_{architecture}_{activation}_{optimizer}"
+        if loss_name:
+            base_name = f"{base_name}_loss-{loss_name}"
+        return base_name
 
     def _build_model(self) -> nn.Module:
         """Khởi tạo kiến trúc mô hình tương ứng với tham số architecture."""
@@ -335,7 +359,7 @@ class Trainer:
                 labels = labels.to(self.device)
 
                 outputs = self.model(images)
-                loss = self.criterion(outputs, labels)
+                loss = self.eval_criterion(outputs, labels)
 
                 running_loss += loss.item() * images.size(0)
                 preds = outputs.argmax(dim=1)
@@ -347,6 +371,20 @@ class Trainer:
         eval_loss = running_loss / total_samples
         eval_acc = (np.sum(np.array(all_preds) == np.array(all_targets)) / total_samples) * 100.0
         macro_f1 = float(f1_score(all_targets, all_preds, average="macro", zero_division=0))
+        fer_class_names = ["Angry", "Disgust", "Fear", "Happy", "Sad", "Surprise", "Neutral"]
+        class_names = (
+            fer_class_names[: self.num_classes]
+            if self.num_classes <= len(fer_class_names)
+            else [str(index) for index in range(self.num_classes)]
+        )
+        self.last_classification_report = classification_report(
+            all_targets,
+            all_preds,
+            labels=list(range(self.num_classes)),
+            target_names=class_names,
+            output_dict=True,
+            zero_division=0,
+        )
 
         return eval_loss, eval_acc, macro_f1
 
@@ -364,6 +402,7 @@ class Trainer:
             pretrained=self.pretrained,
             image_size=self.image_size,
             augmentation_mode=self.augmentation_mode,
+            loss_name=self.loss_name if self.loss_configured else None,
         )
         print(f"\n{'='*70}")
         print(f"🚀 BẮT ĐẦU THỰC NGHIỆM: {run_name} (Nhóm: {self.exp_group} | Câu hỏi: {self.rq_tag})")
@@ -394,6 +433,8 @@ class Trainer:
             "dropout": self.dropout,
             "activation": self.activation,
             "channels": str(self.channels) if self.channels is not None else "default",
+            "loss_name": self.loss_name,
+            "loss_gamma": self.loss_gamma if self.loss_gamma is not None else -1.0,
             "member": self.member,
         }
         self.logger.log_params(init_params)
@@ -461,6 +502,12 @@ class Trainer:
             self.model.load_state_dict(torch.load(self.checkpoint_path, map_location=self.device))
 
         test_loss, private_test_acc, private_macro_f1 = self.evaluate(self.test_loader)
+        report_path = self.checkpoint_path.with_name(f"{self.checkpoint_path.stem}_private_classification_report.json")
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        import json
+
+        with report_path.open("w", encoding="utf-8") as report_file:
+            json.dump(self.last_classification_report, report_file, ensure_ascii=False, indent=2)
         print(f"[*] KẾT QUẢ ĐÁNH GIÁ CUỐI KỲ (Private Test):")
         print(f"    - Private Test Acc : {private_test_acc:.2f}%")
         print(f"    - Private Macro-F1 : {private_macro_f1:.4f}")
@@ -488,6 +535,8 @@ class Trainer:
         # Lưu checkpoint làm artifact trong MLflow
         if self.checkpoint_path.exists():
             self.logger.log_artifact(str(self.checkpoint_path))
+        if report_path.exists():
+            self.logger.log_artifact(str(report_path))
 
         # Đóng phiên chạy MLflow và xuất file CSV tổng kết
         self.logger.end_run()
@@ -505,6 +554,7 @@ class Trainer:
             "best_val_acc": best_val_acc,
             "private_test_acc": private_test_acc,
             "macro_f1": private_macro_f1,
+            "private_classification_report": self.last_classification_report,
         }
 
 

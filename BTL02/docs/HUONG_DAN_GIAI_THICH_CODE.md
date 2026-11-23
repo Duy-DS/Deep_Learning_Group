@@ -242,6 +242,47 @@ Trả lời: Chưa. RandomErasing có thể che ngẫu nhiên một vùng ảnh,
 **Hỏi: Chép thư mục MLflow có tiếp tục một epoch đang chạy dở không?**
 Trả lời: Không. MLflow chứa tracking và trạng thái run, không mặc nhiên chứa đủ trạng thái optimizer/model để tiếp tục epoch. Auto-Skip chỉ áp dụng cho run `FINISHED`; resume cần checkpoint được pipeline hỗ trợ.
 
+## 9. TASK T0402 — CLASS IMBALANCE LOSSES (EXP-11, RQ3)
+
+### 9.1. Luồng cấu hình và ranh giới chống rò rỉ
+
+- Ba YAML `experiments/ablation/exp11_loss_ce.yaml`, `exp11_loss_weighted_ce.yaml`, `exp11_loss_focal.yaml` giữ nguyên EfficientNet-B0 pretrained, ảnh RGB 128×128, seed 42, split 28.709/3.589/3.589, augmentation `basic`, AdamW, LR/weight decay, scheduler, batch size và epoch budget. Biến độc lập duy nhất là loss: `cross_entropy`, `weighted_ce`, `focal` (gamma=2).
+- `Trainer` khởi tạo ba DataLoader theo hợp đồng hiện có; class weights chỉ nhận `train_loader.dataset.labels`, vốn được tạo sau khi `FER2013Dataset` lọc `Usage == "Training"`. Nhãn của `val_loader` và `test_loader` không được đưa vào `LossFactory`. Nếu weighted mode không có nhãn Training hoặc thiếu bất kỳ lớp nào thì Factory dừng bằng lỗi rõ ràng, không ước lượng từ tập đánh giá.
+- Công thức `inverse_freq`: $w_c=N/(K\,N_c)$, sau đó chuẩn hóa vector để trung bình trọng số bằng 1. `effective_num` là tùy chọn thay thế trong Factory. Với FER2013, nhãn có shape `[N]`, class weights `[7]`, logits của EfficientNet-B0 `[B,7]`, targets `[B]`.
+- Chỉ vòng lặp train sử dụng `self.criterion` do YAML chọn. Validation và PrivateTest luôn dùng `self.eval_criterion = CrossEntropyLoss()` không trọng số để chọn checkpoint/đánh giá trên cùng thước đo giữa ba ablation; augmentation của các split đánh giá tiếp tục deterministic và không nhận augmentation train.
+
+### 9.2. CrossEntropy, Weighted CE và Focal Loss
+
+- CrossEntropy chuẩn lấy negative log-probability của lớp đúng. Weighted CE thay đổi đóng góp từng mẫu bằng `weight[target]`, nhờ đó lỗi của lớp ít mẫu như Disgust có ảnh hưởng lớn hơn tới gradient. Chuẩn hóa trọng số trung bình 1 giúp hạn chế thay đổi thang loss tổng.
+- `FocalLoss(nn.Module)` tính `ce = F.cross_entropy(logits, targets, reduction="none")`, `pt = exp(-ce)`, rồi `((1-pt)**gamma) * ce`. Với gamma=2, mẫu phân loại dễ (pt gần 1) bị giảm mạnh loss; mẫu khó giữ ảnh hưởng tương đối lớn. `alpha` có thể là hệ số vô hướng hoặc vector lớp, được đăng ký thành buffer để chuyển cùng criterion sang CPU/CUDA. Khi gamma=0 và alpha=None, focal loss bằng CrossEntropy chuẩn.
+- `LossFactory.create()` đọc khối YAML, sinh criterion và chuyển buffer/weight sang device của Trainer. YAML cũ không khai báo `loss` mặc định dùng `cross_entropy`; tên run chỉ thêm hậu tố loss khi loss được khai báo, giúp không đổi identity các run cũ và ngăn Auto-Skip lẫn ba EXP-11.
+- Trainer tạo `classification_report` trên PrivateTest với danh sách nhãn cố định 0–6 và `zero_division=0`, rồi lưu JSON thành MLflow artifact. Báo cáo gồm precision/recall/F1 từng lớp và macro/weighted averages; file này bổ sung chứ không sửa schema CSV MLflow 24 cột.
+
+### 9.3. Trạng thái kiểm chứng T0402
+
+- Đã triển khai module loss, Trainer integration, ba recipe EXP-11, unit tests và runner notebook Colab/Kaggle. Unit tests riêng T0402: **13 passed**. Kiểm tra JSON notebook và cú pháp từng code cell đã qua.
+- Máy phát triển dùng PyTorch 2.5.1 CPU-only (`torch.cuda.is_available() == False`); không có `t0402_ablation_imbalance_24col.csv`. Full test suite đang được kiểm tra; chưa tuyên bố đã pass cho đến khi có summary cuối.
+- Do chưa có GPU runs, chưa có Run IDs, best epoch hoặc số đo Private Acc/Macro-F1/recall thực tế. Không kết luận Weighted CE/Focal cải thiện Disgust/Fear hoặc đánh đổi accuracy khi chưa có CSV và per-class JSON artifacts từ các run.
+- Colab runner dùng `/content/mlruns_t0402`, checkpoint/log local SSD rồi atomic-sync Drive tại `MyDrive/BTL02/T0402_Imbalance`; lọc torch/torchvision khi cài requirements. Kaggle runner giữ nguyên framework trong image, đọc Secrets, hỗ trợ competition archive/Kaggle API token và khôi phục chỉ run MLflow `FINISHED` từ dataset backup mà không ghi đè run local. Hai runner xuất schema `MLflowLogger.CSV_COLUMNS` 24 cột; Auto-Skip chỉ áp dụng run FINISHED.
+
+**Hỏi: Vì sao class weights chỉ được tính từ Training?**
+Trả lời: Tần suất lớp là thống kê được dùng để thay đổi quá trình tối ưu. Dùng nhãn PublicTest/PrivateTest sẽ làm lộ phân phối đánh giá vào huấn luyện, gây data leakage và làm so sánh không còn độc lập. Trainer chỉ chuyển nhãn từ `train_loader.dataset.labels` vào LossFactory.
+
+**Hỏi: Weighted CE khác Focal Loss ở điểm nào?**
+Trả lời: Weighted CE tăng/giảm loss theo lớp thật của mẫu; trọng số nghịch đảo tần suất nhắm tới cân bằng đóng góp lớp. Focal Loss điều tiết theo độ khó từng mẫu bằng `(1-pt)^gamma`, giảm ảnh hưởng mẫu dễ bất kể lớp. Chúng có thể kết hợp qua alpha/class weights nhưng EXP-11 focal hiện để alpha=None để cô lập focal modulation.
+
+**Hỏi: Vì sao validation/test không dùng criterion có class weights?**
+Trả lời: Validation dùng chọn checkpoint và cần cùng một thước đo cho cả ba cấu hình; PrivateTest cần báo cáo loss/accuracy theo đánh giá không trọng số. Chỉ loss của các batch train thay đổi theo ablation. Accuracy và Macro-F1 được tính từ logits/nhãn, không từ class-weighted loss.
+
+**Hỏi: Focal Loss gamma=0 có gì đặc biệt?**
+Trả lời: Với alpha=None, `(1-pt)^0=1`, nên loss trở về CrossEntropy. Đây là kiểm tra quan trọng để xác minh implementation và cho thấy gamma điều khiển mức tập trung vào mẫu khó.
+
+**Hỏi: Nếu Macro-F1 tăng thì có chắc Recall của Disgust và Fear tăng không?**
+Trả lời: Không. Macro-F1 là trung bình F1 của các lớp, nhưng có thể tăng do lớp khác. Cần đọc precision/recall/F1 từng lớp từ JSON classification report và confusion matrix; đồng thời so sánh PrivateTest Acc để lượng hóa trade-off.
+
+**Hỏi: Auto-Skip có resume run bị ngắt giữa epoch không?**
+Trả lời: Không. Runner chỉ bỏ qua run MLflow `FINISHED`. Run dở không được coi là hoàn thành; resume giữa epoch cần checkpoint chứa đủ model, optimizer, scheduler và epoch state, hiện không được runner giả định.
+
 ## Bổ sung kỹ thuật ngày 2026-11-18: Audit và kagglehub
 
 ### Nạp .env an toàn (phiên 22:33)
