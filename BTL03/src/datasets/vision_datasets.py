@@ -28,7 +28,8 @@ class _ImageClassificationDataset(Dataset[tuple[torch.Tensor, torch.Tensor]]):
             image_size: Chiều cao và chiều rộng ảnh vuông.
             num_classes: Số lớp phân loại.
             normalization: ``unit`` giữ nguyên [0, 1], ``byte`` chia 255,
-                ``auto`` chỉ chia 255 khi max ảnh lớn hơn 1.
+                ``auto`` chỉ chia 255 khi max ảnh lớn hơn 1, ``preserve`` giữ
+                nguyên thang pixel gốc không âm (phù hợp CSV FER legacy).
         """
         self.images = self._prepare_images(images, image_size, normalization)
         self.labels = self._prepare_labels(labels, len(self.images), num_classes)
@@ -69,8 +70,11 @@ class _ImageClassificationDataset(Dataset[tuple[torch.Tensor, torch.Tensor]]):
                 raise ValueError("Pixel phải nằm trong [0, 255].")
             if maximum > 1:
                 tensor = tensor / 255.0
+        elif normalization == "preserve":
+            # Notebook FER gốc không chia pixel cho 255; giữ đúng thang đầu vào.
+            pass
         else:
-            raise ValueError("normalization phải là 'auto', 'unit' hoặc 'byte'.")
+            raise ValueError("normalization phải là 'auto', 'unit', 'byte' hoặc 'preserve'.")
 
         # (N, H, W, C) -> (N, C, H, W), tương đương permute(0, 3, 1, 2).
         return tensor.permute(0, 3, 1, 2).contiguous()
@@ -177,8 +181,7 @@ def load_fer_onehot_csv(path: str | Path) -> tuple[np.ndarray, np.ndarray]:
     """Đọc CSV legacy FER gồm 2304 pixel rồi đến 7 nhãn one-hot.
 
     Giá trị pixel trong notebook legacy không bị chia 255. Hàm trả ảnh NHW;
-    Dataset sẽ giữ nguyên giá trị nếu chúng đã nằm trong [0,1], nếu là byte
-    [0,255] thì `normalization='auto'` mới chia 255.
+    dùng `normalization='preserve'` để tái hiện đúng thang pixel gốc.
     """
     rows = np.loadtxt(Path(path), delimiter=",", dtype=np.float32, ndmin=2)
     if rows.shape[1] != 2311:

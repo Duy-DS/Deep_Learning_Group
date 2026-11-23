@@ -277,3 +277,55 @@ Keras dùng `validation_data=(x_test,y_test)` rồi đánh giá lại đúng spl
 **Test accuracy có dùng chọn checkpoint không?** Không. Chỉ validation split từ train chọn checkpoint; test được mở một lần sau khi nạp checkpoint tốt nhất.
 
 **Vì sao kết quả có thể lệch baseline Keras 96.48%?** Khác biệt thứ tự batch/shuffle, initializer và backend SGD có thể tạo quỹ đạo tối ưu khác. Cần cố định split/seed, initializer, batch/epochs và so sánh trong cùng runtime; không diễn giải sai số một lần chạy thành lỗi kiến trúc.
+
+---
+
+## 9. T0203–T0205 — Nhóm 2 CNN + MLP chuyển sang PyTorch
+
+### Hợp đồng tensor và tiền xử lý
+
+`MNISTDataset`, `WikiGenderDataset` và `FEREmotionDataset` trả tensor ảnh `(N,C,H,W)` kiểu `torch.float32`; nhãn được đổi từ one-hot sang `torch.long` class index. MNIST byte chia 255 như notebook gốc. WIKI thực hiện `np.rot90(images, k=3, axes=(1,2))` trên NHWC trước khi `permute(0,3,1,2)`. FER basic legacy lấy 2304 cột pixel trực tiếp và không chia 255; runner dùng `normalization: preserve` để không tự đổi thang dữ liệu.
+
+Với ảnh vuông 64×64, `k=3` là xoay 270° ngược chiều kim đồng hồ (90° theo chiều kim đồng hồ). Tọa độ pixel `(y,x)` ánh xạ thành `(x,63-y)`. Phép xoay thay vị trí pixel; phép `permute` sau đó chỉ đổi layout `(N,H,W,C)→(N,C,H,W)`. Ảnh xác minh runner tạo là `outputs/figures/t0204_wiki_rot90_verify.png`; khi chỉ smoke-test bằng dữ liệu tổng hợp, hình đó không chứng minh orientation của WIKI thật.
+
+### MNISTCNN và hook `pool3`
+
+Notebook `1_MNIST_CNN.ipynb` dùng Conv2D 64/128/256 kênh, mỗi convolution `padding='same'`, theo sau bởi MaxPool2D và Dropout 0.2. Kích thước đi qua pooling là `28→14→7→3`; `pool3` là MaxPooling2D cuối, không phải GlobalAveragePooling2D. Flatten map `(256,3,3)` thành 2304, rồi Dense 512 hai lần và Dense 10.
+
+PyTorch `padding=1` với kernel 3×3 cho kích thước `H_out = floor((H+2P−K)/S)+1 = H` khi stride 1, tương đương Keras `same`. MaxPool2d kernel/stride 2 dùng floor: 28→14→7→3. Hook đăng ký `pool3`, nhận `(B,256,3,3)`; runner làm phẳng mỗi activation thành `(B,2304)` và ghép nhãn test theo đúng thứ tự DataLoader. Keras summary và PyTorch đều có **1,817,610 tham số**. Không thay Flatten bằng GAP vì khi đó Dense đầu vào chỉ 256, làm thay đổi số params và mô hình.
+
+### HumanGenderCNN
+
+WIKI CNN có 5 block với channel `16,32,64,128,256`; số convolution mỗi block lần lượt `2,3,3,3,3`, tổng 14? Cụ thể block đầu 2 và bốn block sau 3, tổng **14 convolution**. Mỗi Conv3×3 dùng same padding; sau mỗi block MaxPool2d giảm đôi, Dropout 0.2. Sau pool thứ năm, 64→32→16→8→4→2; Flatten `256×2×2=1024`; hai Dense 1024 và Dense output 2. Tổng **4,063,570 params**.
+
+`padding='same'` của Keras giữ kích thước khi stride 1. Với kernel lẻ 3, PyTorch `padding=1` cho kết quả này. Nếu kernel chẵn hoặc stride khác 1, Keras có thể phân bổ padding bất đối xứng; chỉ dùng đối chiếu công thức trước khi thay bằng padding đối xứng PyTorch.
+
+Baseline WIKI basic lưu validation accuracy **82.6408%**. Mức **87.7346%** trong baseline CSV là notebook khác có callbacks (T0209/nhóm training utilities); không dùng nó để tuyên bố đã tái lập baseline basic.
+
+### EmotionCNN và bằng chứng overfitting legacy
+
+FER2013 sử dụng Conv 64 same → Conv 64 valid → pool; Conv 128 same → Conv 128 valid → Conv 218 same → Conv 218 valid → pool. Công thức convolution stride 1, dilation 1: same giữ H/W; valid cho `H_out=H−K+1`, do đó `48→48→46→23→23→21→21→19→9`. Flatten `218×9×9=17,658`, Dense 1024 rồi Dense 7. Tổng **19,028,287 params**, khớp Keras. Đây là bản basic 15 epoch, Adam `1e-4`, batch 128; không thêm callbacks hoặc augmentation.
+
+Log Keras legacy cho epoch 15: Train accuracy 0.8660, validation accuracy 0.5954, chênh lệch 27.06 điểm phần trăm. Validation loss đạt thấp nhất đã lưu 1.1372 ở epoch 9, rồi tăng tới 1.4070 ở epoch 15. Đây là bằng chứng overfitting trong lịch sử notebook. Tập validation dùng public-test CSV theo legacy nên không phải holdout độc lập; các số trên không phải kết quả chạy PyTorch mới. Mạng có nhiều tham số dense so với biểu diễn ảnh grayscale 48×48 là một yếu tố cần khảo sát; T0209 mới là nơi đối chiếu callbacks/augmentation có kiểm soát.
+
+### Công thức kích thước và tham số
+
+- Conv2d: `H_out=floor((H+2P−D(K−1)−1)/S+1)` (tương tự W). Số tham số có bias: `C_out×(C_in×K_h×K_w+1)`.
+- MaxPool2d: dùng cùng công thức hình học, nhưng không có tham số học.
+- Linear: `N_params = in_features×out_features + out_features` nếu bật bias.
+- GlobalAveragePooling2D Keras tương ứng `AdaptiveAvgPool2d((1,1))` khi kiến trúc thật có GAP. Ba CNN legacy Nhóm 2 đang xét không dùng GAP; `pool3` MNIST là MaxPool2D.
+- PyTorch CrossEntropyLoss nhận logits và nhãn class index; không gọi softmax trước criterion. Khi cần xác suất dự đoán để hiển thị, mới dùng `softmax(dim=1)` sau forward.
+
+### Câu hỏi vấn đáp
+
+**Vì sao phải xoay WIKI trước permute?** Notebook gốc xoay hai trục không gian NHWC `(1,2)`. Sau permute, các chỉ số trục đã đổi; dùng nhầm axes có thể xoay channel hoặc batch thay vì ảnh.
+
+**Tại sao `pool3` không phải GAP?** Tên `pool3` trong Keras thuộc MaxPooling2D cuối. Đổi sang GAP sẽ mất không gian 3×3 và đổi Dense input/parameter count, không còn parity.
+
+**`padding='same'` có luôn tương đương `padding=1` không?** Với kernel 3×3, stride 1 thì có; kernel chẵn/stride khác có thể cần padding bất đối xứng và phải tính riêng.
+
+**Vì sao EmotionCNN có khoảng 19M tham số dù input 48×48?** Sau convolutions còn 17,658 activations được nối đầy đủ tới 1024 units; riêng Dense này có 18,082,816 weights+biases. Đây là phần chi phối parameter count.
+
+**Có thể ghi WIKI 87.7% là kết quả T0204 không?** Không cho baseline basic: số đó thuộc biến thể callbacks. Baseline basic CSV ghi 82.64%; split và biến thể phải được nêu rõ.
+
+**Các smoke-test có thể xác nhận accuracy mục tiêu không?** Không. Chúng chỉ kiểm tra shape, preprocessing, parameter parity, hook và wiring bằng dữ liệu giả. Accuracy cần train/evaluate trên dữ liệu thật.

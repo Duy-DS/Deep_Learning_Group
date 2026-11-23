@@ -76,6 +76,15 @@ def test_fer_legacy_csv_has_2304_pixels_then_seven_onehot_labels(tmp_path):
     assert dataset.images.max().item() == pytest.approx(1.0)
 
 
+def test_fer_preserve_mode_matches_legacy_no_rescaling():
+    """Chế độ preserve giữ pixel byte vì notebook FER gốc không chia 255."""
+    images = np.full((2, 48, 48), 255, dtype=np.uint8)
+    labels = np.array([0, 1])
+    dataset = FEREmotionDataset(images, labels, normalization="preserve")
+    assert dataset.images.dtype == torch.float32
+    assert dataset.images.max().item() == 255.0
+
+
 def test_wrong_image_size_and_label_range_are_rejected():
     """Schema sai phải báo lỗi thay vì âm thầm đổi kích thước/nhãn."""
     with pytest.raises(ValueError, match="Kích thước ảnh"):

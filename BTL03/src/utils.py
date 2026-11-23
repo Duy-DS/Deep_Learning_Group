@@ -3,12 +3,13 @@
 from pathlib import Path
 import os
 import random
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 import torch
 
-from .logger import CheckpointManager, ExperimentLogger
+if TYPE_CHECKING:
+    from .logger import CheckpointManager, ExperimentLogger
 
 __all__ = [
     "seed_everything",
@@ -18,6 +19,28 @@ __all__ = [
     "ExperimentLogger",
     "CheckpointManager",
 ]
+
+
+def __getattr__(name: str) -> Any:
+    """Nạp logger theo yêu cầu để tiện ích seed không phụ thuộc TensorBoard.
+
+    Args:
+        name: Tên API logger được yêu cầu qua ``src.utils``.
+
+    Returns:
+        Lớp logger tương ứng.
+
+    Raises:
+        AttributeError: Nếu tên không phải API được export.
+    """
+    if name in {"ExperimentLogger", "CheckpointManager"}:
+        from .logger import CheckpointManager, ExperimentLogger
+
+        return {
+            "ExperimentLogger": ExperimentLogger,
+            "CheckpointManager": CheckpointManager,
+        }[name]
+    raise AttributeError(f"module {__name__!r} không có thuộc tính {name!r}")
 
 
 def seed_everything(seed: int = 42, deterministic: bool = True) -> None:

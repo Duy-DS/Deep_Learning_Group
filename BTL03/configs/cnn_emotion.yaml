@@ -1,0 +1,20 @@
+# Baseline FER2013 chưa có callbacks/augmentation: 15 epoch, Adam 1e-4.
+seed: 42
+model_name: EmotionCNN
+model_group: 02_cnn_mlp
+learning_rate: 0.0001
+optimizer: Adam
+batch_size: 128
+epochs: 15
+dropout_block: 0.25
+dropout_dense: 0.5
+num_workers: 0
+normalization: preserve
+data_root: data/raw/fer2013
+train_csv: fer2013_training_onehot.csv
+validation_csv: fer2013_publictest_onehot.csv
+checkpoint_root: outputs/checkpoints
+checkpoint_name: emotion_cnn_best.pt
+figure_root: outputs/figures
+csv_root: experiments/csv_logs
+tensorboard_root: experiments/tensorboard
