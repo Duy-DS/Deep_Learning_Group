@@ -1,0 +1,23 @@
+\usepackage[a4paper,margin=2.6cm,headheight=15pt]{geometry}
+\usepackage{fontspec}
+\setmainfont{TeX Gyre Termes}
+\usepackage{polyglossia}
+\setdefaultlanguage{vietnamese}
+\usepackage{amsmath,amssymb,mathtools}
+\usepackage{graphicx,booktabs,longtable,tabularx,array,multirow}
+\usepackage{xcolor,listings}
+\usepackage{fancyhdr}
+\usepackage{microtype}
+\usepackage{csquotes}
+\usepackage[backend=biber,style=numeric,sorting=none]{biblatex}
+\usepackage{hyperref}
+\hypersetup{unicode=true,colorlinks=true,linkcolor=blue!50!black,citecolor=blue!50!black,urlcolor=blue!50!black,pdftitle={Báo cáo tổng kết BTL03}}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{BTL03 — Keras sang PyTorch}
+\fancyhead[R]{Báo cáo theo snapshot T0212}
+\fancyfoot[C]{\thepage}
+\setlength{\parindent}{1.2cm}
+\setlength{\parskip}{0.25em}
+\renewcommand{\arraystretch}{1.18}
+\lstdefinestyle{python}{language=Python,basicstyle=\ttfamily\small,keywordstyle=\color{blue!70!black},commentstyle=\color{green!45!black},stringstyle=\color{red!60!black},breaklines=true,frame=single,showstringspaces=false}

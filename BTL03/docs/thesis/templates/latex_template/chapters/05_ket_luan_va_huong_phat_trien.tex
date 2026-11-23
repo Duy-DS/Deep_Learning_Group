@@ -1,0 +1,17 @@
+\chapter{Kết luận, hạn chế và hướng phát triển}
+\section{Kết luận trong phạm vi T0212}
+Tóm lược chuyển đổi mã, parameter-count audit và smoke/test có bằng chứng. Nêu rõ logger/full-suite bị chặn và thiếu full-training/parity metric cho phần lớn cấu hình.
+
+\section{Hạn chế và nguy cơ sai lệch}
+Thảo luận dữ liệu thiếu, synthetic fixtures, CPU-only, khác biệt protocol, metadata legacy chưa đủ, validation/public-test reuse, dependency logger và khác biệt giữa README tổng quan với evidence chi tiết.
+
+\section{Kế hoạch giai đoạn tiếp theo}
+\begin{enumerate}
+\item Sửa/xác minh TensorBoard-protobuf; chạy logger tests và full suite.
+\item Cung cấp dữ liệu có provenance, chốt split/seed và chạy full training WP03.
+\item Chạy ablation/RQ, metric chuyên biệt, trực quan hóa và error analysis; lưu logs/artifacts/reports.
+\item Hoàn thiện demo/đóng gói WP04; xác nhận thành viên, MSSV, tỷ lệ đóng góp và duyệt PDF.
+\end{enumerate}
+
+\section{Kết luận}
+Kết luận trong giới hạn snapshot; không suy diễn rằng mục tiêu học thuật hoặc nộp bài cuối kỳ đã hoàn tất.

@@ -1,0 +1,48 @@
+\chapter{Kiểm toán T0212 và tình trạng thực nghiệm}
+\section{Nguồn và snapshot}
+Bằng chứng tích hợp chính là report \texttt{docs/reports/T0212\_261123\_2130.md}, tại commit nguồn 33dcd745. Trích dẫn nội bộ: \cite{btl03_t0212_internal}. Số liệu baseline legacy được phân biệt với kết quả PyTorch.
+
+\section{Parameter-count audit}
+\begin{longtable}{p{0.29\textwidth}r r r p{0.19\textwidth}}
+\toprule Cấu hình & Keras & PyTorch & Lệch & Ghi chú \\
+\midrule
+FuncApxmMLP (B=16) & 65* & 65 & 0 & $4B+1$; summary không lưu \\
+MNISTMLP & 669,706 & 669,706 & 0 & \\
+MNISTCNN & 1,817,610 & 1,817,610 & 0 & \\
+HumanGenderCNN & 4,063,570 & 4,063,570 & 0 & \\
+EmotionCNN & 19,028,287 & 19,028,287 & 0 & \\
+MNISTCNNLSTM & 1,747,073 & T0206: 1,746,049; T0207/T0212: 1,747,073 & Chưa chốt & Khác report 1,024 params; audit semantics/source \\
+Gender + callbacks & 4,063,570 & 4,063,570 & 0 & Cùng kiến trúc Gender \\
+Emotion + callbacks & 19,028,287 & 19,028,287 & 0 & Cùng kiến trúc Emotion \\
+SegNet & 29,458,211 & 29,458,211 & 0 & Quy ước theo T0212 \\
+FCNObjectDetector & 83,367 & 83,367 & 0 & \\
+\bottomrule
+\end{longtable}
+*65 chỉ tại B=16; legacy không lưu summary số và B biến thiên. CNN-LSTM là ngoại lệ đang audit: baseline Keras và T0207/T0212 ghi 1,747,073, còn T0206 ghi PyTorch 1,746,049. T0212 lặp con số từ kiểm toán trước nhưng synthetic smoke không tự xác minh Keras parity; phải đối chiếu source snapshot và counting semantics trước khi chốt. Parameter-count parity không chứng minh output/metric parity; SegNet cần lưu ý non-trainable BatchNorm theo report task.
+
+\section{Smoke-test và test suite}
+\begin{itemize}
+\item 10/10 synthetic one-epoch train/validation cases PASS; không phải metric khoa học.
+\item Logger 10/10 BLOCKED bởi protobuf/TensorBoard. Full suite các shard: 78 passed, 4 failed trên 82 test.
+\item Master CSV chính không đổi trong smoke. Môi trường CPU-only, CUDA không có.
+\end{itemize}
+
+\section{Kết quả đã có trước T0212}
+T0201 ghi 36 cấu hình PyTorch sweep, seed 42, SGD 0.01, batch 128, có MSE/Run_ID trong CSV; legacy không lưu numeric MSE nên không tuyên bố parity định lượng. T0202 ghi một MNIST MLP run 30 epoch, test accuracy 0.95870, loss 0.13292970, 150.24952 giây CPU. Legacy 0.9648 dùng test split làm validation; protocol khác nhau, không quy chênh lệch riêng cho framework.
+
+\section{Trạng thái task}
+\begin{longtable}{p{0.17\textwidth}p{0.34\textwidth}p{0.34\textwidth}}
+\toprule Hạng mục & Trạng thái tại snapshot & Việc tiếp theo \\
+\midrule
+T0201 & 36 sweep runs có logs; legacy numeric MSE thiếu & Đối chứng Keras có seed/protocol/history nếu cần parity \\
+T0202 & MNIST MLP chạy 30 epoch & Giữ caveat split và chỉ cập nhật từ evidence mới \\
+T0203--T0205 & Code/parity/tests; full-data runs chưa xác nhận & Cấp data và chạy protocol đã chốt \\
+T0206--T0207 & Dataset/model tests; full MNIST CNN-LSTM chưa xác nhận; parameter count mâu thuẫn giữa hai report & Audit source/counting semantics, sau đó chạy MNIST thật và đánh giá MAE theo split rõ \\
+T0208--T0209 & Callback code/tests; full runs bị blocker/thiếu data & Sửa logger, chạy WIKI/FER và lưu history \\
+T0210--T0211 & Shape/parity tests; full data chưa xác nhận & Dùng dữ liệu thật và metric phù hợp \\
+T0212 & Tổng thể BLOCKED; logger blocked, 4 suite failures & Tương thích protobuf/TensorBoard rồi chạy lại \\
+WP03 & \textbf{[CHƯA THỰC HIỆN - DỰ KIẾN Ở GIAI ĐOẠN TIẾP THEO]}; T0301--T0306 chưa có bằng chứng hoàn tất, workbook đánh dấu Todo & Full training, ablation, visualization/error analysis; lưu log, artifacts, report \\
+WP04 & \textbf{[CHƯA THỰC HIỆN - DỰ KIẾN Ở GIAI ĐOẠN TIẾP THEO]} demo/đóng gói chưa nghiệm thu; workbook T0401--T0406 Todo & Demo, tài liệu, kiểm toán, thông tin nhóm và nộp \\
+\bottomrule
+\end{longtable}
+Các trạng thái WP03/WP04 cần xác minh lại ở snapshot tương lai; không hồi tố kết quả mới vào T0212.
