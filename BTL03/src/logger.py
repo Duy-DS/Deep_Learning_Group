@@ -14,7 +14,6 @@ from typing import Any, Mapping
 import torch
 from torch import nn
 from torch.optim import Optimizer
-from torch.utils.tensorboard import SummaryWriter
 
 
 class ExperimentLogger:
@@ -93,9 +92,27 @@ class ExperimentLogger:
         self.epoch_csv_path = self.csv_root / f"{self.run_id}_epochs.csv"
         self.master_csv_path = self.csv_root / "master_experiment_runs.csv"
         self.csv_root.mkdir(parents=True, exist_ok=True)
+        epoch_csv_preexisting = self.epoch_csv_path.exists()
         self._ensure_csv_header(self.epoch_csv_path, self.EPOCH_COLUMNS)
         self._ensure_csv_header(self.master_csv_path, self.MASTER_COLUMNS)
-        self.writer = SummaryWriter(log_dir=str(self.run_dir))
+        try:
+            from torch.utils.tensorboard import SummaryWriter
+            self.writer = SummaryWriter(log_dir=str(self.run_dir))
+        except Exception as error:
+            # Constructor failed before a usable run exists: remove only this
+            # newly-created run directory and its zero-epoch sidecar, never the
+            # shared master CSV or a pre-existing epoch log.
+            if not epoch_csv_preexisting:
+                self.epoch_csv_path.unlink(missing_ok=True)
+            try:
+                if self.run_dir.is_dir() and not any(self.run_dir.iterdir()):
+                    self.run_dir.rmdir()
+            except OSError:
+                pass
+            raise RuntimeError(
+                "Không thể khởi tạo TensorBoard SummaryWriter; kiểm tra phiên bản "
+                "tensorboard/protobuf của môi trường."
+            ) from error
         self._last_epoch = 0
         self._last_values: dict[str, float | None] = {
             "train_loss": None, "val_loss": None,
@@ -388,6 +405,7 @@ class CheckpointManager:
         seed: int = 42,
         config: Mapping[str, Any] | None = None,
         filename: str | None = None,
+        metadata: Mapping[str, Any] | None = None,
     ) -> Path:
         """Lưu state dict và metadata, rồi mirror nếu Drive đã tồn tại.
 
@@ -401,6 +419,7 @@ class CheckpointManager:
             seed: Seed của run, mặc định 42.
             config: Cấu hình primitive/serializable của run.
             filename: Tên file tùy chọn; đuôi `.pt` hoặc `.pth`.
+            metadata: Trường metadata bổ sung, chẳng hạn monitor và best score.
 
         Returns:
             Path: Đường dẫn checkpoint cục bộ.
@@ -426,6 +445,8 @@ class CheckpointManager:
             "seed": int(seed),
             "config": dict(config or {}),
         }
+        if metadata:
+            payload.update(dict(metadata))
         temporary = destination.with_name(destination.name + ".tmp")
         try:
             torch.save(payload, temporary)

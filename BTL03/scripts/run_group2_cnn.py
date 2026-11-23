@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import sys
 import uuid
 from pathlib import Path
@@ -14,6 +15,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
+import torch.nn.functional as functional
 import yaml
 from torch import nn
 from torch.optim import Adam, Optimizer, SGD
@@ -27,6 +29,40 @@ from src.datasets import FEREmotionDataset, MNISTDataset, WikiGenderDataset
 from src.engine import BaseTrainer
 from src.models import EmotionCNN, HumanGenderCNN, MNISTCNN
 from src.utils import get_torch_generator, seed_everything, seed_worker
+
+
+class LegacyFERAugmentationDataset(Dataset):
+    """Áp dụng augmentation FER legacy chỉ khi lấy mẫu train."""
+
+    def __init__(self, dataset: FEREmotionDataset, seed: int = 42) -> None:
+        """Giữ dataset chuẩn và generator riêng tái lập cho phép biến đổi."""
+        self.dataset = dataset
+        self.generator = torch.Generator().manual_seed(int(seed))
+
+    def __len__(self) -> int:
+        """Trả số ảnh FER nguồn."""
+        return len(self.dataset)
+
+    def __getitem__(self, index: int) -> tuple[torch.Tensor, torch.Tensor]:
+        """Xoay ±45°, dịch ±20% và lật ngang ngẫu nhiên ảnh train."""
+        image, label = self.dataset[index]
+        rotation = float(torch.rand((), generator=self.generator)) * 90.0 - 45.0
+        angle = rotation * np.pi / 180.0
+        cosine, sine = float(np.cos(angle)), float(np.sin(angle))
+        theta = torch.tensor(
+            [[cosine, -sine, 0.0], [sine, cosine, 0.0]],
+            dtype=image.dtype,
+        ).unsqueeze(0)
+        # affine_grid dùng tọa độ [-1,1], nên ±0.4 tương ứng ±20% chiều ảnh.
+        theta[0, 0, 2] = float(torch.rand((), generator=self.generator)) * 0.8 - 0.4
+        theta[0, 1, 2] = float(torch.rand((), generator=self.generator)) * 0.8 - 0.4
+        grid = functional.affine_grid(theta, (1, *image.shape), align_corners=False)
+        image = functional.grid_sample(
+            image.unsqueeze(0), grid, mode="bilinear", padding_mode="zeros", align_corners=False
+        ).squeeze(0)
+        if bool(torch.rand((), generator=self.generator) < 0.5):
+            image = image.flip(-1)
+        return image, label
 
 
 class Group2CNNRunner:
@@ -72,6 +108,8 @@ class Group2CNNRunner:
         model.init_weights_keras_style()
         batch_size = int(config["batch_size"])
         loader_workers = int(config["num_workers"])
+        if model_key == "emotion" and not smoke:
+            train_dataset = LegacyFERAugmentationDataset(train_dataset, seed=int(config["seed"]))
         train_loader = DataLoader(
             train_dataset, batch_size=batch_size, shuffle=True,
             generator=get_torch_generator(int(config["seed"])),
@@ -95,15 +133,15 @@ class Group2CNNRunner:
             member_alias=self.member_alias,
             config={**config, "epochs": run_epochs, "smoke_test": smoke},
         )
-        # Import muộn để model/dataset helpers dùng được cả khi môi trường
-        # TensorBoard bên ngoài đang lỗi; training có log vẫn yêu cầu logger thật.
+        # Logger là bắt buộc cho mọi training; helper model/dataset ở trên vẫn
+        # có thể import riêng mà không nạp TensorBoard.
         from src.logger import CheckpointManager, ExperimentLogger
 
         logger = ExperimentLogger(
             model_group="Group2_CNN",
             model_name=model.model_name,
             exp_type=(
-                f"{'SmokeTest_' if smoke else ''}T020{3 + list(self.CONFIGS).index(model_key)}_"
+                f"T020{3 + list(self.CONFIGS).index(model_key)}_"
                 f"{model.model_name}_{uuid.uuid4().hex[:8]}"
             ),
             seed=int(config["seed"]),
@@ -172,6 +210,7 @@ class Group2CNNRunner:
             )
             logger.close()
 
+        history["learning_rate"] = self._logged_learning_rates(logger, len(history["train_loss"]))
         self._save_history(model_key, model.model_name, history, config)
         result = {
             "model": model.model_name,
@@ -325,6 +364,16 @@ class Group2CNNRunner:
             del kwargs
             return self.logger.master_csv_path
 
+    @staticmethod
+    def _logged_learning_rates(logger: Any, epoch_count: int) -> list[float]:
+        """Đọc LR epoch từ CSV run để phản ánh lịch scheduler đã áp dụng."""
+        if logger.epoch_csv_path.is_file():
+            with logger.epoch_csv_path.open(encoding="utf-8-sig", newline="") as stream:
+                rates = [float(row["Learning_Rate"]) for row in csv.DictReader(stream)]
+            if len(rates) == epoch_count:
+                return rates
+        return [float(logger.learning_rate or 0.0)] * epoch_count
+
     def _save_history(
         self,
         model_key: str,
@@ -354,10 +403,10 @@ class Group2CNNRunner:
         import csv
         with history_path.open("w", encoding="utf-8-sig", newline="") as stream:
             writer = csv.writer(stream)
-            writer.writerow(("Epoch", "Train_Loss", "Val_Loss", "Train_Acc", "Val_Acc"))
+            writer.writerow(("Epoch", "Train_Loss", "Val_Loss", "Train_Acc", "Val_Acc", "Learning_Rate"))
             writer.writerows(zip(
                 epochs, history["train_loss"], history["val_loss"],
-                history["train_metric"], history["val_metric"],
+                history["train_metric"], history["val_metric"], history["learning_rate"],
             ))
 
     def _save_wiki_verification(self, dataset: WikiGenderDataset) -> Path:

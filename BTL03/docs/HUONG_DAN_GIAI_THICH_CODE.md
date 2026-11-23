@@ -377,3 +377,50 @@ YAML giữ `seq_len=8`, seed dự án 42, SGD `0.01`, MAE, batch 128, 30 epoch, 
 **Zero padding có làm LSTM dừng ở frame zero đầu tiên không?** Không; LSTM vẫn xử lý đủ 8 timestep và không có masking. Đây cũng là hành vi legacy; các frame zero cuối vẫn ảnh hưởng trạng thái recurrent qua bias/hidden dynamics.
 
 **Có thể tuyên bố MAE ≤0.04 chỉ từ smoke test không?** Không. Smoke chỉ xác nhận shape, tính tái lập, parameter parity, forward/backward wiring và artifacts. MAE cần đánh giá mô hình đã huấn luyện trên split MNIST được ghi rõ.
+
+---
+
+## 11. T0208/T0209 — Callbacks PyTorch và TensorBoard cho WP Utilities
+
+### Vòng đời OOP và tương thích `BaseTrainer`
+
+`BaseCallback` có bốn hook vòng đời: `on_train_begin`, `on_epoch_begin`, `on_epoch_end`, `on_train_end`. `CallbackList` gắn `trainer/model/optimizer`, reset state theo run, dispatch các hook theo thứ tự cấu hình và hợp nhất tín hiệu dừng. Với callback cũ dạng `on_epoch_end(trainer, epoch, logs)`, bộ điều phối giữ adapter tương thích để các test/task trước không phải sửa API.
+
+`BaseTrainer.fit()` tạo `logs` mỗi epoch với `train_loss`, `val_loss`, `train_metric`, `val_metric`, alias `train_acc/val_acc`, `lr/learning_rate`, `epoch_time_sec`, cùng tham chiếu `model` và `optimizer`. Trainer lưu best validation checkpoint nền trước khi callbacks xử lý; ghi epoch metrics vào ExperimentLogger; chạy callback scheduler/early stop; và truyền `stop_training=True` khi callback yêu cầu. LR được log là LR thực đã dùng để train epoch đó; nếu scheduler đổi LR cuối epoch, bậc mới xuất hiện từ epoch kế tiếp.
+
+### EarlyStopping
+
+Callback theo dõi `monitor` theo `mode=min/max`, với cải thiện chỉ được tính khi vượt `min_delta`. Khi cải thiện, lưu `copy.deepcopy(model.state_dict())`, best epoch và logs; nếu monitor không cải thiện đủ patience, đặt `stopped_epoch`, bật `trainer.stop_training`, khôi phục state tốt nhất khi được cấu hình. Checkpoint callback có hook train-end đồng bộ best model với file nghiệm thu ổn định. Một lưu ý: optimizer/LR scheduler là state riêng; khôi phục model weights không đồng nghĩa rollback toàn bộ lịch optimizer về best epoch.
+
+### ModelCheckpoint và `CheckpointManager`
+
+`ModelCheckpoint` chỉ ghi file `.pt/.pth` đúng khi validation monitor cải thiện (`save_best_only=True`), tạo thư mục cha và gọi `CheckpointManager` để lưu atomic metadata: epoch, model/optimizer state, best metric, seed, config, monitor/best score. Chỉ mirror lên Drive khi truyền/configure mount root đang tồn tại; lớp callback không tự mount Drive. `save_weights_only=True` giữ định dạng checkpoint tương thích nhưng bỏ optimizer state.
+
+### ReduceLROnPlateau
+
+Scheduler đếm các epoch không cải thiện vượt `min_delta`. Khi đạt patience, cập nhật tất cả `optimizer.param_groups`: `lr_new=max(lr_old×factor,min_lr)`, reset bộ đếm và bật cooldown. Nếu LR đã ở `min_lr`, không ghi nhận một lần giảm giả. `lr_changes` lưu `(epoch, lr_cũ, lr_mới)` để báo cáo/đánh dấu biểu đồ.
+
+### TensorBoard và schema CSV
+
+`ExperimentLogger` dùng `torch.utils.tensorboard.SummaryWriter` ghi event binary cho `Loss/Train`, `Loss/Validation`, `Metric/Train/Accuracy`, `Metric/Validation/Accuracy`, `Hyperparameters/Learning_Rate`; CSV epoch giữ loss, metric, LR và thời gian. Master CSV giữ schema 18 cột T0104; không thêm cột vào master để tránh phá Google Sheets. `T0209` bổ sung CSV history riêng và biểu đồ Loss/Accuracy/LR, có marker best epoch, LR reduction và EarlyStopping.
+
+### Baseline gốc và phạm vi cải tiến
+
+- WIKI callback legacy: Adam `0.001`, batch 128, tối đa 100.000 epoch; ModelCheckpoint theo `val_loss`, EarlyStopping patience 5, ReduceLROnPlateau factor 0.1/patience 5/min_lr 0.0001, TensorBoard. Vì min_lr bằng LR ban đầu, cấu hình này không có khoảng giảm LR hữu hiệu dưới mức khởi đầu. Baseline output dừng tại epoch 32; printed accuracy `0.8773458` dùng validation WIKI, không phải holdout độc lập.
+- FER callback legacy: Adam `0.0001`, batch 128, tối đa 100 epoch, EarlyStopping patience 5 và ImageDataGenerator (xoay ±45°, shift ngang/dọc 0.2, lật ngang); output dừng epoch 57. Legacy **không** khai báo ModelCheckpoint hoặc ReduceLROnPlateau. Bản T0209 thêm hai tiện ích đó như một extension có kiểm soát; không được gán extension là hành vi gốc.
+- Validation/public-test WIKI/FER được tái sử dụng như notebook legacy; metric printed không được gọi independent final test.
+- Workspace hiện thiếu dữ liệu WIKI/FER, CUDA và có lỗi tương thích TensorBoard/Protobuf. Vì vậy chỉ được báo cáo unit test/parity; không bịa số liệu cải thiện hội tụ mới. So sánh trước/sau chỉ hoàn tất sau khi chạy dữ liệu thật cùng protocol và ghi history đầy đủ.
+
+### Câu hỏi vấn đáp
+
+**`min_delta` khác `patience` thế nào?** `min_delta` định nghĩa mức thay đổi tối thiểu để gọi là cải thiện; `patience` là số epoch liên tiếp không có cải thiện trước khi hành động.
+
+**Vì sao checkpoint phải được lưu trước EarlyStopping restore?** Trước callback, model đang ở state epoch vừa đo. Checkpoint callback lưu state nếu đó là best; EarlyStopping cuối callback chain có thể khôi phục weights tốt nhất. Hook train-end đồng bộ file checkpoint ổn định với model đã restore.
+
+**Scheduler giảm LR ở epoch nào được log?** Epoch đang kết thúc dùng LR cũ; scheduler cập nhật ở cuối epoch nên LR mới được logger ghi từ epoch kế tiếp, đúng với LR đã tham gia forward/backward.
+
+**WIKI `min_lr=0.0001` có giảm LR khi bắt đầu ở 0.001 không?** Có thể giảm một lần từ 0.001 xuống 0.0001; sau đó chạm floor. Baseline không thể giảm nhiều bậc thấp hơn `1e-4`.
+
+**FER T0209 có phải bản callback Keras nguyên xi không?** Không hoàn toàn: legacy chỉ có EarlyStopping + augmentation; ModelCheckpoint/ReduceLROnPlateau là phần mở rộng T0209 và phải ghi rõ trong YAML/báo cáo.
+
+**Một test smoke có chứng minh TensorBoard ghi event không?** Chỉ khi dùng SummaryWriter thật và xác nhận event file/scalars. Nếu môi trường SummaryWriter import lỗi, smoke cần dừng với blocker rõ ràng; không thay bằng writer giả rồi tuyên bố TensorBoard pass.

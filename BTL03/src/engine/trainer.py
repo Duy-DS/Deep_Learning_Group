@@ -12,6 +12,8 @@ from torch import nn
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
+from .callbacks import CallbackList
+
 
 class TrainerCallback(ABC):
     """Giao diện callback cuối epoch cho scheduler/early stopping.
@@ -74,7 +76,10 @@ class BaseTrainer:
         self.history: Dict[str, List[float]] = {
             "train_loss": [], "val_loss": [],
             "train_metric": [], "val_metric": [], "epoch_time_sec": [],
+            "learning_rate": [],
         }
+        self.callbacks: list[Any] = []
+        self.stop_training = False
 
     @staticmethod
     def _unpack_batch(batch: Any) -> tuple[torch.Tensor, torch.Tensor]:
@@ -197,8 +202,8 @@ class BaseTrainer:
             epochs: Số epoch dương.
             logger: Đối tượng tương thích ExperimentLogger của T0104.
             checkpoint_manager: Đối tượng tương thích CheckpointManager T0104.
-            callbacks: Đối tượng có `on_epoch_end(trainer, epoch, logs)`;
-                callback trả True sẽ yêu cầu dừng sớm.
+            callbacks: Callback lifecycle mới hoặc API legacy
+                `on_epoch_end(trainer, epoch, logs)`; callback trả True để dừng.
 
         Returns:
             Dict lịch sử gồm loss, metric (NaN nếu bỏ qua) và epoch time.
@@ -209,67 +214,131 @@ class BaseTrainer:
             raise ValueError(
                 "Logger phải được khởi tạo với member_alias thật theo quy định định danh BTL03."
             )
-        callbacks = list(callbacks or [])
+        callback_list = CallbackList(callbacks)
+        callback_list.set_trainer(self)
+        self.callbacks = callback_list.callbacks
+        self.stop_training = False
+        self.history = {
+            "train_loss": [], "val_loss": [],
+            "train_metric": [], "val_metric": [], "epoch_time_sec": [],
+            "learning_rate": [],
+        }
         best_val_loss = float("inf")
         best_epoch: int | None = None
-        for epoch in range(1, int(epochs) + 1):
-            started = time.perf_counter()
-            train_loss, train_metric = self.train_one_epoch(train_loader)
-            val_loss, val_metric = self.validate_one_epoch(val_loader)
-            epoch_time = time.perf_counter() - started
-            self.history["train_loss"].append(train_loss)
-            self.history["val_loss"].append(val_loss)
-            self.history["train_metric"].append(train_metric)
-            self.history["val_metric"].append(val_metric)
-            self.history["epoch_time_sec"].append(epoch_time)
-            current_lr = float(self.optimizer.param_groups[0]["lr"])
-            logs = {
-                "train_loss": train_loss,
-                "val_loss": val_loss,
-                "train_metric": train_metric,
-                "val_metric": val_metric,
-                "learning_rate": current_lr,
-                "epoch_time_sec": epoch_time,
-            }
-
-            if logger is not None:
-                logger.log_epoch(
-                    epoch=epoch,
-                    train_loss=train_loss,
-                    val_loss=val_loss,
-                    train_metric=train_metric if math.isfinite(train_metric) else None,
-                    val_metric=val_metric if math.isfinite(val_metric) else None,
-                    learning_rate=current_lr,
-                    epoch_time_sec=epoch_time,
+        callback_list.on_train_begin({"model": self.model, "optimizer": self.optimizer})
+        try:
+            for epoch in range(1, int(epochs) + 1):
+                callback_list.on_epoch_begin(
+                    epoch, {"model": self.model, "optimizer": self.optimizer}
                 )
+                started = time.perf_counter()
+                train_loss, train_metric = self.train_one_epoch(train_loader)
+                val_loss, val_metric = self.validate_one_epoch(val_loader)
+                epoch_time = time.perf_counter() - started
+                epoch_lr = float(self.optimizer.param_groups[0]["lr"])
+                self.history["train_loss"].append(train_loss)
+                self.history["val_loss"].append(val_loss)
+                self.history["train_metric"].append(train_metric)
+                self.history["val_metric"].append(val_metric)
+                self.history["epoch_time_sec"].append(epoch_time)
+                self.history["learning_rate"].append(epoch_lr)
 
-            improved = val_loss < best_val_loss
-            if improved:
-                best_val_loss = val_loss
-                best_epoch = epoch
-                if checkpoint_manager is not None:
+                improved = val_loss < best_val_loss
+                if improved:
+                    best_val_loss = val_loss
+                    best_epoch = epoch
+                    if checkpoint_manager is not None:
+                        checkpoint_manager.save(
+                            model=self.model,
+                            model_group=self.model_group,
+                            model_name=self.model_name,
+                            epoch=epoch,
+                            optimizer=self.optimizer,
+                            best_metric=val_loss,
+                            seed=self.seed,
+                            config=self.config,
+                        )
+
+                # Logs gồm cả số đo và tham chiếu runtime để callbacks có thể
+                # lưu checkpoint/khôi phục state mà không phụ thuộc biến toàn cục.
+                logs: dict[str, Any] = {
+                    "train_loss": train_loss,
+                    "val_loss": val_loss,
+                    "train_metric": train_metric,
+                    "val_metric": val_metric,
+                    "train_acc": train_metric,
+                    "val_acc": val_metric,
+                    "lr": epoch_lr,
+                    "learning_rate": epoch_lr,
+                    "epoch_time_sec": epoch_time,
+                    "model": self.model,
+                    "optimizer": self.optimizer,
+                }
+                # Ghi loss/accuracy epoch hiện tại trước scheduler để không
+                # làm sai LR ứng với metric trong CSV/TensorBoard.
+                if logger is not None:
+                    logger.log_epoch(
+                        epoch=epoch,
+                        train_loss=train_loss,
+                        val_loss=val_loss,
+                        train_metric=train_metric if math.isfinite(train_metric) else None,
+                        val_metric=val_metric if math.isfinite(val_metric) else None,
+                        learning_rate=float(self.optimizer.param_groups[0]["lr"]),
+                        epoch_time_sec=epoch_time,
+                    )
+                should_stop = callback_list.on_epoch_end(epoch, logs, self)
+                self.stop_training = self.stop_training or should_stop
+                # EarlyStopping có thể đã khôi phục best weights; duy trì invariant
+                # rằng trainer checkpoint chung cũng trỏ tới cùng model state.
+                if should_stop and checkpoint_manager is not None and best_epoch is not None:
                     checkpoint_manager.save(
                         model=self.model,
                         model_group=self.model_group,
                         model_name=self.model_name,
-                        epoch=epoch,
+                        epoch=best_epoch,
                         optimizer=self.optimizer,
-                        best_metric=val_loss,
+                        best_metric=best_val_loss,
                         seed=self.seed,
                         config=self.config,
                     )
+                # Scheduler có thể vừa đổi LR; logger ghi LR sẽ dùng epoch sau.
+                current_lr = float(self.optimizer.param_groups[0]["lr"])
+                logs["lr"] = current_lr
+                logs["learning_rate"] = current_lr
+                if self.stop_training:
+                    break
+        except Exception:
+            # Không tổng kết run lỗi; vẫn đóng lifecycle callback để khôi phục
+            # weights tốt nhất, nhưng không tạo master CSV có vẻ như run hoàn tất.
+            try:
+                callback_list.on_train_end({
+                    "best_epoch": best_epoch,
+                    "best_val_loss": best_val_loss,
+                    "stopped_epoch": len(self.history["train_loss"]),
+                    "model": self.model,
+                    "optimizer": self.optimizer,
+                    "failed": True,
+                })
+            except Exception:
+                # Không để lỗi cleanup callback che khuất exception train gốc.
+                pass
+            raise
+        else:
+            # Snapshot/checkpoint best được ghi trước khi callback train-end
+            # khôi phục weights; callback save không được mutate model đang chạy.
+            for callback in self.callbacks:
+                save_best = getattr(callback, "save_best_checkpoint", None)
+                if callable(save_best):
+                    save_best()
+            callback_list.on_train_end({
+                "best_epoch": best_epoch,
+                "best_val_loss": best_val_loss,
+                "stopped_epoch": len(self.history["train_loss"]),
+                "model": self.model,
+                "optimizer": self.optimizer,
+            })
 
-            should_stop = False
-            for callback in callbacks:
-                handler = getattr(callback, "on_epoch_end", None)
-                if not callable(handler):
-                    raise TypeError("Mỗi callback phải có on_epoch_end(trainer, epoch, logs).")
-                if handler(self, epoch, logs):
-                    should_stop = True
-            if should_stop:
-                break
-
-        if logger is not None:
+        if logger is not None and self.history["train_loss"]:
             if best_epoch is None:
                 raise RuntimeError("Không xác định được best_epoch để tổng kết logger.")
             safe_metric = lambda value: value if math.isfinite(value) else None
@@ -281,4 +350,6 @@ class BaseTrainer:
                 val_metric=safe_metric(self.history["val_metric"][-1]),
                 train_time_sec=sum(self.history["epoch_time_sec"]),
             )
+        elif logger is not None:
+            logger.close()
         return self.history

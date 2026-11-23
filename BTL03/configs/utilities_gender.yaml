@@ -1,0 +1,43 @@
+# Callback variant WIKI theo notebook Keras training utilities.
+seed: 42
+model_name: HumanGenderCNN
+model_group: 04_training_utilities
+model_key: gender
+learning_rate: 0.001
+optimizer: Adam
+loss: CrossEntropyLoss
+batch_size: 128
+epochs: 100000
+dropout: 0.2
+num_workers: 0
+normalization: auto
+apply_legacy_rotation: true
+data_root: data/raw/wiki_gender
+train_images: train_x.npy
+train_labels: train_y.npy
+validation_images: validation_x.npy
+validation_labels: validation_y.npy
+early_stopping:
+  monitor: val_loss
+  min_delta: 0.0
+  patience: 5
+  mode: min
+  restore_best_weights: true
+reduce_lr:
+  monitor: val_loss
+  factor: 0.1
+  patience: 5
+  min_delta: 0.0001
+  cooldown: 0
+  min_lr: 0.0001
+  mode: min
+checkpoint:
+  monitor: val_loss
+  mode: min
+  save_best_only: true
+  save_weights_only: false
+  sync_to_drive: true
+  filepath: outputs/checkpoints/04_training_utilities/human_gender_cnn_best.pt
+figure_path: outputs/figures/t0209_gender_utilities_curves.png
+csv_root: experiments/csv_logs
+tensorboard_root: experiments/tensorboard
