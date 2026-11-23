@@ -1,22 +1,55 @@
-# BÁO CÁO TỔNG KẾT BTL03 — SNAPSHOT T0212
+# B?O C?O T?NG K?T BTL03 ? SNAPSHOT T0212
 
-> **Bản thảo Markdown, chưa phải bản nộp cuối.** Phạm vi bằng chứng: commit `33dcd74599e86404bbc8128c8057afba82810093`, report T0212 ngày 2026-11-23. Họ tên pháp lý, MSSV, giảng viên và tỷ lệ đóng góp cuối kỳ chưa được xác nhận; placeholders không được đoán. T0212 có trạng thái tổng thể **BLOCKED**.
+> **B?n th?o Markdown, ch?a ph?i b?n n?p cu?i.** Ph?m vi evidence: commit `33dcd74599e86404bbc8128c8057afba82810093`, report T0212 ng?y 2026-11-23. Th?ng tin ph?p l? th?nh vi?n v? t? l? ??ng g?p c?n c?n nh?m x?c nh?n. T0212 c? tr?ng th?i t?ng th? **BLOCKED**.
 
-## Thông tin đề tài và nhóm thực hiện
+## Th?ng tin ?? t?i v? nh?m
 
-- **Đề tài:** Bài tập lớn 03 — Chuyển đổi mã nguồn Deep Learning từ Keras sang PyTorch & Phân tích thực nghiệm
-- **Mã dự án:** BTL03
-- **Snapshot:** T0212; commit nguồn `33dcd74599e86404bbc8128c8057afba82810093`
-- **Ngày chốt evidence:** 2026-11-23 (theo report T0212)
-- **Trường/lớp/giảng viên:** [CẦN NHÓM XÁC NHẬN]
-- **Nhóm:** 5 thành viên; alias quan sát được: `Duy-DS`, `nguyenthanhdat180905-cloud`, `nguyen-cong-tri`, `TonOfWeight072501`, `CHIVY2005`
-- **Họ tên và MSSV:** [CẦN ĐIỀN TỪ DANH SÁCH CHÍNH THỨC]
-- **Người tổng hợp báo cáo:** [CẦN NHÓM CHỈ ĐỊNH; không suy ra từ Git Author]
-- **Tỷ lệ đóng góp:** [CẦN NHÓM XÁC NHẬN; tổng 100%]
+- **?? t?i:** Chuy?n ??i m? ngu?n Deep Learning t? Keras sang PyTorch & Ph?n t?ch th?c nghi?m
+- **M? d? ?n:** BTL03
+- **Snapshot / commit ngu?n / ng?y ch?t:** T0212 / `33dcd74599e86404bbc8128c8057afba82810093` / 2026-11-23
+- **Tr??ng/khoa/l?p/gi?ng vi?n:** [C?N NH?M X?C NH?N]
+- **Alias th?nh vi?n theo task evidence:** `Duy-DS`, `nguyenthanhdat180905-cloud`, `nguyen-cong-tri`, `TonOfWeight072501`, `CHIVY2005`
+- **H? t?n/MSSV, vai tr? t?ng k?t, t? l? ??ng g?p:** [C?N NH?M X?C NH?N T? DANH S?CH CH?NH TH?C; t?ng 100%]
+- **Ng??i t?ng h?p:** [TH?NH VI?N TH?T DO NH?M CH? ??NH]
 
-## Tóm tắt
+## T?m t?t
 
-BTL03 tái cấu trúc mười cấu hình/bài chuyển đổi thuộc năm nhóm Keras sang PyTorch. Ở snapshot T0212, report tích hợp ghi đã kiểm toán parameter count cho mười cấu hình, chạy train/validation một epoch bằng dữ liệu tổng hợp theo đúng shape cho 10/10 case, và thống nhất CLI smoke. Các kết quả này xác minh một phần cấu trúc và luồng tính toán, không phải kết quả huấn luyện khoa học trên dữ liệu thật. `ExperimentLogger` bị chặn ở cả 10 case bởi bất tương thích protobuf/TensorBoard; full-suite theo các shard ghi 78 passed và 4 failed trên 82 test. Vì vậy, kết quả tổng thể T0212 là **BLOCKED**, chưa đủ điều kiện nghiệm thu/merge. Một số công việc trước mốc có bằng chứng riêng, gồm sweep 36 cấu hình T0201 và một lượt MNIST MLP 30 epoch T0202; không suy rộng chúng thành huấn luyện đầy đủ của cả mười cấu hình.
+BTL03 t?i c?u tr?c m??i c?u h?nh thu?c n?m nh?m Keras sang PyTorch. T?i T0212, report ghi parameter-count audit cho m??i c?u h?nh v? 10/10 synthetic one-epoch smoke cases. ??y l? ki?m tra c?u tr?c/wiring, kh?ng ph?i hu?n luy?n khoa h?c tr?n d? li?u th?t. Logger b? BLOCKED do protobuf/TensorBoard; full suite theo c?c shard ghi 78 passed v? 4 failed tr?n 82 test. V? v?y T0212 ch?a ?? ?i?u ki?n nghi?m thu/merge. T0201 (36 sweep c?u h?nh) v? T0202 (m?t MNIST MLP run 30 epoch) l? k?t qu? ri?ng, kh?ng ??i di?n cho full training c?a c? m??i c?u h?nh.
+
+**T? kh?a:** Keras; PyTorch; parameter audit; reproducibility; synthetic smoke-test; provenance.
+
+## Danh m?c vi?t t?t
+
+| Vi?t t?t | ? ngh?a |
+|---|---|
+| CNN | Convolutional Neural Network |
+| FCN | Fully Convolutional Network; project d?ng score-map model theo legacy |
+| NCHW/NHWC | Batch?channel?height?width / batch?height?width?channel |
+| OOP | L?p tr?nh h??ng ??i t??ng |
+| PR | Pull Request / nh?nh t?ch h?p ???c audit |
+| RQ | C?u h?i nghi?n c?u |
+
+## C?u h?i nghi?n c?u (ch? ?i?n sau khi x?c minh ngu?n ch?nh th?c)
+
+Project Charter Markdown ??ng t?n v? RQ nguy?n v?n ch?a ???c x?c minh trong snapshot; kh?ng d?ng RQ t? README. M?i RQ ch? ???c k?t lu?n sau khi x?c ??nh run/evidence t??ng ?ng.
+
+| RQ ID | C?u h?i nguy?n v?n | Evidence c?n | Tr?ng th?i |
+|---|---|---|---|
+| [RQ ID] | [Ch? x?c minh charter ch?nh th?c] | [Report/run/test] | [Ch?a k?t lu?n n?u thi?u run] |
+
+## M? ??u
+
+### B?i c?nh v? m?c ti?u
+
+BTL03 kh?o s?t chuy?n ??i m? h?nh th?c h?nh Keras sang PyTorch OOP. B?o c?o t?p trung v?o snapshot T0212 v? ph?n bi?t implementation v?i th?c nghi?m c?n b? ch?n.
+
+### ??i t??ng, ph?m vi v? ph??ng ph?p
+
+??i t??ng g?m m??i c?u h?nh trong n?m nh?m; ph?m vi d?ng t?i commit T0212. Ph??ng ph?p l? ??i chi?u task reports, notebook/CSV provenance, source/config, tests v? Git history; kh?ng suy di?n metric thi?u ngu?n.
+
+### C?u tr?c b?o c?o
+
+C?c ch??ng tr?nh b?y n?n t?ng framework, thi?t k?/pipeline, ki?m to?n v? k?t qu? theo evidence, r?i th?o lu?n h?n ch? v? h??ng ph?t tri?n.
 
 ## 1. Tổng quan và phạm vi
 
@@ -58,7 +91,7 @@ Notebook legacy Object Detection dùng chuẩn hóa `x/127.5 - 1.0`, đầu ra s
 
 Không được gộp chuẩn hóa MNIST, WIKI và FER thành một quy tắc chung nếu legacy khác nhau. Một số notebook legacy dùng validation/public-test để vừa theo dõi vừa in kết quả “Test”; phải nêu rõ đó không phải independent holdout. Tại snapshot, WIKI/FER/SegNet/vehicle data thật chưa có trong workspace theo reports nhóm, vì vậy dummy/synthetic chỉ phục vụ kiểm tra phần mềm [E-T0102, E-T0204--05, E-T0210--11].
 
-## 3. Kiến trúc PyTorch OOP và mười cấu hình
+## 3. Thiết kế hệ thống và chuyển đổi PyTorch
 
 ### 3.1 Thành phần core
 
@@ -70,7 +103,23 @@ Không được gộp chuẩn hóa MNIST, WIKI và FER thành một quy tắc ch
 
 Các mô tả trên căn cứ vào source code và reports core; không tuyên bố mọi đường chạy CLI đều hoàn tất [E-SOURCE, E-T0106, E-T0104, E-T0212].
 
-### 3.2 Ma trận nhóm
+### 3.2 Pipeline và giao diện thành phần
+
+Luồng được kiểm toán có thể tóm tắt là `Keras baseline → Dataset/preprocessing → PyTorch model → BaseTrainer/callback/logger → CLI/test/report`. T0212 dùng synthetic fixtures để smoke; do đó sơ đồ kiến trúc/flowchart minh họa pipeline không được hiểu là bằng chứng full-data execution hoặc logger PASS. Mô-đun demo thuộc WP04 chỉ mô tả như roadmap cho tới khi có report nghiệm thu.
+
+```mermaid
+flowchart LR
+    K[Keras baseline / provenance] --> D[Dataset / preprocessing]
+    D --> M[PyTorch models / parameter audit]
+    M --> T[Trainer / callbacks / logger]
+    T --> C[CLI / synthetic smoke]
+    C --> R[Tests / reports / PR audit]
+    T -. logger BLOCKED in T0212 .-> B[Protobuf / TensorBoard blocker]
+```
+
+> Sơ đồ khái quát; mũi tên không khẳng định toàn bộ luồng full-data đã chạy thành công.
+
+### 3.3 Ma trận nhóm
 
 | Nhóm/cấu hình | Đầu vào/điểm chuyển đổi | Bằng chứng tại snapshot | Giới hạn |
 |---|---|---|---|
@@ -149,7 +198,20 @@ Mục WP03/WP04 là trạng thái snapshot, không kết luận không có thay 
 
 Đến T0212, có kiến trúc/model code cho các nhóm, tests về shape/callbacks/parameter counting, parity count được ghi trong report, CLI smoke cho mười cấu hình và hai kết quả T0201/T0202 với phạm vi riêng. Không thể từ đó kết luận mười mô hình đều được train đầy đủ hoặc đạt metric baseline.
 
-### 5.2 Hạn chế và validity threats
+### 5.2 Kết quả, thảo luận và tính hợp lệ
+
+T0212 xác nhận một phần luồng phần mềm và parity-count được báo cáo, nhưng không xác nhận chất lượng dự đoán. T0201 có PyTorch sweep nhưng numeric Keras MSE thiếu; T0202 có MNIST MLP run nhưng protocol validation khác Keras. Vì vậy hai kết quả không được gộp thành một benchmark chung.
+
+| Evidence class | Có thể kết luận | Không thể kết luận |
+|---|---|---|
+| Parameter-count audit | Số lượng tham số được task reports ghi nhận; CNN-LSTM có nguồn bất đồng cần đối chiếu | Accuracy hoặc parity đầu ra/gradient |
+| Synthetic smoke | Forward/train/validation wiring một epoch trên fixture shape-đúng | Generalization hoặc metric trên dữ liệu thật |
+| Logger/full suite | Logger bị chặn; 78 passed/4 failed theo shard | T0212 overall PASS |
+| T0201/T0202 | Kết quả run riêng có logs/report | Kết quả đại diện mười cấu hình hoặc protocol thống nhất |
+
+Chi tiết evidence/source/run ID của mỗi hạng mục nằm trong `source_materials/evidence_sources_manifest.md`. Bảng trên tổng hợp phạm vi suy luận, không thay thế các báo cáo task.
+
+### 5.3 Hạn chế và validity threats
 
 1. T0212 bị blocker protobuf/TensorBoard và có bốn test fail; logger của các smoke không hoàn tất.
 2. Smoke dùng synthetic fixtures; không có CUDA. Dữ liệu thật cho nhiều nhóm chưa được cung cấp theo report.
@@ -158,7 +220,11 @@ Mục WP03/WP04 là trạng thái snapshot, không kết luận không có thay 
 5. README tổng quan có số/diễn đạt không hoàn toàn trùng evidence task; báo cáo ưu tiên report chi tiết, CSV provenance và code, ghi chú mâu thuẫn thay vì hợp nhất im lặng.
 6. Tên pháp lý/MSSV và tỷ lệ đóng góp cuối kỳ chưa được xác nhận; bản này không thay thế bảng thành viên chính thức.
 
-### 5.3 Kế hoạch phát triển
+### 5.4 Bài học kinh nghiệm
+
+Phải kiểm tra protocol/split trước khi so sánh metric; đếm tham số cần ghi đúng semantics; logger cần được kiểm tra trong cùng runtime với lần huấn luyện; mỗi kết quả cần gắn task, run ID và nguồn có thể truy vết. Những nhận xét này là bài học về quy trình evidence, không phải kết luận thực nghiệm về mô hình.
+
+### 5.5 Kiến nghị và hướng phát triển
 
 - Khắc phục dependency TensorBoard/protobuf trong môi trường được nhóm duyệt; chạy lại logger tests, all-model smoke và full suite.
 - Xác nhận dữ liệu, nguồn gốc, split, seed, protocol và môi trường cho từng model trước full training; lưu Run_ID, CSV, event/checkpoint và report.
@@ -166,7 +232,7 @@ Mục WP03/WP04 là trạng thái snapshot, không kết luận không có thay 
 - Tạo PCA/curves/segmentation/detection visualization từ prediction của model đã huấn luyện, kèm ground truth và metric phù hợp.
 - Hoàn thiện ứng dụng demo, tài liệu tái lập, slide/poster, repository audit và đóng gói theo quy định môn học.
 
-### 5.4 Kết luận snapshot
+### 5.6 Kết luận snapshot
 
 T0212 ghi nhận tiến độ chuyển đổi mã và kiểm toán tham số/luồng smoke đáng kể, nhưng nghiệm thu tích hợp còn **BLOCKED**. Các kết quả full training, logger hoạt động, ablation, phân tích thực nghiệm đầy đủ và demo cuối kỳ chỉ được báo cáo sau khi có evidence mới, không được suy ra từ bản thảo này.
 

@@ -2,7 +2,9 @@
 
 Thư mục này là bộ mã nguồn để upload và biên dịch **trên Overleaf**, gồm front matter, năm chương, bibliography và phụ lục evidence. Nội dung đồng bộ với `../md_drafts/BaoCao_TongKet_BTL03_T0212_draft.md`; quy ước tham khảo hai mẫu được tổng hợp trong `../source_materials/samples/style_analysis.md`. Compiler trên Overleaf: **XeLaTeX**. Template gốc nằm ở `../templates/latex_template/`.
 
-Preamble dùng XeLaTeX với Unicode, `fontspec`/`polyglossia` và Times New Roman (cần font có sẵn trong runtime), có thiết lập front matter, caption, bảng, TikZ và `\evidence{...}` cho nguồn ngay dưới bảng/hình. Chỉ thêm graphic vào ZIP nếu có asset đã duyệt và nguồn; snapshot T0212 không nhúng ảnh kết quả giả.
+Hai file mẫu `sample_1.tex` và `sample_2.tex` được lưu nguyên trạng ở `../source_materials/samples/` để tham khảo phong cách theo yêu cầu; không đưa chúng vào gói upload như chương hoặc asset của báo cáo.
+
+Preamble dùng XeLaTeX với Unicode, `fontspec`/`polyglossia` và Times New Roman (cần font có sẵn trên Overleaf runtime), có thiết lập front matter, caption, bảng, TikZ và `\evidence{...}` cho nguồn ngay dưới bảng/hình. Chỉ thêm graphic vào ZIP nếu có asset đã duyệt và nguồn; snapshot T0212 không nhúng ảnh kết quả giả.
 
 ## Upload và tải PDF — ba bước
 

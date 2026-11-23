@@ -1,78 +1,106 @@
-# BÁO CÁO TỔNG KẾT BTL03 — [MỐC SNAPSHOT]
+# B?O C?O T?NG K?T BTL03 ? [M?C SNAPSHOT]
 
-> Mẫu READ-ONLY. Sao chép sang `md_drafts/` trước khi điền. Chỉ xóa placeholder khi có nguồn xác nhận.
+> M?u **READ-ONLY theo quy tr?nh**. Sao ch?p sang `md_drafts/` tr??c khi ?i?n. Ch? d?ng pattern tr?nh b?y trong `source_materials/samples/style_analysis.md`, kh?ng sao ch?p n?i dung sample.
 
-## Thông tin đề tài và nhóm
+## Th?ng tin ?? t?i v? nh?m (b?a)
 
-- Đề tài: Chuyển đổi mã nguồn Deep Learning từ Keras sang PyTorch và phân tích thực nghiệm
-- Mã dự án: BTL03
-- Snapshot/task/commit: [ĐIỀN]
-- Ngày chốt bằng chứng: [YYYY-MM-DD]
-- Trường/lớp/giảng viên: [CẦN XÁC NHẬN]
-- Thành viên: [Alias đã xác nhận; họ tên và MSSV theo nguồn chính thức]
-- Tỷ lệ đóng góp: [CẦN NHÓM XÁC NHẬN; tổng 100%]
-- Người tổng hợp: [THÀNH VIÊN THẬT ĐƯỢC CHỈ ĐỊNH]
+- ?? t?i: Chuy?n ??i m? ngu?n Deep Learning t? Keras sang PyTorch
+- M? d? ?n: BTL03
+- Snapshot/task/commit/ng?y ch?t: [?I?N T? GIT V? REPORT]
+- Tr??ng/khoa/l?p/gi?ng vi?n: [C?N X?C NH?N]
+- Alias th?nh vi?n: [T? EVIDENCE; kh?ng thay h? t?n/MSSV ph?p l?]
+- H? t?n/MSSV, vai tr?, t? l? ??ng g?p: [NH?M X?C NH?N; t?ng 100%]
+- Ng??i t?ng h?p: [TH?NH VI?N TH?T DO NH?M CH? ??NH]
 
-## Tóm tắt
+## T?m t?t v? t? kh?a
 
-[Bài toán, phạm vi snapshot, phương pháp, kết quả đã đo và hạn chế. Không điền metric thiếu nguồn.]
+[B?i c?nh, m?c ti?u, snapshot, ph??ng ph?p, k?t qu? th?c c?, blocker/gi?i h?n. T?ch synthetic smoke kh?i metric tr?n d? li?u th?t.]
 
-## 1. Tổng quan và phạm vi
+**T? kh?a:** [Keras; PyTorch; parameter audit; reproducibility; ...]
 
-### 1.1 Bối cảnh, mục tiêu, câu hỏi nghiên cứu
-### 1.2 Năm nhóm và mười cấu hình/bài chuyển đổi
-### 1.3 Phạm vi snapshot và tiêu chí hoàn thành
-### 1.4 Hạng mục ngoài phạm vi/chưa hoàn tất
+## Danh m?c vi?t t?t (khi h?u ?ch)
 
-## 2. Cơ sở lý thuyết và khác biệt framework
+| Vi?t t?t | ? ngh?a |
+|---|---|
+| CNN | Convolutional Neural Network |
+| FCN | Ghi ch?nh x?c ki?n tr?c ??u ra v? metric |
+| NCHW/NHWC | Layout tensor ?nh |
+| OOP | L?p tr?nh h??ng ??i t??ng |
 
-### 2.1 Keras/PyTorch, vòng lặp huấn luyện, logits và loss
-### 2.2 NHWC/NCHW; WIKI `np.rot90` trước `permute`
-### 2.3 `TimeDistributed` và reshape CNN-LSTM
-### 2.4 `UpSampling2D`, SegNet, masks và loss
-### 2.5 FCN score-map, chuẩn hóa và metric
-### 2.6 Chuẩn hóa dữ liệu, split và leakage
+## C?u h?i nghi?n c?u
 
-## 3. Thiết kế PyTorch OOP và các mô hình
-
-### 3.1 `BaseMigratedModel`, parameter counters, feature hooks
-### 3.2 `BaseTrainer`, seed, logger/checkpoint và callbacks
-### 3.3 YAML, CLI, runners, smoke-test
-### 3.4 Ma trận chuyển đổi
-| Nhóm | Mô hình/cấu hình | Thành phần PyTorch | Bằng chứng và hạn chế |
+| RQ ID | C?u h?i nguy?n v?n ?? x?c minh | Evidence c?n | Tr?ng th?i |
 |---|---|---|---|
-| 1–5 | [Điền từ evidence] | | |
+| [RQ ID] | [Kh?ng t? t?o RQ; x?c minh charter tr??c] | [Report/run/test] | [Ch?a k?t lu?n n?u thi?u run] |
 
-## 4. Kiểm toán T0212 và trạng thái thực nghiệm
+## M? ??u
 
-### 4.1 Snapshot, phương pháp và nguồn
-### 4.2 Kiểm toán PR/nhánh (chỉ ghi history đã xem)
-### 4.3 Parameter parity
-| Cấu hình | Keras total/trainable/non-trainable | PyTorch total/trainable/non-trainable | Sai lệch | Provenance/caveat |
+### B?i c?nh, m?c ti?u v? l? do ch?n ?? t?i
+### ??i t??ng, ph?m vi v? snapshot
+### Ph??ng ph?p v? ngu?n evidence
+### ??ng g?p ?? x?c minh; gi?i h?n
+### C?u tr?c b?o c?o
+
+## L?i c?m ?n (t?y ch?n)
+
+[Ch? gi? khi nh?m mu?n v? x?c nh?n ng??i ???c n?u.]
+
+## 1. T?ng quan v? ph?m vi
+### 1.1 M?c ti?u v? n?m nh?m/m??i c?u h?nh
+### 1.2 Snapshot v? ti?u ch? audit
+### 1.3 H?ng m?c ngo?i ph?m vi/ch?a ho?n t?t
+
+## 2. C? s? l? thuy?t v? kh?c bi?t framework
+### 2.1 Keras/PyTorch, loop, logits/loss
+### 2.2 NHWC/NCHW v? WIKI rotation
+### 2.3 CNN-LSTM v? `TimeDistributed`
+### 2.4 SegNet/upsampling/mask
+### 2.5 FCN score-map, normalization v? metric
+### 2.6 Split, leakage v? preprocessing
+
+## 3. Thi?t k? h? th?ng v? chuy?n ??i PyTorch
+### 3.1 Base model, counters v? hooks
+### 3.2 Trainer, seed, callbacks/logger/checkpoint
+### 3.3 YAML, CLI, runners v? tests
+### 3.4 Pipeline/ma tr?n m? h?nh
+| Nh?m | C?u h?nh | Component | Evidence/gi?i h?n |
+|---|---|---|---|
+| 1?5 | | | |
+
+## 4. Ki?m to?n T0212 v? tr?ng th?i th?c nghi?m
+### 4.1 Snapshot v? PR/history
+### 4.2 Parameter-count audit
+| C?u h?nh | Keras | PyTorch | Sai l?ch | Provenance/caveat |
 |---|---:|---:|---:|---|
 | | | | | |
-
-> Nếu hai nguồn cùng trường mâu thuẫn, giữ cả hai giá trị/snapshot và ghi `CẦN ĐỐI CHIẾU`; không tuyên bố parity trước khi xác minh source và quy ước đếm.
-### 4.4 Smoke và kiểm thử phần mềm; tách synthetic khỏi metric khoa học
-### 4.5 Tình trạng task, WP03 và WP04
-| Hạng mục | Trạng thái | Bằng chứng | Việc tiếp theo |
+> Gi? nguy?n m?u thu?n gi?a ngu?n v? ??nh d?u `C?N ??I CHI?U`; kh?ng t? ch?n s? ?? tuy?n b? parity.
+### 4.3 Protocol, smoke v? test suite
+### 4.4 K?t qu?/th?o lu?n/evidence limits
+| Evidence class | K?t qu? quan s?t | Kh?ng ch?ng minh |
+|---|---|---|
+| | | |
+### 4.5 Task status WP03/WP04
+| H?ng m?c | Tr?ng th?i | Evidence | Ti?p theo |
 |---|---|---|---|
 | | | | |
-### 4.6 Full training (chỉ điền sau run thật)
-| Mô hình/dữ liệu/split | Seed/môi trường/config | Metric/đơn vị | Run/log/checkpoint | Protocol/caveat |
+### 4.6 Full training (ch? sau run th?t)
+| Model/split | Seed/config/runtime | Metric/unit | Run/log/checkpoint | Caveat |
 |---|---|---|---|---|
-| [CHƯA THỰC HIỆN - DỰ KIẾN Ở GIAI ĐOẠN TIẾP THEO] | | | | |
+| [CH?A TH?C HI?N - D? KI?N ? GIAI ?O?N TI?P THEO] | | | | |
+### 4.7 Figures/tables
+[Ch? d?ng artifacts c? provenance; kh?ng t?o h?nh gi?.]
 
-## 5. Đánh giá, hạn chế, bài học và hướng phát triển
+## 5. K?t lu?n, h?n ch? v? h??ng ph?t tri?n
+### 5.1 K?t qu? trong ph?m vi snapshot
+### 5.2 Validity threats/blockers
+### 5.3 B?i h?c
+### 5.4 Ki?n ngh? v? ?i?u ki?n nghi?m thu
+### 5.5 K?t lu?n ??ng ph?m vi
 
-### 5.1 Kết luận được phép từ evidence
-### 5.2 Giới hạn, blocker, validity threats, tái lập
-### 5.3 Full training, ablation, visualization, RQ
-### 5.4 Demo, nghiệm thu, đóng gói
-### 5.5 Kết luận đúng phạm vi snapshot
+## T?i li?u tham kh?o
+[Ch? d?ng ngu?n ?? x?c minh.]
 
-## Tài liệu tham khảo và phụ lục evidence
-
-| Evidence ID | Tệp/commit/run | Phần báo cáo | Điều chứng minh | Không chứng minh |
-|---|---|---|---|---|
-| | | | | |
+## Ph? l?c (khi c?n)
+- Manifest evidence/Run_ID
+- CLI/config/schema/b?ng d?i
+- H?nh b? sung c? ngu?n
