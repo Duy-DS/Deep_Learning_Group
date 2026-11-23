@@ -67,7 +67,19 @@ class Trainer:
         self.rq_tag = str(self.config.get("rq_tag", "RQ1"))
         self.image_size = int(self.config.get("image_size", 48))
         self.in_channels = int(self.config.get("in_channels", 1))
-        self.augmentation = str(self.config.get("augmentation", "None"))
+        augmentation_config = self.config.get("augmentation")
+        if isinstance(augmentation_config, dict):
+            self.augmentation_mode = str(augmentation_config.get("mode", "none")).strip().lower()
+            self.augmentation_label = self.augmentation_mode
+            self.augmentation = self.augmentation_mode
+        else:
+            self.augmentation_mode = str(self.config.get("augmentation_mode", "")).strip().lower() or None
+            self.augmentation_label = (
+                self.augmentation_mode
+                if self.augmentation_mode is not None
+                else str(augmentation_config if augmentation_config is not None else "None")
+            )
+            self.augmentation = self.augmentation_label
         self.batch_size = int(self.config.get("batch_size", 64))
         self.lr = float(self.config.get("lr", 1e-3))
         self.weight_decay = float(self.config.get("weight_decay", 0.0))
@@ -83,6 +95,8 @@ class Trainer:
         self.normalization = str(self.config.get("normalization", "fer2013"))
         self.transform_mode = str(self.config.get("transform_mode", "custom"))
         self.use_augmentation = bool(self.config.get("use_augmentation", True))
+        if self.augmentation_mode == "none":
+            self.use_augmentation = False
         self.aug_config = self.config.get("aug_config")
         self.pretrained = bool(self.config.get("pretrained", True))
         self.freeze_backbone = bool(self.config.get("freeze_backbone", False))
@@ -111,6 +125,7 @@ class Trainer:
             transform_mode=self.transform_mode,
             use_augmentation=self.use_augmentation,
             aug_config=self.aug_config,
+            augmentation_mode=self.augmentation_mode,
             seed=self.seed,
             pin_memory=torch.cuda.is_available(),
         )
@@ -156,6 +171,7 @@ class Trainer:
         activation: str = "relu",
         pretrained: Optional[bool] = None,
         image_size: Optional[int] = None,
+        augmentation_mode: Optional[str] = None,
     ) -> str:
         """Tạo tên run phân biệt cấu hình SOTA mà vẫn giữ tên các run CNN cũ."""
         sota_architectures = {
@@ -164,7 +180,8 @@ class Trainer:
         }
         if architecture in sota_architectures:
             weight_mode = "pretrained" if pretrained else "scratch"
-            return f"{exp_id}_{architecture}_{weight_mode}_{image_size}_{optimizer}"
+            base_name = f"{exp_id}_{architecture}_{weight_mode}_{image_size}_{optimizer}"
+            return f"{base_name}_aug-{augmentation_mode}" if augmentation_mode else base_name
         return f"{exp_id}_{architecture}_{activation}_{optimizer}"
 
     def _build_model(self) -> nn.Module:
@@ -346,6 +363,7 @@ class Trainer:
             activation=self.activation,
             pretrained=self.pretrained,
             image_size=self.image_size,
+            augmentation_mode=self.augmentation_mode,
         )
         print(f"\n{'='*70}")
         print(f"🚀 BẮT ĐẦU THỰC NGHIỆM: {run_name} (Nhóm: {self.exp_group} | Câu hỏi: {self.rq_tag})")
@@ -365,9 +383,11 @@ class Trainer:
             "total_params": sum(parameter.numel() for parameter in self.model.parameters()),
             "seed": self.seed,
             "image_size": self.image_size,
-            "augmentation": self.augmentation,
+            "augmentation": self.augmentation_label,
             "optimizer": str(self.config.get("optimizer", "Adam")),
             "lr": self.lr,
+            "scheduler": str(self.config.get("scheduler", "None")),
+            "batch_size": self.batch_size,
             "weight_decay": self.weight_decay,
             "momentum": self.momentum,
             "nesterov": str(self.nesterov),

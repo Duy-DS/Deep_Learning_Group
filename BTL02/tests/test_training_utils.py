@@ -227,7 +227,7 @@ def test_t0205_colab_notebook_is_valid_json_with_parseable_cells():
     from pathlib import Path
 
     root = Path(__file__).resolve().parents[1]
-    notebook = json.loads((root / "notebooks" / "run_t0205_colab.ipynb").read_text(encoding="utf-8"))
+    notebook = json.loads((root / "notebooks" / "colab" / "run_t0205_colab.ipynb").read_text(encoding="utf-8"))
     code_cells = [cell for cell in notebook["cells"] if cell["cell_type"] == "code"]
     assert len(code_cells) == 6
     for index, cell in enumerate(code_cells, start=1):

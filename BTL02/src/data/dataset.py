@@ -205,6 +205,7 @@ def get_dataloaders(
     transform_mode: str = "custom",
     use_augmentation: bool = True,
     aug_config: Optional[Dict[str, Any]] = None,
+    augmentation_mode: Optional[str] = None,
 ) -> Tuple[DataLoader, DataLoader, DataLoader]:
     """Hàm kiến tạo và trả về bộ 3 DataLoaders (Training, Validation/PublicTest, Test/PrivateTest).
 
@@ -228,10 +229,15 @@ def get_dataloaders(
     # 1. Chọn pipeline theo mode; giữ mặc định cũ để không ảnh hưởng WP2.
     mode = transform_mode.strip().lower()
     if mode == "custom":
+        train_augmentation = augmentation
+        if augmentation_mode is not None:
+            train_augmentation = {"mode": augmentation_mode}
+            if aug_config:
+                train_augmentation.update(aug_config)
         train_transform, eval_transform = get_transforms(
             image_size=image_size,
             in_channels=in_channels,
-            augmentation=augmentation,
+            augmentation=train_augmentation,
             normalization=normalization,
         )
     elif mode == "sota":
@@ -240,7 +246,7 @@ def get_dataloaders(
         builder = SOTATransformBuilder(
             image_size=image_size,
             use_augmentation=use_augmentation,
-            aug_config=aug_config,
+            aug_config={**(aug_config or {}), **({"mode": augmentation_mode} if augmentation_mode else {})},
         )
         train_transform = builder.build_train_transform()
         eval_transform = builder.build_eval_transform()

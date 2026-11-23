@@ -6,7 +6,7 @@ Tuân thủ nghiêm ngặt nguyên tắc hiến pháp AGENTS.md:
 - Hỗ trợ ảnh xám 1 kênh (mặc định) và ảnh 3 kênh cho các mô hình Transfer Learning.
 """
 
-from typing import Tuple, Union
+from typing import Any, Dict, Tuple, Union
 import torchvision.transforms as transforms
 
 # Tham số chuẩn hóa được tính từ EDA (Task T0105) trên 28.709 ảnh tập Training
@@ -63,11 +63,15 @@ class FER2013TransformBuilder:
         if std is not None:
             self.std = std
 
-    def build_train_transforms(self, augmentation: str = "None") -> transforms.Compose:
+    def build_train_transforms(
+        self, augmentation: Union[str, Dict[str, Any]] = "none"
+    ) -> transforms.Compose:
         """Tạo chuỗi biến đổi dữ liệu cho tập huấn luyện (Training Set).
 
         Args:
-            augmentation: Chiến lược tăng cường dữ liệu ("None", "Standard", "Advanced").
+            augmentation: Tên mức ``none``, ``basic``, ``advanced`` hoặc cấu hình
+                YAML dạng ``{"mode": ...}``. Chuỗi legacy ``Standard``/``Advanced``
+                vẫn được chấp nhận để không phá vỡ cấu hình cũ.
 
         Returns:
             transforms.Compose: Chuỗi các phép biến đổi ảnh PyTorch.
@@ -83,19 +87,31 @@ class FER2013TransformBuilder:
             transform_list.append(transforms.Resize((self.image_size, self.image_size)))
 
         # 3. Áp dụng các kỹ thuật Data Augmentation trên tập Train
-        aug_lower = augmentation.lower()
-        if aug_lower in ("standard", "basic", "flip_crop"):
+        if isinstance(augmentation, dict):
+            aug_lower = str(augmentation.get("mode", "none")).strip().lower()
+            aug_config = augmentation
+        else:
+            aug_lower = str(augmentation).strip().lower()
+            aug_config = {}
+
+        if aug_lower in ("standard", "flip_crop"):
+            # Giữ nguyên hành vi legacy cho các recipe WP2 đã tồn tại.
             transform_list.extend([
                 transforms.RandomCrop(self.image_size, padding=4, padding_mode="reflect"),
                 transforms.RandomHorizontalFlip(p=0.5),
                 transforms.RandomRotation(degrees=10),
             ])
+        elif aug_lower == "basic":
+            transform_list.extend([
+                transforms.RandomHorizontalFlip(p=0.5),
+                transforms.RandomRotation(degrees=10),
+                transforms.RandomAffine(degrees=0, translate=(0.08, 0.08)),
+            ])
         elif aug_lower in ("advanced", "strong"):
             transform_list.extend([
-                transforms.RandomCrop(self.image_size, padding=4, padding_mode="reflect"),
                 transforms.RandomHorizontalFlip(p=0.5),
-                transforms.RandomRotation(degrees=15),
-                transforms.RandomAffine(degrees=0, translate=(0.1, 0.1), scale=(0.9, 1.1)),
+                transforms.RandomRotation(degrees=10),
+                transforms.RandomAffine(degrees=0, translate=(0.08, 0.08)),
             ])
         elif aug_lower not in ("none", "null", ""):
             raise ValueError(f"Không hỗ trợ chiến lược augmentation: '{augmentation}'")
@@ -105,6 +121,16 @@ class FER2013TransformBuilder:
             transforms.ToTensor(),
             transforms.Normalize(mean=self.mean, std=self.std),
         ])
+        if aug_lower in ("advanced", "strong"):
+            erase = aug_config.get("random_erasing", aug_config)
+            transform_list.append(
+                transforms.RandomErasing(
+                    p=float(erase.get("p", 0.25)),
+                    scale=tuple(erase.get("scale", (0.02, 0.15))),
+                    ratio=tuple(erase.get("ratio", (0.3, 3.3))),
+                    value=erase.get("value", "random"),
+                )
+            )
 
         return transforms.Compose(transform_list)
 
@@ -138,7 +164,7 @@ class FER2013TransformBuilder:
 def get_transforms(
     image_size: int = 48,
     in_channels: int = 1,
-    augmentation: str = "None",
+    augmentation: Union[str, Dict[str, Any]] = "none",
     mean: Union[Tuple[float, ...], None] = None,
     std: Union[Tuple[float, ...], None] = None,
     normalization: str = "fer2013",

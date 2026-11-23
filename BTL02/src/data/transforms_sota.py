@@ -107,22 +107,27 @@ class SOTATransformBuilder:
         """Tạo pipeline train; augmentation ngẫu nhiên chỉ xuất hiện ở đây."""
         pipeline = self._base_transforms()
         if self.use_augmentation:
-            if self.aug_config["horizontal_flip_p"] > 0:
+            mode = str(self.aug_config.get("mode", "advanced")).strip().lower()
+            if mode not in {"none", "basic", "advanced"}:
+                raise ValueError("augmentation.mode phải là 'none', 'basic' hoặc 'advanced'.")
+            if mode in {"basic", "advanced"} and self.aug_config["horizontal_flip_p"] > 0:
                 pipeline.append(
                     transforms.RandomHorizontalFlip(p=float(self.aug_config["horizontal_flip_p"]))
                 )
-            if self.aug_config["rotation_degrees"] > 0:
+            if mode in {"basic", "advanced"} and self.aug_config["rotation_degrees"] > 0:
                 pipeline.append(
                     transforms.RandomRotation(degrees=float(self.aug_config["rotation_degrees"]))
                 )
-            if self.aug_config["affine_degrees"] > 0 or any(self.aug_config["translate"]):
+            if mode in {"basic", "advanced"} and (
+                self.aug_config["affine_degrees"] > 0 or any(self.aug_config["translate"])
+            ):
                 pipeline.append(
                     transforms.RandomAffine(
                         degrees=float(self.aug_config["affine_degrees"]),
                         translate=tuple(float(v) for v in self.aug_config["translate"]),
                     )
                 )
-            jitter = float(self.aug_config["color_jitter"])
+            jitter = float(self.aug_config["color_jitter"]) if mode == "advanced" else 0.0
             if jitter > 0:
                 pipeline.append(
                     transforms.ColorJitter(brightness=jitter, contrast=jitter)
@@ -133,9 +138,17 @@ class SOTATransformBuilder:
                 transforms.Normalize(IMAGENET_MEAN, IMAGENET_STD),
             ]
         )
+        mode = str(self.aug_config.get("mode", "advanced")).strip().lower()
         erase_p = float(self.aug_config["random_erasing_p"])
-        if self.use_augmentation and erase_p > 0:
-            pipeline.append(transforms.RandomErasing(p=erase_p))
+        if self.use_augmentation and mode == "advanced" and erase_p > 0:
+            pipeline.append(
+                transforms.RandomErasing(
+                    p=erase_p,
+                    scale=tuple(self.aug_config.get("random_erasing_scale", (0.02, 0.15))),
+                    ratio=tuple(self.aug_config.get("random_erasing_ratio", (0.3, 3.3))),
+                    value=self.aug_config.get("random_erasing_value", "random"),
+                )
+            )
         return transforms.Compose(pipeline)
 
     def build_eval_transform(self) -> transforms.Compose:
