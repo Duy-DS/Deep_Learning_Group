@@ -217,7 +217,9 @@ Hai mô hình này được thiết kế để giải quyết câu hỏi nghiên
 - `notebooks/colab/run_t0401_colab.ipynb` dùng local-first MLflow/checkpoint trên SSD, đồng bộ Drive bằng thay thế file tạm atomic, giữ `.trash` cho MLflow FileStore, bỏ qua cài lại Torch/Torchvision và cập nhật pin scikit-learn khi Python 3.13.
 - `notebooks/kaggle/run_t0401_kaggle.ipynb` giữ nguyên CUDA image, đọc GitHub/Kaggle Secrets, ưu tiên competition archive, fallback downloader, có thể merge backup `mlruns` từ Kaggle Dataset và xuất artifacts vào `/kaggle/working/BTL02/T0401/`.
 - Auto-Skip chỉ áp dụng cho run MLflow `FINISHED`; không phải resume giữa epoch. Khi chuyển file store, vẫn cần xác minh artifact URI và checkpoint thực tế.
-- **Trạng thái định lượng:** môi trường phát triển hiện là PyTorch CPU-only; ba cấu hình mới chỉ được smoke-test forward/backward và unit-test. Chưa có CSV GPU thực tế, nên chưa có Run IDs, Best Epoch, Train/Test metrics hay kết luận khoa học nào cho RQ3. Không điền số liệu ước đoán vào bảng kết quả.
+- **Trạng thái định lượng (cập nhật 2026-11-23):** CSV thực tế `outputs/logs/t0401_ablation_augmentation_24col.csv` có đúng 24 cột và 3 run `FINISHED`, đều seed 42. `none`: Run ID `7498d3c0b68743a1805ca06826e5c1ea`, Best Epoch 16, Train Loss 0.205217, Train Acc 93.252987%, Public Acc 66.759543%, Private Acc 68.152689%, Macro-F1 0.665690, Train−Private gap 25.100298 pp. `basic`: Run ID `622a723ec334441898003282a5d8d725`, Epoch 16, Loss 0.455350, Train Acc 83.520848%, Public 69.657286%, Private 70.130956%, Macro-F1 0.700074, gap 13.389891 pp. `advanced`: Run ID `35093d88d1a44e67b5117d8076f715ec`, Epoch 20, Loss 0.478602, Train Acc 82.326100%, Public 69.267205%, Private 70.186682%, Macro-F1 0.698806, gap 12.139418 pp. Gap là Train Acc trừ Private Test Acc; PublicTest được Trainer dùng làm validation/model selection.
+- **Diễn giải RQ3 có điều kiện:** từ none sang basic, Private Acc tăng 1.9783 điểm phần trăm, Macro-F1 tăng 0.034384 và gap giảm 11.7104 điểm phần trăm. Từ basic sang advanced, Private Acc chỉ tăng 0.0557 điểm, Macro-F1 giảm 0.001269, gap giảm thêm 1.2505 điểm. Đây là mô tả của một seed, không có mean±std/kiểm định nên không khẳng định ý nghĩa thống kê hoặc recipe tối ưu phổ quát.
+- **Giới hạn per-class:** CSV 24 cột không có classification report từng lớp, confusion matrix, epoch history hoặc ví dụ ảnh bị erase. Không thể khẳng định EXP-10 làm giảm điểm một lớp cảm xúc cụ thể hay đã che mắt/miệng/lông mày; đó là cơ chế có thể xảy ra cần kiểm chứng bằng per-class metrics và trực quan hóa các mẫu biến đổi.
 
 **Hỏi: Vì sao run name phải kèm augmentation mode?**
 Trả lời: Nếu chỉ dựa vào EXP ID/architecture/optimizer, hai recipe EXP-09 none và basic có thể trùng identity; Auto-Skip có nguy cơ bỏ qua nhầm một biến thể. Hậu tố mode làm mỗi recipe có run name riêng.
@@ -226,7 +228,16 @@ Trả lời: Nếu chỉ dựa vào EXP ID/architecture/optimizer, hai recipe EX
 Trả lời: Không. RandomErasing chỉ có trong train transform của mode advanced. Eval transform riêng không chứa random operator, nên PublicTest và PrivateTest luôn deterministic.
 
 **Hỏi: Có thể kết luận mức augmentation tốt nhất khi mới có smoke test không?**
-Trả lời: Không. Smoke test chỉ kiểm tra forward/backward và hợp đồng pipeline. Phải chạy đủ ba GPU runs, xác minh CSV 24 cột/Run IDs/FINISHED, rồi mới so sánh PrivateTest Acc, Macro-F1 và Train−Private gap.
+Trả lời: Smoke test chỉ kiểm tra forward/backward và hợp đồng pipeline. Hiện đã có ba run GPU `FINISHED` trong CSV 24 cột nên có thể so sánh mô tả các metric; tuy nhiên chỉ một seed và không có per-class report, vì vậy chưa đủ để kết luận thống kê hoặc xác định augmentation tối ưu tổng quát.
+
+**Hỏi: Basic augmentation đã thay đổi kết quả thế nào so với không augmentation trong T0401?**
+Trả lời: Ở seed 42, Private Acc tăng từ 68.1527% lên 70.1310%, Macro-F1 từ 0.665690 lên 0.700074, trong khi Train−Private gap giảm từ 25.1003 xuống 13.3899 điểm phần trăm. Đây là bằng chứng mô tả của một lần chạy, không thay thế đánh giá nhiều seed.
+
+**Hỏi: RandomErasing có làm mô hình tổng quát hóa tốt hơn basic không?**
+Trả lời: Advanced có gap nhỏ hơn 1.2505 điểm phần trăm và Private Acc nhỉnh hơn 0.0557 điểm, nhưng Macro-F1 thấp hơn 0.001269. Chênh lệch nhỏ, chỉ một seed; kết quả chưa cho thấy cải thiện nhất quán. Cần nhiều seed và metrics theo lớp trước khi kết luận.
+
+**Hỏi: Có thể nói RandomErasing làm mất chi tiết mắt/miệng/lông mày và gây giảm điểm lớp nào không?**
+Trả lời: Chưa. RandomErasing có thể che ngẫu nhiên một vùng ảnh, nhưng CSV tổng kết không lưu tọa độ vùng che hoặc F1 từng lớp. Muốn kết luận cần lưu/kiểm tra ảnh augmented, confusion matrix và classification report theo 7 lớp; không được suy ra lớp bị ảnh hưởng chỉ từ Macro-F1 tổng.
 
 **Hỏi: Chép thư mục MLflow có tiếp tục một epoch đang chạy dở không?**
 Trả lời: Không. MLflow chứa tracking và trạng thái run, không mặc nhiên chứa đủ trạng thái optimizer/model để tiếp tục epoch. Auto-Skip chỉ áp dụng cho run `FINISHED`; resume cần checkpoint được pipeline hỗ trợ.
