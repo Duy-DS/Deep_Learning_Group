@@ -178,6 +178,46 @@ Baseline Keras ghi 83,367 params, MSE validation 0.0642 và `accuracy` 0.9523; a
 
 **Smoke synthetic chứng minh đạt 77% pixel accuracy không?** Không. Mọi metric trên synthetic chỉ xác minh loop và shape; nghiệm thu accuracy cần split thật, seed/config đã khóa và ghi rõ trong báo cáo.
 
+---
+
+## 10. T0212 — Kiểm toán WP02, parity và smoke test thống nhất
+
+### Nhánh tích hợp và phạm vi history
+
+Nhánh `test/BTL03_T0212_wp02-review-smoke` được tạo từ nhánh Group 5 vì Group 5 đã chứa tip của Group 1–4 trong history. Kiểm tra `merge-base --is-ancestor` xác nhận cả năm tip WP02 nằm trong lịch sử nền tích hợp; merge lại sẽ là thao tác thừa. `main` vẫn là nhánh độc lập, không checkout/merge. Thư mục `docs/project_charter/` không có markdown mang đúng tên `Project_Charter_BTL03.md`; baseline dùng `docs/reports/261127_T0103_keras_baseline_log.md` làm nguồn số học, đồng thời ghi thiếu charter markdown trong báo cáo.
+
+Git author audit cho thấy author là người thật, nhưng lịch sử có nhiều alias/email cho một số thành viên (ví dụ `Duy-DS`, `DY-DS` và UID noreply; `TonOfWeight072501`, `Thái Toàn`, `ToanDinh`). Không có rewrite history để chuẩn hóa: report lưu nguyên provenance. Quét tree không thấy `.env`, data thật, checkpoint/weights/TensorBoard events được track; `legacy_keras/` không có diff so với main. Quét AST xác nhận source runtime không import TensorFlow/Keras.
+
+### Parity và smoke train
+
+`scripts/wp02_smoke.py` là factory/dataset/criterion chung cho mười cấu hình. Mỗi case gọi `BaseTrainer.fit(..., epochs=1)` trên CPU với seed 42 và Tensor giả đúng shape; logger, epoch CSV, checkpoints của callbacks được sandbox trong thư mục tạm. Group 4 khởi tạo `ModelCheckpoint`, `ReduceLROnPlateau`, `EarlyStopping`; hooks MNISTMLP `relu2`, MNISTCNN `pool3`, và heatmap FCN đều được kiểm tra.
+
+| Case | Baseline tham chiếu | Ghi chú |
+|---|---:|---|
+| FuncApxmMLP | 65 | EXP-01 không có Keras summary; config B=16, công thức `4B+1`. |
+| MNISTMLP | 669,706 | Exact. |
+| MNISTCNN | 1,817,610 | Exact. |
+| HumanGenderCNN | 4,063,570 | Exact; WIKI rotation `k=3` kiểm thử riêng. |
+| EmotionCNN | 19,028,287 | Exact. |
+| MNISTCNNLSTM | 1,747,073 | Exact; input `(B,8,1,28,28)`, LSTM `batch_first=True`. Recurrent bias PyTorch zero cố định là buffer không trainable, tránh truyền None vào fused LSTM mà vẫn giữ số parameter Keras. |
+| Gender + Callbacks | 4,063,570 | Cùng kiến trúc; callbacks được chạy. |
+| Emotion + Callbacks | 19,028,287 | Cùng kiến trúc; callbacks được chạy. |
+| SegNet | 29,458,211 | Exact, gồm 15,886 BN state non-trainable. |
+| FCNObjectDetector | 83,367 | Exact; score heatmap được tạo trên đầu vào lớn. |
+
+### CLI chuẩn
+
+```bash
+python -m src.train --config configs/cnn_mnist.yaml --seed 42 --epochs 1 --smoke-test
+python -m src.train --task all --smoke-test
+```
+
+`--task all` chỉ cho phép synthetic smoke, không chạy 10 bộ train chính thức ngoài ý muốn. Training cases dùng dữ liệu tổng hợp NCHW/sequence đúng schema và `BaseTrainer`; logs/checkpoints được tạo trong temporary directory. CLI không thay đổi `master_experiment_runs.csv` thật. Task `configured` không bật smoke sẽ dispatch runner nhóm tương ứng, do đó yêu cầu dữ liệu thật và logger hoạt động.
+
+### Trạng thái môi trường
+
+PyTorch train/validation smoke chạy được trên CPU cho cả 10 case. Tuy nhiên, `ExperimentLogger` không thể khởi tạo TensorBoard do TensorBoard 2.21.0 protobuf gencode 6.31.1 không tương thích protobuf runtime 5.29.6; vì vậy logger status bị đánh dấu `BLOCKED`, và CLI all-smoke trả mã 2 (không báo PASS toàn phần). Không nâng/cài package khi chưa được duyệt; cần sửa dependency lock/runtime trong tác vụ môi trường riêng rồi chạy lại logger/full suite. Smoke data không chứng minh accuracy baseline Keras.
+
 **Đa tiến trình có ghi master CSV an toàn tuyệt đối không?** Logger dùng khóa trong process và kiểm tra Run_ID trùng trước append; nếu nhiều process/host đồng ghi một file, cần một writer trung tâm hoặc backend giao dịch thay vì chia sẻ CSV qua mạng.
 
 ---

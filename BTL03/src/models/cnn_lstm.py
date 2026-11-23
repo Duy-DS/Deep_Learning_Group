@@ -37,10 +37,13 @@ class MNISTCNNLSTM(BaseMigratedModel):
 
         self.lstm1 = nn.LSTM(input_size=2304, hidden_size=128, batch_first=True)
         self.lstm2 = nn.LSTM(input_size=128, hidden_size=128, batch_first=True)
-        # Keras LSTM có một vector bias; PyTorch tách input/recurrent bias.
-        # Bỏ recurrent bias không học để khớp tuyệt đối số tham số Keras.
-        self.lstm1.register_parameter("bias_hh_l0", None)
-        self.lstm2.register_parameter("bias_hh_l0", None)
+        # Keras có một vector bias; PyTorch cộng hai vector input/recurrent.
+        # Giữ bias_hh bằng buffer 0 không học: PyTorch 2.x cần Tensor ở vị trí
+        # này khi gọi fused LSTM, còn số Parameter vẫn khớp đúng Keras.
+        for recurrent in (self.lstm1, self.lstm2):
+            hidden_size = recurrent.hidden_size
+            del recurrent._parameters["bias_hh_l0"]
+            recurrent.register_buffer("bias_hh_l0", torch.zeros(4 * hidden_size))
         self.lstm_dropout = nn.Dropout(lstm_dropout)
         self.fc3_10ways_softmax = nn.Linear(128, 1)
 

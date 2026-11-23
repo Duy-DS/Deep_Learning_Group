@@ -2,12 +2,16 @@
 seed: 42
 model_group: 01_mlp
 model_name: FuncApxmMLP
+optimizer: SGD
+criterion: MSELoss
+lr: 0.01
 learning_rate: 0.01
 batch_size: 128
 default_A: 800
 default_B: 16
 default_B_C: 128
 default_C: 100
+epochs: 100
 grid:
   train_size: 32
   test_size: 10

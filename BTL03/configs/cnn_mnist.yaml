@@ -2,6 +2,8 @@
 seed: 42
 model_name: MNISTCNN
 model_group: 02_cnn_mlp
+criterion: CrossEntropyLoss
+lr: 0.01
 learning_rate: 0.01
 optimizer: SGD
 batch_size: 128

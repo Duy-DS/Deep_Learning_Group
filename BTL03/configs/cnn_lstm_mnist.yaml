@@ -3,6 +3,8 @@ seed: 42
 model_group: 03_cnn_lstm
 model_name: MNISTCNNLSTM
 seq_len: 8
+criterion: L1Loss
+lr: 0.01
 learning_rate: 0.01
 optimizer: SGD
 loss: MAE

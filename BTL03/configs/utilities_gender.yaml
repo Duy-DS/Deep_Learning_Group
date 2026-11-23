@@ -3,6 +3,8 @@ seed: 42
 model_name: HumanGenderCNN
 model_group: 04_training_utilities
 model_key: gender
+criterion: CrossEntropyLoss
+lr: 0.001
 learning_rate: 0.001
 optimizer: Adam
 loss: CrossEntropyLoss

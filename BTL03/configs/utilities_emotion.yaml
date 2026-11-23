@@ -4,6 +4,8 @@ seed: 42
 model_name: EmotionCNN
 model_group: 04_training_utilities
 model_key: emotion
+criterion: CrossEntropyLoss
+lr: 0.0001
 learning_rate: 0.0001
 optimizer: Adam
 loss: CrossEntropyLoss

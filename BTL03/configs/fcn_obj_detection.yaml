@@ -5,6 +5,9 @@ image_size: 64
 window_stride: 8
 confidence_threshold: 0.8
 window_size: 64
+optimizer: Adam
+criterion: MSELoss
+lr: 0.001
 learning_rate: 0.001
 batch_size: 128
 epochs: 5
