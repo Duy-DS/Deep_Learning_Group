@@ -1,1 +1,16 @@
-"""Dataset và tiền xử lý dữ liệu cho BTL03 (tensor ảnh theo NCHW)."""
+"""Dataset ảnh BTL03 chuẩn hóa tensor PyTorch theo NCHW."""
+
+from .vision_datasets import FEREmotionDataset, MNISTDataset, WikiGenderDataset
+from .seq_mnist_dataset import SequentialMNISTDataset
+from .mlp_datasets import BivariateNormalDataset
+from .seg_det_datasets import FCNObjectDetectionDataset, SemanticSegmentationDataset
+
+__all__ = [
+    "MNISTDataset",
+    "WikiGenderDataset",
+    "FEREmotionDataset",
+    "BivariateNormalDataset",
+    "SequentialMNISTDataset",
+    "SemanticSegmentationDataset",
+    "FCNObjectDetectionDataset",
+]

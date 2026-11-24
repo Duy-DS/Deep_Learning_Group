@@ -39,6 +39,7 @@ Chuyển đổi trọn vẹn **10 tệp mã nguồn mẫu thuộc 5 nhóm bài t
 *   **100% PyTorch & Reproducibility:** Mọi mô hình, hàm mất mát, DataLoader và vòng lặp huấn luyện phải viết bằng PyTorch và gọi hàm `seed_everything(42)` trước khi khởi tạo dữ liệu/mô hình.
 *   **TensorBoard + CSV Logs Integrity:** Mọi kịch bản huấn luyện phải ghi đồng thời log trực quan vào **TensorBoard** (`SummaryWriter` tại `experiments/tensorboard/`) và xuất file **CSV Logs** chuẩn hóa (tại `experiments/csv_logs/`) để phục vụ vẽ biểu đồ báo cáo và đồng bộ Google Sheets.
 *   **Config Decoupling:** Mọi siêu tham số (`learning_rate`, `batch_size`, `image_size`, `epochs`, `dropout`, `seed=42`, đường dẫn dữ liệu) phải được nạp từ `configs/` hoặc `experiments/configs/*.yaml`.
+*   **Dual-Platform Notebook Parity (Thiết kế Notebook Song song Colab & Kaggle):** Mọi Jupyter Notebook phục vụ huấn luyện, trực quan hóa hoặc chạy thực nghiệm mô hình **bắt buộc** phải được thiết kế và duy trì đồng thời hai phiên bản tách biệt tại `notebooks/colab/` (tích hợp mount Google Drive) và `notebooks/kaggle/` (tích hợp `/kaggle/input/`, `/kaggle/working/` và nén artifact `.zip`). Hai phiên bản phải gọi chung lõi mã nguồn hướng đối tượng trong `src/`, dùng chung `Seed=42` và xuất cùng lược đồ `CSV Logs` / TensorBoard. Notebook chỉ là lớp điều hợp nền tảng; không nhân đôi logic mô hình/huấn luyện trong notebook.
 *   **Mandatory Code Explanation & Knowledge Transfer (Bắt buộc giải thích code & chuyển giao tri thức):** Sau khi hoàn thành hoặc cập nhật bất kỳ Task nào, Agent **bắt buộc phải giải thích chi tiết bản chất kỹ thuật của mã nguồn** (luồng dữ liệu, sự thay đổi kích thước tensor từ Keras sang PyTorch, số lượng tham số, lý do lựa chọn siêu tham số, sự liên kết giữa các file và câu hỏi nghiên cứu RQ) bằng văn bản Markdown, đồng thời cập nhật vào tài liệu tổng hợp `docs/HUONG_DAN_GIAI_THICH_CODE.md` kèm bộ câu hỏi/trả lời vấn đáp thường gặp.
 
 **Ask First (Phải xin ý kiến trước khi làm):**
@@ -53,6 +54,7 @@ Chuyển đổi trọn vẹn **10 tệp mã nguồn mẫu thuộc 5 nhóm bài t
 *   **No Evidence, No Completion & Anti-Freeform Red Line:** **TUYỆT ĐỐI KHÔNG** tuyên bố hoàn thành Task hoặc đóng phiên làm việc mà chưa tạo file log/report trong thư mục `docs/` theo đúng định dạng. **TUYỆT ĐỐI KHÔNG** chỉnh sửa nội dung hoặc xóa bỏ các file `TEMPLATE-*.md` / `*_template.md` gốc trong thư mục `docs/`.
 *   **Git Pollution Red Line:** **TUYỆT ĐỐI KHÔNG** commit dữ liệu ảnh/NumPy (`data/raw/`, `data/processed/`), trọng số mô hình (`*.pth`, `*.pt`), thư mục `outputs/`, `.venv/` hoặc `drafts/` lên Git.
 *   **Procedural Spaghetti Code:** **TUYỆT ĐỐI KHÔNG** viết code xử lý dữ liệu hay kiến trúc mô hình dưới dạng script thủ tục rời rạc không đóng gói vào Class OOP, hoặc viết docstring bằng tiếng Anh.
+*   **Notebook Platform Isolation:** **TUYỆT ĐỐI KHÔNG** đặt rời rạc notebook huấn luyện/thực nghiệm ngoài `notebooks/colab/` hoặc `notebooks/kaggle/`; không hardcode đường dẫn riêng của Colab/Drive (`/content/...`) vào lõi dùng chung trong `src/`. Đường dẫn nền tảng chỉ được phép ở notebook adapter hoặc cấu hình riêng theo nền tảng.
 *   **Branch Naming Violation:** **TUYỆT ĐỐI KHÔNG** commit trực tiếp lên nhánh `main` hoặc đặt tên nhánh sai cấu trúc `[chức năng]/BTL03_[Task ID]_[tên công việc]`.
 
 ---
@@ -226,6 +228,17 @@ Dự án gồm **24 nhiệm vụ** phân bổ cho **5 thành viên** theo 6 gói
     - Tác giả commit (`Author` & `Committer`) **BẮT BUỘC** là tên thành viên thật (ví dụ: `Duy-DS`).
     - **CẤM TUYỆT ĐỐI** để tên tác giả commit hoặc chuỗi `Co-authored-by:` là `Codex`, `GitHub Copilot`, `Cursor`, `Claude`, `Antigravity` hay bất kỳ AI Agent nào. Nếu phát hiện `git config user.name` đang mang tên công cụ tự động, Agent phải dừng thao tác commit và yêu cầu người dùng cấu hình lại tên thành viên.
 
+-  **Cơ chế Tra cứu Định danh Tự động qua `.env` (`.env` Identity Resolution):**
+    -   Thông tin ánh xạ giữa mã thành viên (`MEMBER_01` đến `MEMBER_05`) với `NAME` (GitHub Username) và `EMAIL` (GitHub Email) được lưu trữ cục bộ tại tệp `.env` ở thư mục gốc dự án (tham chiếu cấu trúc từ `.env.example`).
+    -   **Quy trình bắt buộc trước khi `git commit`:**
+        1. Agent phải xác định thành viên phụ trách Task hiện tại dựa trên bảng phân công WBS (hoặc chỉ định trực tiếp trong prompt).
+        2. Đọc tệp `.env` để trích xuất cặp biến `MEMBER_XX_NAME` và `MEMBER_XX_EMAIL` tương ứng.
+        3. Thực thi lệnh commit với cờ `--author` tường minh để không làm sai lệch cấu hình global của máy:
+           ```bash
+           git commit --author="<MEMBER_XX_NAME> <<MEMBER_XX_EMAIL>>" -m "[BTL03_<Task ID>] <type>(<scope>): <mô tả>"
+           ```
+        4. Nếu tệp `.env` chưa tồn tại hoặc thiếu thông tin của thành viên phụ trách, Agent **bắt buộc phải dừng thao tác commit** và yêu cầu người dùng cập nhật tệp `.env` trước khi tiếp tục.
+
 ### **8. Mandatory Evidence Logging & File Naming Rules (Hệ thống Bằng chứng Bắt buộc)**
 Dự án áp dụng cơ chế kiểm soát **"Evidence-First & Template-Locked"** nghiêm ngặt. Mọi kết quả thực thi, sửa lỗi, nhật ký hàng ngày và thực nghiệm phải được lưu trữ thành file Markdown tại 4 thư mục con trong `docs/`. Khi tạo file, Agent **bắt buộc phải copy nguyên vẹn cấu trúc từ file template gốc tương ứng**, ghi rõ tên thành viên phụ trách (tuyệt đối không ghi tên AI Agent) và tuân thủ 100% định dạng đặt tên file:
 
@@ -259,7 +272,9 @@ BTL03/
 │   ├── inference.py             # [Đóng gói suy luận độc lập]
 │   └── utils.py                 # [seed_everything(42), đếm tham số, vẽ biểu đồ]
 ├── app/                         # [READ & WRITE; WP5: Ứng dụng demo giao diện Streamlit / Gradio]
-├── notebooks/                   # [READ & WRITE; Jupyter Notebooks EDA & trực quan hóa nhanh]
+├── notebooks/                   # [READ & WRITE; Jupyter Notebooks thực nghiệm đa nền tảng]
+│   ├── colab/                   # [Google Colab GPU; mount Drive cho dữ liệu/checkpoints/logs]
+│   └── kaggle/                  # [Kaggle GPU P100/T4x2; /kaggle/input và /kaggle/working]
 ├── scripts/                     # [READ & WRITE; Script CLI tải data & chạy thực nghiệm hàng loạt]
 ├── experiments/                 # [READ & WRITE; Cấu hình YAML & logs chạy thực nghiệm]
 │   ├── configs/                 # [Cấu hình thực nghiệm YAML theo từng bài toán & Ablation]

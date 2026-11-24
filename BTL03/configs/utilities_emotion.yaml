@@ -1,0 +1,49 @@
+# FER callback integration. Legacy used EarlyStopping + ImageDataGenerator;
+# checkpoint and LR reduction below are explicit T0209 extensions.
+seed: 42
+model_name: EmotionCNN
+model_group: 04_training_utilities
+model_key: emotion
+criterion: CrossEntropyLoss
+lr: 0.0001
+learning_rate: 0.0001
+optimizer: Adam
+loss: CrossEntropyLoss
+batch_size: 128
+epochs: 100
+dropout_block: 0.25
+dropout_dense: 0.5
+num_workers: 0
+normalization: preserve
+augmentation:
+  rotation_range_degrees: 45
+  width_shift_fraction: 0.2
+  height_shift_fraction: 0.2
+  horizontal_flip: true
+data_root: data/raw/fer2013
+train_csv: fer2013_training_onehot.csv
+validation_csv: fer2013_publictest_onehot.csv
+early_stopping:
+  monitor: val_loss
+  min_delta: 0.0
+  patience: 5
+  mode: min
+  restore_best_weights: true
+reduce_lr:
+  monitor: val_loss
+  factor: 0.1
+  patience: 5
+  min_delta: 0.0001
+  cooldown: 0
+  min_lr: 0.000001
+  mode: min
+checkpoint:
+  monitor: val_loss
+  mode: min
+  save_best_only: true
+  save_weights_only: false
+  sync_to_drive: true
+  filepath: outputs/checkpoints/04_training_utilities/emotion_cnn_best.pt
+figure_path: outputs/figures/t0209_emotion_utilities_curves.png
+csv_root: experiments/csv_logs
+tensorboard_root: experiments/tensorboard

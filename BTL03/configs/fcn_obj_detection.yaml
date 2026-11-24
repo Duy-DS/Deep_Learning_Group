@@ -1,0 +1,31 @@
+seed: 42
+model_name: FCNObjectDetector
+model_group: 05_others
+image_size: 64
+window_stride: 8
+confidence_threshold: 0.8
+window_size: 64
+optimizer: Adam
+criterion: MSELoss
+lr: 0.001
+learning_rate: 0.001
+batch_size: 128
+epochs: 5
+num_workers: 0
+synthetic_samples: 4
+synthetic_fallback: false
+data:
+  root: data/raw/obj_detection
+  train_images: data/raw/obj_detection/train_images.npy
+  train_labels: data/raw/obj_detection/train_labels.npy
+  validation_images: data/raw/obj_detection/validation_images.npy
+  validation_labels: data/raw/obj_detection/validation_labels.npy
+  inference_image: data/raw/obj_detection/test.jpg
+logging:
+  exp_type: PyTorch
+  csv_root: experiments/csv_logs
+  tensorboard_root: experiments/tensorboard
+checkpoint:
+  path: outputs/checkpoints/05_others/fcn_detector_best.pt
+  sync_to_drive: true
+figure_path: outputs/figures/t0211_fcn_heatmap_detection.png

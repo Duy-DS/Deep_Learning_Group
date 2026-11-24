@@ -14,6 +14,8 @@ env/
 
 # Data rules (Ignore heavy datasets, keep doc and tracking files)
 *.csv
+!experiments/csv_logs/
+!experiments/csv_logs/*.csv
 *.zip
 *.tar.gz
 *.tgz
@@ -46,7 +48,12 @@ outputs/**
 # Experiment tracking & Personal drafts
 mlruns/
 mlartifacts/
+experiments/tensorboard/*
+!experiments/tensorboard/.gitkeep
 drafts/
+experiments/tensorboard/*
+!experiments/tensorboard/.gitkeep
+events.out.tfevents*
 
 # OS generated files
 .DS_Store

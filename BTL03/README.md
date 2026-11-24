@@ -11,7 +11,7 @@
 
 *Đồ án Môn học Học sâu (Deep Learning) — Tái cấu trúc, đối chiếu tương đương toán học (Parity Check), trực quan hóa không gian đặc trưng và thực nghiệm Ablation Studies trên 5 nhóm bài toán cốt lõi.*
 
-[Tài liệu Đặc tả (Project Charter)](https://docs.google.com/document/d/1Gt5v48e-EyodjnOs945TWbnQfQImbx_Y91LqQj07xow/edit) • [Bảng Điều hành & Logs (Google Sheets)](https://docs.google.com/spreadsheets/d/1AlhGgOKEFaE3nRGZG-8sFny83aw9wHYcynhrsRIwWQE/edit) • [Google Drive Checkpoints & Data](#)
+[Tài liệu Đặc tả (Project Charter)](https://docs.google.com/document/d/1Gt5v48e-EyodjnOs945TWbnQfQImbx_Y91LqQj07xow/edit) • [Bảng Điều hành & Logs (Google Sheets)](https://docs.google.com/spreadsheets/d/1AlhGgOKEFaE3nRGZG-8sFny83aw9wHYcynhrsRIwWQE/edit) • [Google Drive Checkpoints & Data](https://drive.google.com/drive/folders/1gbN1b39s5LE4Mm0rDSEFRO3Qrsv7U3n9?usp=sharing)
 
 </div>
 
@@ -146,9 +146,12 @@ BTL03/
 │   ├── train.py                 # Script huấn luyện thống nhất qua CLI
 │   ├── evaluate.py              # Script đánh giá metrics & kiểm tra Parity
 │   ├── inference.py             # Script suy luận & trích xuất đặc trưng (PCA/Heatmap)
-│   └── utils.py                 # Cố định Random Seed, vẽ biểu đồ, quản lý Logger
+│   ├── utils.py                 # Cố định Random Seed, vẽ biểu đồ, quản lý Logger
+│   └── logger.py                # ExperimentLogger + CheckpointManager (CSV/TensorBoard/Drive mirror)
 ├── app/                         # Ứng dụng Demo tương tác (Streamlit / Gradio)
-├── notebooks/                   # Jupyter Notebooks thử nghiệm nhanh & EDA
+├── notebooks/                   # Notebook adapter; dùng chung lõi OOP trong src/
+│   ├── colab/                   # Google Colab GPU, mount Google Drive
+│   └── kaggle/                  # Kaggle GPU, /kaggle/input và /kaggle/working
 ├── scripts/                     # Scripts tự động hóa tải dữ liệu và chạy hàng loạt
 ├── experiments/                 # Nhật ký thực nghiệm thô (TensorBoard event files & CSV logs)
 ├── outputs/                     # Kết quả chính thức đưa vào báo cáo
@@ -173,8 +176,8 @@ BTL03/
 
 | Mã EXP | Nhóm Bài toán | Tệp Keras Gốc | Module PyTorch (`src/models/`) | Số Tham số | Metric Đánh giá | Baseline Keras | Mục tiêu PyTorch |
 | :--- | :--- | :--- | :--- | :---: | :---: | :---: | :---: |
-| **EXP-01** | **Nhóm 1:** MLP | `Func_apxm_MLP.txt` | `mlp.py` (`FuncApxmMLP`) | `561` | Test MSE Loss | `0.0012` | $\le 0.0015$ |
-| **EXP-02** | **Nhóm 1:** MLP | `MNIST_MLP.txt` | `mlp.py` (`MNISTMLP`) | `669,706` | Test Accuracy | `96.48%` | $\ge 96.00\%$ |
+| **EXP-01** | **Nhóm 1:** MLP | `Func_apxm_MLP.ipynb` | `mlp.py` (`FuncApxmMLP`) | `4B+1` (B thay đổi; 65 khi B=16) | Test MSE Loss | `NOT_RECORDED` | Chưa đặt (cần Keras numeric baseline) |
+| **EXP-02** | **Nhóm 1:** MLP | `MNIST_MLP.ipynb` | `mlp.py` (`MNISTMLP`) | `669,706` | Test Accuracy | `96.48%` | $\ge 96.00\%$ |
 | **EXP-03** | **Nhóm 2:** CNN + MLP | `1_MNIST_CNN.txt` | `cnn.py` (`MNISTCNN`) | `1,199,882` | Test Accuracy | `98.84%` | $\ge 98.50\%$ |
 | **EXP-04** | **Nhóm 2:** CNN + MLP | `2_Human_Gender_CNN.txt` | `cnn.py` (`GenderCNN`) | `1,735,442` | Test Accuracy | `87.73%` | $\ge 87.00\%$ |
 | **EXP-05** | **Nhóm 2:** CNN + MLP | `3_Emotion_Reg_CNN.txt` | `cnn.py` (`EmotionCNN`) | `19,012,487` | Test Accuracy | `59.54%` | $\ge 59.00\%$ |
@@ -232,6 +235,41 @@ tensorboard --logdir experiments/tensorboard/
 # Khởi chạy giao diện Demo tương tác (Streamlit)
 streamlit run app/demo_app.py
 ```
+
+### Bước 5: Checkpoints, CSV Logs & TensorBoard
+
+- Cấu hình đường dẫn trong `configs/paths.yaml`; Kaggle adapter dùng `configs/kaggle_paths.yaml`. Google Drive gốc: [BTL03 Drive](https://drive.google.com/drive/folders/1gbN1b39s5LE4Mm0rDSEFRO3Qrsv7U3n9?usp=sharing).
+- Cấu trúc Drive dự kiến: `MyDrive/BTL03/data/raw/` và `MyDrive/BTL03/checkpoints/{01_mlp,02_cnn_mlp,03_cnn_lstm,04_training_utilities,05_others}/`.
+- Chỉ gọi `CheckpointManager` với `drive_root` hoặc biến môi trường `BTL03_GOOGLE_DRIVE_ROOT` trỏ tới thư mục Drive **đã mount**. Lõi `src/` không tự mount Drive; checkpoint luôn được lưu cục bộ trước, rồi mirror tùy chọn.
+- `ExperimentLogger` ghi một CSV epoch `<Run_ID>_epochs.csv`, một dòng/run vào `experiments/csv_logs/master_experiment_runs.csv` (18 cột chuẩn), và TensorBoard event dưới `experiments/tensorboard/<Model_Group>/<Model_Name>/<Exp_Type>_s<Seed>_<YYYYMMDD_HHMMSS>/`.
+- `Member_Alias` phải được truyền rõ hoặc đọc từ `.env` bằng `member_id`; logger không tự gán tên AI hay alias mặc định.
+- TensorBoard event, checkpoints và outputs là artifact runtime, bị `.gitignore` chặn; chỉ CSV logs nhẹ được giữ để đối chiếu. Không commit `.env`/credentials.
+- Chạy kiểm thử an toàn trong sandbox tạm (không sinh artifact trong repo):
+
+```bash
+python -m pip install -r requirements.txt
+python scripts/smoke_test_logger.py
+```
+
+### Bước 5: Chọn nền tảng Notebook/GPU
+
+Notebook huấn luyện, trực quan hóa và thực nghiệm phải có hai adapter song song trong `notebooks/colab/` và `notebooks/kaggle/`. Hai adapter gọi chung module OOP trong `src/`, giữ `Seed=42` và cùng schema CSV/TensorBoard; không sao chép logic mô hình giữa các nền tảng. Các thư mục hiện được khởi tạo để tiếp nhận notebook; runner cụ thể sẽ được bổ sung theo từng task.
+
+#### Google Colab
+
+1. Mở notebook tương ứng trong `notebooks/colab/`.
+2. Chọn runtime GPU theo quota khả dụng; xác nhận GPU trước khi chạy mô hình nặng.
+3. Mount Google Drive theo quyền truy cập của nhóm, đọc dữ liệu/checkpoint từ vị trí đã cấu hình và lưu checkpoint, CSV/TensorBoard logs về Drive.
+4. Không ghi credential/token vào notebook hoặc Git; đường dẫn Drive phải nằm trong cấu hình/runtime adapter, không hardcode trong `src/`.
+
+#### Kaggle — phương án dự phòng khi Colab hết hạn mức GPU
+
+1. Mở notebook tương ứng trong `notebooks/kaggle/`.
+2. Bật Accelerator GPU (P100 hoặc T4 x2 nếu được cấp) và Internet khi nguồn dữ liệu cần tải.
+3. Gắn Kaggle Dataset; đọc dữ liệu từ `/kaggle/input/` (read-only). Với T4 x2, chỉ bật `nn.DataParallel`/đa GPU sau khi cấu hình và kiểm thử tương thích; không mặc định giả định mọi notebook sẽ dùng được hai GPU.
+4. Ghi checkpoints/logs/kết quả vào `/kaggle/working/`; đóng gói các artifact được phép thành `.zip` để tải về. Không đưa dataset, secrets hoặc trọng số nặng lên Git.
+
+Hai nền tảng phải dùng chung `src/`, seed và lược đồ CSV/TensorBoard; chỉ phần mount, đường dẫn và đóng gói artifact khác nhau. Nếu thư mục adapter chưa có notebook cho một mô hình, cần tạo cả hai phiên bản tương ứng trước khi coi hỗ trợ đa nền tảng là hoàn tất.
 
 ---
 

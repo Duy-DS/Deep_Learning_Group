@@ -1,0 +1,26 @@
+# Hyperparameters T0204 theo baseline WIKI basic, không dùng callbacks.
+seed: 42
+model_name: HumanGenderCNN
+model_group: 02_cnn_mlp
+criterion: CrossEntropyLoss
+lr: 0.0001
+learning_rate: 0.0001
+optimizer: Adam
+batch_size: 128
+epochs: 30
+dropout: 0.2
+num_workers: 0
+normalization: auto
+apply_legacy_rotation: true
+rotation_k: 3
+rotation_axes: [1, 2]
+data_root: data/raw/wiki_gender
+train_images: train_x.npy
+train_labels: train_y.npy
+validation_images: validation_x.npy
+validation_labels: validation_y.npy
+checkpoint_root: outputs/checkpoints
+checkpoint_name: human_gender_cnn_best.pt
+figure_root: outputs/figures
+csv_root: experiments/csv_logs
+tensorboard_root: experiments/tensorboard

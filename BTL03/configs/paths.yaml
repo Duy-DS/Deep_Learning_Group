@@ -1,0 +1,22 @@
+# Đường dẫn chuẩn project và Google Drive; không chứa credential/token.
+project:
+  code: BTL03
+  drive_folder_url: https://drive.google.com/drive/folders/1gbN1b39s5LE4Mm0rDSEFRO3Qrsv7U3n9?usp=sharing
+  drive_mount_root: /content/drive/MyDrive/BTL03
+
+local:
+  data_raw: data/raw
+  data_processed: data/processed
+  checkpoints: outputs/checkpoints
+  csv_logs: experiments/csv_logs
+  tensorboard_runs: experiments/tensorboard
+
+drive:
+  data_raw: MyDrive/BTL03/data/raw
+  checkpoints: MyDrive/BTL03/checkpoints
+  groups:
+    01_mlp: MyDrive/BTL03/checkpoints/01_mlp
+    02_cnn_mlp: MyDrive/BTL03/checkpoints/02_cnn_mlp
+    03_cnn_lstm: MyDrive/BTL03/checkpoints/03_cnn_lstm
+    04_training_utilities: MyDrive/BTL03/checkpoints/04_training_utilities
+    05_others: MyDrive/BTL03/checkpoints/05_others

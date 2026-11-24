@@ -1,0 +1,24 @@
+# Cấu hình T0206/T0207 theo notebook CNN-LSTM Keras legacy.
+seed: 42
+model_group: 03_cnn_lstm
+model_name: MNISTCNNLSTM
+seq_len: 8
+criterion: L1Loss
+lr: 0.01
+learning_rate: 0.01
+optimizer: SGD
+loss: MAE
+batch_size: 128
+epochs: 30
+frame_dropout: 0.2
+lstm_dropout: 0.22
+num_workers: 0
+train_samples: 60000
+test_samples: 10000
+data_root: data/raw/mnist
+checkpoint_root: outputs/checkpoints
+checkpoint_name: mnist_cnn_lstm_best.pt
+figure_root: outputs/figures
+csv_root: experiments/csv_logs
+tensorboard_root: experiments/tensorboard
+target_test_mae: 0.04
