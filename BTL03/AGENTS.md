@@ -6,7 +6,7 @@ Tài liệu này đóng vai trò là hiến pháp vận hành và kiến trúc t
 
 - **Tên đề tài:** Bài tập lớn 03 – Chuyển đổi mã nguồn Deep Learning từ Keras sang PyTorch & Phân tích Thực nghiệm
 - **Mã dự án (Project Code):** `BTL03`
-- **Mã quản lý công việc (Task Prefix):** `BTL03` (Định dạng Task ID: `T0101` – `T0603`)
+- **Mã quản lý công việc (Task Prefix):** `BTL03`; WBS hiện hành có 4 Work Packages (`WP01`–`WP04`) và 30 Task ID từ `T0101` đến `T0406`.
 - **Repository:** `Deep_Learning_Group` / Thư mục gốc dự án `BTL03/`
 
 ---
@@ -14,7 +14,7 @@ Tài liệu này đóng vai trò là hiến pháp vận hành và kiến trúc t
 ## **I. CORE DIRECTIVES & GUARDRAILS (CHỈ THỊ CỐT LÕI & RANH GIỚI AN TOÀN)**
 
 ### **1. Purpose and Authority (Mục đích & Thẩm quyền)**
-- Đóng vai trò là cộng sự AI chuyên sâu về Deep Learning (MLP, CNN, CNN+LSTM, Semantic Segmentation, Object Detection), chuyển đổi kiến trúc TensorFlow/Keras sang **100% PyTorch**, trực quan hóa đặc trưng/huấn luyện (TensorBoard, PCA, Grad-CAM) và phân tích lỗi (Debugging) cho nhóm nghiên cứu **5 thành viên** với 6 gói công việc (`WP1` – `WP6`) và 24 nhiệm vụ (`T0101` – `T0603`).
+- Đóng vai trò là cộng sự AI chuyên sâu về Deep Learning (MLP, CNN, CNN+LSTM, Semantic Segmentation, Object Detection), chuyển đổi kiến trúc TensorFlow/Keras sang **100% PyTorch**, trực quan hóa đặc trưng/huấn luyện (TensorBoard, PCA, Grad-CAM) và phân tích lỗi (Debugging) cho nhóm **5 thành viên**, với 4 Work Packages (`WP01`–`WP04`) và 30 nhiệm vụ (`T0101`–`T0406`) theo workbook điều hành trong `docs/project_charter/`.
 - Phân biệt rõ ràng giữa **logic kiến trúc gốc trong `legacy_keras/`**, **quyết định đã chốt trong đặc tả dự án (`docs/project_charter/`)**, và **các mở rộng cải tiến / Ablation Studies**. Không tự ý thay đổi hạt giống ngẫu nhiên (`Seed = 42`), tỷ lệ chia dữ liệu chuẩn hoặc schema CSV Logs khi chưa được phép.
 
 ### **2. Project Mission & Experimental Scope (Sứ mệnh & Phạm vi thực nghiệm)**
@@ -38,7 +38,7 @@ Chuyển đổi trọn vẹn **10 tệp mã nguồn mẫu thuộc 5 nhóm bài t
 *   **100% OOP & Docstring Tiếng Việt:** Toàn bộ mã nguồn trong `src/` phải được thiết kế theo phương pháp Hướng đối tượng (Classes & Methods). 100% class, phương thức, hàm và inline comments giải thích luồng biến đổi kích thước tensor (`NHWC` $\rightarrow$ `NCHW`, `TimeDistributed` reshape,...) phải viết bằng **Tiếng Việt** (theo chuẩn Google/NumPy Docstring).
 *   **100% PyTorch & Reproducibility:** Mọi mô hình, hàm mất mát, DataLoader và vòng lặp huấn luyện phải viết bằng PyTorch và gọi hàm `seed_everything(42)` trước khi khởi tạo dữ liệu/mô hình.
 *   **TensorBoard + CSV Logs Integrity:** Mọi kịch bản huấn luyện phải ghi đồng thời log trực quan vào **TensorBoard** (`SummaryWriter` tại `experiments/tensorboard/`) và xuất file **CSV Logs** chuẩn hóa (tại `experiments/csv_logs/`) để phục vụ vẽ biểu đồ báo cáo và đồng bộ Google Sheets.
-*   **Config Decoupling:** Mọi siêu tham số (`learning_rate`, `batch_size`, `image_size`, `epochs`, `dropout`, `seed=42`, đường dẫn dữ liệu) phải được nạp từ `configs/` hoặc `experiments/configs/*.yaml`.
+*   **Config Decoupling:** Mọi siêu tham số (`learning_rate`, `batch_size`, `image_size`, `epochs`, `dropout`, `seed=42`, đường dẫn dữ liệu) phải được nạp từ các YAML hiện hành trong `configs/` (hoặc cấu hình riêng đã được task xác nhận); không giả định `experiments/configs/` đang tồn tại.
 *   **Dual-Platform Notebook Parity (Thiết kế Notebook Song song Colab & Kaggle):** Mọi Jupyter Notebook phục vụ huấn luyện, trực quan hóa hoặc chạy thực nghiệm mô hình **bắt buộc** phải được thiết kế và duy trì đồng thời hai phiên bản tách biệt tại `notebooks/colab/` (tích hợp mount Google Drive) và `notebooks/kaggle/` (tích hợp `/kaggle/input/`, `/kaggle/working/` và nén artifact `.zip`). Hai phiên bản phải gọi chung lõi mã nguồn hướng đối tượng trong `src/`, dùng chung `Seed=42` và xuất cùng lược đồ `CSV Logs` / TensorBoard. Notebook chỉ là lớp điều hợp nền tảng; không nhân đôi logic mô hình/huấn luyện trong notebook.
 *   **Mandatory Code Explanation & Knowledge Transfer (Bắt buộc giải thích code & chuyển giao tri thức):** Sau khi hoàn thành hoặc cập nhật bất kỳ Task nào, Agent **bắt buộc phải giải thích chi tiết bản chất kỹ thuật của mã nguồn** (luồng dữ liệu, sự thay đổi kích thước tensor từ Keras sang PyTorch, số lượng tham số, lý do lựa chọn siêu tham số, sự liên kết giữa các file và câu hỏi nghiên cứu RQ) bằng văn bản Markdown, đồng thời cập nhật vào tài liệu tổng hợp `docs/HUONG_DAN_GIAI_THICH_CODE.md` kèm bộ câu hỏi/trả lời vấn đáp thường gặp.
 
@@ -82,7 +82,7 @@ graph TD
 
     Ablation --> EvidenceLogs([Hệ thống Bằng chứng <br> docs/reports/ & docs/experiences/])
     Models --> Inference[src/inference.py <br> Đóng gói suy luận độc lập]
-    Inference --> WebApp[app/demo.py <br> Streamlit / Gradio Interactive Demo]
+    Inference --> WebApp[app/ <br> Streamlit / Gradio Demo khi có deliverable]
 
     classDef data fill:#238636,stroke:#2ea043,stroke-width:2px,color:#fff;
     classDef model fill:#1f6feb,stroke:#58a6ff,stroke-width:2px,color:#fff;
@@ -94,8 +94,10 @@ graph TD
     class LegacyKeras,Ablation,TB,CSV,EvidenceLogs doc;
 ```
 
+Sơ đồ là mô tả kiến trúc/đích tích hợp, không khẳng định mọi nhánh thực thi đã chạy end-to-end. Các deliverable chưa có file/evidence phải ghi `NOT RUN`, `BLOCKED` hoặc `[CHƯA THỰC HIỆN]` đúng trạng thái.
+
 ### **5. Global Pipeline Contracts & OOP Schemas (Pydantic v2 & PyTorch Contracts)**
-Để đảm bảo tính nhất quán tuyệt đối giữa 6 Work Packages và 10 bài toán chuyển đổi, các cấu trúc cấu hình thực nghiệm, kết quả đánh giá và lớp cơ sở mô hình phải tuân thủ hợp đồng kiểu dữ liệu (Type Hints & Pydantic v2) và chuẩn OOP Tiếng Việt dưới đây:
+Để đảm bảo tính nhất quán tuyệt đối giữa 4 Work Packages và 10 cấu hình thuộc 5 nhóm bài toán, các cấu trúc cấu hình thực nghiệm, kết quả đánh giá và lớp cơ sở mô hình phải tuân thủ hợp đồng kiểu dữ liệu (Type Hints & Pydantic v2) và chuẩn OOP Tiếng Việt dưới đây:
 
 ```python
 from typing import Dict, List, Literal, Optional, Tuple
@@ -134,7 +136,7 @@ class MigrationBenchmarkContract(BaseModel):
     metric_name: Literal["Accuracy", "MAE", "mIoU"]
     keras_params: int = Field(..., description="Tổng số tham số (Parameters) của mô hình Keras gốc")
     pytorch_params: int = Field(..., description="Tổng số tham số của mô hình PyTorch (phải khớp với Keras)")
-    train_time_minutes: float = Field(..., ge=0.0, description="Thời gian huấn luyện thực tế (phút)")
+    train_time_minutes: Optional[float] = Field(default=None, ge=0.0, description="Thời gian thực tế; để trống nếu NOT_RECORDED")
     checkpoint_path: str = Field(..., description="Đường dẫn lưu trọng số .pth tốt nhất")
     csv_log_path: str = Field(..., description="Đường dẫn file CSV log từng epoch")
 
@@ -193,33 +195,40 @@ class BaseMigratedModel(nn.Module):
 ```
 
 ### **6. Component Responsibilities & Work Package Ownership Matrix**
-Dự án gồm **24 nhiệm vụ** phân bổ cho **5 thành viên** theo 6 gói công việc (`WP1` – `WP6`), kết hợp quản lý theo trục dọc (mảng chuyên môn) và trục ngang (từng nhóm bài toán):
+Dự án gồm **4 Work Packages (`WP01`–`WP04`) và 30 nhiệm vụ (`T0101`–`T0406`)** phân bổ cho **5 thành viên**. Task ID dùng mẫu `T[WP hai chữ số][STT hai chữ số]`. Bảng dưới ghi task owner và trục trách nhiệm theo các tab `Quan_Ly_Tasks`/`Phan_Cong_Dong_Gop` trong workbook điều hành; trạng thái hoàn thành phải căn cứ evidence/DoD, không suy từ owner hoặc tỷ lệ đóng góp.
 
-| Gói công việc & Thành viên phụ trách | Danh sách Task ID | Module sở hữu | Nhiệm vụ cốt lõi & Ranh giới kỹ thuật |
+| Work Package | Phạm vi Task ID | Thành viên & tasks sở hữu theo workbook | Trục dọc / trục ngang và module liên quan |
 | :--- | :--- | :--- | :--- |
-| **WP1: Hạ tầng, Dữ liệu & Nhóm 1 (MLP)**<br>**Thành viên 1 (Nhóm trưởng — VD: `Duy-DS`)** | `T0101` – `T0105` | `src/utils.py`, `src/train.py`<br>`src/datasets/mlp_datasets.py`<br>`src/models/mlp_models.py`<br>`configs/`, `scripts/` | Khởi tạo Repo, cấu trúc thư mục, `.gitignore`, `seed_everything(42)`; xây dựng hệ thống Logger tích hợp **TensorBoard + CSV Logs**; chuyển đổi Nhóm 1 (`Func_apxm_MLP`, `MNIST_MLP`) và thực nghiệm khảo sát số mẫu ($A$), số nút ẩn ($B$), số epochs ($C$). |
-| **WP2: Nhóm 2 — CNN + MLP**<br>**Thành viên 2** | `T0201` – `T0204` | `src/datasets/vision_datasets.py`<br>`src/models/cnn_models.py`<br>`experiments/configs/cnn/` | Chuyển đổi chuẩn trục dữ liệu `NHWC` $\rightarrow$ `NCHW`; chuyển đổi `1_MNIST_CNN` (kèm trích xuất đặc trưng PCA), `2_Human_Gender_CNN` (xử lý phép xoay `np.rot90`), và `3_Emotion_Reg_CNN` (FER2013 7 lớp). |
-| **WP3: Nhóm 3 — CNN + LSTM & Nhóm 4 — Training Utilities**<br>**Thành viên 3** | `T0301` – `T0304` | `src/models/cnn_lstm.py`<br>`src/callbacks.py`<br>`experiments/configs/callbacks/` | Chuyển đổi `MNIST_CNN_LSTM` (xử lý gộp chiều thay thế `TimeDistributed`); xây dựng hệ thống Callbacks OOP (`ModelCheckpoint`, `EarlyStopping`, `ReduceLROnPlateau`) và tái hiện thí nghiệm Nhóm 4 chứng minh khắc phục Overfitting trên Gender & Emotion. |
-| **WP4: Nhóm 5 — Advanced Vision (SegNet & Object Detection)**<br>**Thành viên 4** | `T0401` – `T0404` | `src/datasets/seg_det_datasets.py`<br>`src/models/segnet.py`<br>`src/models/obj_detection.py` | Chuyển đổi kiến trúc Encoder-Decoder `1_segnet` (~29.4M tham số, `nn.Upsample`) và mạng phát hiện vật thể Fully Convolutional `2_obj_detection` (chuẩn hóa `x/127.5 - 1.0`, `Conv2d` $8\times8$ & $1\times1$). |
-| **WP5: Đánh giá, Trực quan hóa, Debug & Web Demo**<br>**Thành viên 5** | `T0501` – `T0504` | `src/evaluate.py`<br>`src/inference.py`<br>`app/demo.py`<br>`notebooks/` | Tổng hợp biểu đồ Loss/Acc từ TensorBoard & CSV Logs; vẽ PCA, Confusion Matrix, dự đoán đúng/sai; phân tích nguyên nhân thành công/thất bại (Debug); đóng gói suy luận và giao diện Web Demo (Streamlit/Gradio). |
-| **WP6: Báo cáo, Slide, Poster & Nộp bài**<br>**Thành viên 5 & Thành viên 1 (Nhóm trưởng)** | `T0601` – `T0603` | `README.md`, `requirements.txt`<br>`docs/presentation/`<br>`docs/thesis/` | Viết `README.md` hướng dẫn tái lập từng bước; biên soạn Báo cáo (điện tử + in), Slide `.pptx` & Poster; rà soát bằng chứng, bảng tỷ lệ đóng góp 5 thành viên (=100%) và nén file `Nhom??_ChuyenDoiKerasSangPyTorch_HoTen_MaSV.zip`. |
+| **WP01 — Khởi tạo Hạ tầng, Dữ liệu & Baseline Keras** (6 tasks) | `T0101`–`T0106` | Member 01: `T0101`, `T0106`; Member 02: `T0102`; Member 03: `T0103`; Member 04: `T0104`; Member 05: `T0105` | Repo/OOP/seed; pipeline dữ liệu; baseline inventory; logger/checkpoints; đặc tả và khởi tạo báo cáo. |
+| **WP02 — Chuyển đổi 10 mô hình Keras sang PyTorch** (12 tasks) | `T0201`–`T0212` | Member 01: `T0201`, `T0202`, `T0212`; Member 02: `T0203`–`T0205`; Member 03: `T0206`, `T0207`; Member 04: `T0208`, `T0209`; Member 05: `T0210`, `T0211` | Nhóm 1 MLP; Nhóm 2 CNN+MLP; Nhóm 3 CNN+LSTM; Nhóm 4 utilities; Nhóm 5 SegNet/FCN. Source hiện hành nằm trong `src/datasets/`, `src/models/`, `src/engine/`, `src/logger.py`, `configs/`, `scripts/`. |
+| **WP03 — Huấn luyện, Ablation Studies, Trực quan hóa & Debug** (6 tasks) | `T0301`–`T0306` | Member 04: `T0301`, `T0302`; Member 03: `T0303`; Member 02: `T0304`; Member 05: `T0305`; Member 01: `T0306` | Full training/logs; ablation; PCA/Confusion Matrix/curves; error analysis RQ1–RQ2; trực quan SegNet/FCN; parity verification. Evidence dự kiến trong `experiments/`, `outputs/`, `docs/reports/` theo DoD từng task. |
+| **WP04 — Demo, Báo cáo tổng kết, Slide/Poster & Đóng gói** (6 tasks) | `T0401`–`T0406` | Member 05: `T0401`, `T0402`; Member 03: `T0403`; Member 02: `T0404`; Member 04: `T0405`; Member 01: `T0406` | Demo app `app/`; báo cáo tại `docs/thesis/`; slide/poster tại `docs/presentation/`; hướng dẫn tái lập; repo audit; nghiệm thu/đóng gói. Một số deliverable là đường dẫn dự kiến trong workbook, chưa có trên cây hiện tại. |
+
+### **7. Member Ownership & Contribution Matrix (Workbook Reference)**
+
+Workbook `Phan_Cong_Dong_Gop` hiện phân bổ 30 tasks như sau. Tỷ lệ 20% là tỷ lệ đóng góp được ghi trong workbook; họ tên pháp lý/MSSV vẫn là placeholder cho tới khi nhóm xác nhận.
+
+| Thành viên / alias | Vai trò và trục dọc | Trục ngang | Tasks sở hữu (workbook) | Tỷ lệ trong workbook |
+| :--- | :--- | :--- | :--- | :---: |
+| `MEMBER_01` — `Duy-DS` | Trưởng nhóm/Tech Lead; quản lý tiến độ, OOP PyTorch (`src/`, `configs/`, `AGENTS.md`), review PR/đóng gói | Nhóm 1 — MLP | `T0101`, `T0106`, `T0201`, `T0202`, `T0212`, `T0306`, `T0406` (7) | 20% |
+| `MEMBER_02` — alias trong sheet `Member_02` | Pipeline dữ liệu, NCHW và augmentation | Nhóm 2 — CNN+MLP | `T0102`, `T0203`, `T0204`, `T0205`, `T0304`, `T0404` (6) | 20% |
+| `MEMBER_03` — alias trong sheet `Member_03` | PCA/Confusion Matrix, visualization và error analysis RQ1–RQ2 | Nhóm 3 — CNN+LSTM | `T0103`, `T0206`, `T0207`, `T0303`, `T0403` (5) | 20% |
+| `MEMBER_04` — alias trong sheet `Member_04` | GPU, TensorBoard/CSV, Drive checkpoints và ablation | Nhóm 4 — Training Utilities | `T0104`, `T0208`, `T0209`, `T0301`, `T0302`, `T0405` (6) | 20% |
+| `MEMBER_05` — alias trong sheet `Member_05` | Demo app, chủ trì báo cáo, slide/poster | Nhóm 5 — SegNet/Object Detection | `T0105`, `T0210`, `T0211`, `T0305`, `T0401`, `T0402` (6) | 20% |
+
+Tổng task ownership là 30; tổng tỷ lệ workbook là 100%. Các cột hoàn thành/trạng thái trong workbook là dữ liệu vận hành có thể thay đổi; không coi chúng là nghiệm thu nếu thiếu report/DoD hiện hành. `MEMBER_01_NAME`/`EMAIL` được đọc từ `BTL03/.env` khi cần author/committer; không chép email riêng vào tài liệu công khai.
 
 ---
 
 ## **III. WORKFLOW, GIT & EVIDENCE INTEGRITY (QUY TRÌNH & BẰNG CHỨNG NGHIỆM THU)**
 
-### **7. Git Branching, Commit & Human Author Conventions (Quy chuẩn Nhánh, Commit & Tác giả)**
-- **Cấu trúc đặt tên Branch bắt buộc:**
-  ```text
-  [chức năng]/BTL03_[Task ID]_[tên công việc]
-  ```
-  - Các tiền tố `[chức năng]` hợp lệ: `feat`, `fix`, `exp`, `docs`, `refactor`, `test`.
-  - **Ví dụ chuẩn:**
-    - `feat/BTL03_T0101_project-scaffold`
-    - `feat/BTL03_T0203_emotion-cnn-pytorch`
-    - `feat/BTL03_T0301_timedistributed-cnn-lstm`
-    - `fix/BTL03_T0202_nhwc-to-nchw-permute`
-    - `exp/BTL03_T0303_callbacks-anti-overfitting`
+### **8. Git Branching, Commit & Human Author Conventions (Quy chuẩn Nhánh, Commit & Tác giả)**
+- Repository chấp nhận đồng thời hai kiểu branch đang dùng trong workbook và Git:
+  1. **Theo Task ID:** `[feat|fix|exp|docs|refactor|test]/BTL03_Txxxx_<mo-ta-ngan>`.
+     Ví dụ: `feat/BTL03_T0102_data-pipeline`, `test/BTL03_T0212_wp02-review-smoke`, `docs/BTL03_T0402_thesis-report-writing`.
+  2. **Theo module/Work Package:** `feature/<ten-nhom-module>`.
+     Ví dụ: `feature/data-pipeline`, `feature/group1-mlp`, `feature/group2-cnn`, `feature/group3-cnn-lstm`, `feature/group4-utilities`, `feature/group5-segnet-fcn`, `feature/experiments`, `feature/visualization`, `feature/demo-app`, `feature/docs-final`.
+- Branch phải gắn với task/module thật và không dùng để ngụ ý task đã nghiệm thu.
 
 - **Quy chuẩn Commit Message & Tác giả Con người (BẮT BUỘC):**
   - Định dạng Commit Message: `[BTL03_<Task ID>] <type>(<scope>): <mô tả ngắn gọn bằng tiếng Việt hoặc tiếng Anh>`.
@@ -239,136 +248,83 @@ Dự án gồm **24 nhiệm vụ** phân bổ cho **5 thành viên** theo 6 gói
            ```
         4. Nếu tệp `.env` chưa tồn tại hoặc thiếu thông tin của thành viên phụ trách, Agent **bắt buộc phải dừng thao tác commit** và yêu cầu người dùng cập nhật tệp `.env` trước khi tiếp tục.
 
-### **8. Mandatory Evidence Logging & File Naming Rules (Hệ thống Bằng chứng Bắt buộc)**
-Dự án áp dụng cơ chế kiểm soát **"Evidence-First & Template-Locked"** nghiêm ngặt. Mọi kết quả thực thi, sửa lỗi, nhật ký hàng ngày và thực nghiệm phải được lưu trữ thành file Markdown tại 4 thư mục con trong `docs/`. Khi tạo file, Agent **bắt buộc phải copy nguyên vẹn cấu trúc từ file template gốc tương ứng**, ghi rõ tên thành viên phụ trách (tuyệt đối không ghi tên AI Agent) và tuân thủ 100% định dạng đặt tên file:
+### **9. Mandatory Evidence Logging & File Naming Rules (Hệ thống Bằng chứng Bắt buộc)**
+Dự án áp dụng cơ chế kiểm soát **"Evidence-First & Template-Locked"** nghiêm ngặt. Evidence thực thi, sửa lỗi, nhật ký và thực nghiệm được ghi trong bốn thư mục `docs/reports/`, `docs/fix_logs/`, `docs/daily_logs/`, `docs/experiences/`; charter, presentation và thesis có thư mục riêng bên dưới `docs/`. Khi tạo evidence file, Agent **bắt buộc phải giữ nguyên cấu trúc template gốc tương ứng**, ghi thành viên phụ trách thật (không ghi AI Agent) và tuân thủ quy tắc đặt tên:
 
 | Thư mục lưu trữ | Định dạng tên file bắt buộc & Ví dụ | File Template gốc bắt buộc (Read-Only) | Quy tắc điền thông tin & Đề mục cốt lõi |
 | :--- | :--- | :--- | :--- |
-| **`docs/fix_logs/`** | **Định dạng:**<br>`[YYMMDD]_[HHMM]_[tên file mã nguồn fix hoặc tên vấn đề].md`<br><br>*Ví dụ:*<br>`docs/fix_logs/261122_1430_nhwc_permute_fix.md` | `docs/fix_logs/TEMPLATE-bug-fix-report.md` | **Tiêu đề:** `# 🐛 Báo Cáo Sửa Lỗi: [Mã lỗi hoặc Tiêu đề lỗi ngắn]`<br>Ghi rõ **Người xử lý: [Tên thành viên, VD: Duy-DS]**.<br>**1. 🚨 Mô Tả Hiện Tượng:** Triệu chứng (Mismatch tensor shape / Overfitting / Crash), Nguyên nhân cốt lõi, Mức độ.<br>**2. 🔧 Phương Án Sửa Lỗi:** Vùng mã nguồn xử lý, Diff Trước / Sau.<br>**3. 🧪 Xác Minh Sau Khi Sửa:** Kết quả kiểm thử xác nhận lỗi đã khắc phục hoàn toàn. |
-| **`docs/daily_logs/`** | **Định dạng:**<br>`[YYMMDD]_[HHMM].md`<br><br>*Ví dụ:*<br>`docs/daily_logs/261122_1800.md` | `docs/daily_logs/TEMPLATE-daily-log.md` | **Tiêu đề:** `# 📅 Nhật Ký Phát Triển: [Ngày YYYY-MM-DD]`<br>Ghi rõ **Người thực hiện: [Tên thành viên, VD: Duy-DS]**.<br>**1. 🔨 Các Tác Vụ Đã Làm Hôm Nay (Done):** Checkbox `* [x]` các task đã hoàn thành.<br>**2. ⏳ Các Vấn Đề Còn Tồn Đọng (Blockers / Todo):** Checkbox `* [ ]` các vướng mắc.<br>**💡 Ghi chú bối cảnh cho phiên làm việc tiếp theo:** Lưu ý trọng tâm cho phiên kế tiếp. |
-| **`docs/reports/`** | **Định dạng:**<br>`[Task ID]_[YYMMDD]_[HHMM].md`<br><br>*Ví dụ:*<br>`docs/reports/T0203_261122_1015.md` | `docs/reports/TEMPLATE-execution-report.md` | **Tiêu đề:** `# 📄 Post-Execution Report: Task [TASK_ID]`<br>**Metadata Header:** `Date`, `Target Module`, `Task Goal`, `Author / Executor: [Tên thành viên, VD: Duy-DS]` *(Cấm ghi AI Agent)*, `Overall Result` (PASSED / FAILED).<br>**1. 📊 EXECUTIVE SUMMARY & ACCEPTANCE MATRIX:** Ma trận đối chiếu Deliverable, Component File, Status, Tests Executed, Details.<br>**2. 🛡️ GUARDRAILS & INVARIANT VALIDATION:** Checkbox kiểm tra Seed=42, NCHW, Config Decoupling, Git Protection.<br>**3. 🧪 DETAILED ACCEPTANCE FINDINGS:** Chi tiết cài đặt chức năng & kiểm thử.<br>**4. ⏱️ PERFORMANCE & EXECUTION METRICS:** Đối chiếu số tham số & thời gian chạy Keras vs PyTorch.<br>**5. 🚩 OUTSTANDING ISSUES & RECOMMENDATIONS:** Hạn chế & đề xuất kế tiếp. |
+| **`docs/fix_logs/`** | **Định dạng:**<br>`[YYMMDD]_Txxxx_<ten_loi>.md` hoặc `[YYMMDD]_[HHMM]_<ten_van_de>.md`.<br>*Ví dụ:* `261124_T0204_wiki-rotation.md`. | `docs/fix_logs/TEMPLATE-bug-fix-report.md` | **Tiêu đề:** `# 🐛 Báo Cáo Sửa Lỗi: [Mã lỗi hoặc Tiêu đề lỗi ngắn]`<br>Ghi **Người xử lý** là thành viên thật; mô tả triệu chứng/nguyên nhân, phương án sửa và bằng chứng xác minh. Không ghi kiểm thử chưa chạy là PASS. |
+| **`docs/daily_logs/`** | **Định dạng:**<br>`[YYMMDD]_[HHMM]_<alias>.md`.<br>*Ví dụ:* `261124_1800_Duy-DS.md`. | `docs/daily_logs/TEMPLATE-daily-log.md` | Ghi ngày, thành viên thực hiện, task Done, blocker/Todo và bối cảnh phiên sau; chỉ đánh dấu Done khi có evidence. |
+| **`docs/reports/`** | **Ưu tiên theo Sheets:**<br>`[YYMMDD]_Txxxx_<ten_task>.md`.<br>**Tên cũ có timestamp:** `[Task ID]_[YYMMDD]_[HHMM].md` vẫn được chấp nhận khi template/record hiện hành dùng định dạng này.<br>*Ví dụ:* `261126_T0102_data_pipeline_report.md`; `261210_T0212_pr_review_smoke_test.md`. | `docs/reports/TEMPLATE-execution-report.md` | Giữ các mục metadata, acceptance matrix, guardrails, findings, metrics và issues của template; ghi author/executor là người thật. Đường dẫn trong cột evidence phải trỏ tới file thực tế hoặc được đánh dấu là deliverable dự kiến, không khai báo giả file chưa có. |
 | **`docs/experiences/`** | **Định dạng:**<br>`[ex ID]_[YYMMDD]_[HHMM].md`<br><br>*Ví dụ:*<br>`docs/experiences/EXP01_261122_2100.md` | `docs/experiences/experiences_template.md` | **Tiêu đề:** `# [EXPERIMENT] <Mã Thí Nghiệm>: <Tiêu đề tóm tắt>`<br>**Metadata Header:** `Mã thực nghiệm (EXP_[ID])`, `Tên file lưu vết`, `Thời gian`, `Người thực hiện: [Tên thành viên, VD: Duy-DS]` *(Cấm ghi AI Agent)*, `Work Package`, `Task ID (BTL03_<Task_ID>)`, `Nhánh Git`, `Trạng thái`.<br>**1. Mục tiêu & Giả thuyết nghiên cứu:** Liên kết `RQ1`–`RQ4` / Đối chiếu Keras vs PyTorch / Ablation.<br>**2. Thiết lập thực nghiệm & Tính tái lập:** Kiến trúc, kích thước tensor, `Seed=42`, siêu tham số, đường dẫn TensorBoard & CSV Log.<br>**3. Lệnh thực thi tái hiện (Reproduction Command):** Lệnh CLI đầy đủ.<br>**4. Bảng kết quả định lượng (Quantitative Results):** So sánh Keras Baseline vs PyTorch & các biến thể.<br>**5. Bằng chứng thực thi & Terminal Logs:** Log terminal & đường dẫn biểu đồ TensorBoard/CSV.<br>**6. Phân tích & Đánh giá kết quả (Discussion & Findings):** Giải thích nguyên nhân thành công/thất bại, hiện tượng Overfitting, chi phí tính toán.<br>**7. Kết luận & Hành động tiếp theo:** Checkbox nghiệm thu. |
-| **`docs/` (Root Docs)** | `HUONG_DAN_GIAI_THICH_CODE.md` | Tài liệu sống duy nhất toàn dự án | **Tài liệu chuyển giao tri thức & Giải thích code bắt buộc:** Cập nhật giải thích chi tiết từng lớp mạng PyTorch, phép biến đổi tensor từ Keras sang PyTorch, số lượng tham số và bộ câu hỏi/trả lời vấn đáp trước Giảng viên. |
+| **`docs/project_charter/`** | Workbook, đề bài, `README_BTL03.md`, `QUY_DINH_SAN_PHAM.txt`, `Yêu cầu.txt`, `examples/`; workbook dự kiến tham chiếu `AGENTS.md`/`Project_Charter_BTL03.md` | Tài liệu đặc tả và nguồn điều hành. Hai file Markdown nêu trên chưa có ở cây hiện tại; chỉ ghi như hiện hữu sau khi được tạo/đưa vào repo. |
+| **`docs/presentation/`** | Slide, poster, kịch bản; workbook dự kiến có `Slide_Poster_BTL03.pdf` | Thư mục/file chưa có trên cây hiện tại; là deliverable WP04, không phải artifact đã nghiệm thu. |
+| **`docs/thesis/`** | `AGENT_THESIS_RULES.md`, `templates/`, `source_materials/`, `md_drafts/`, `tex_source/`, `README.md`; workbook dự kiến `BaoCao_TongKet_BTL03.pdf` và `BienBan_NghiemThu_BTL03.md` | Tuân thủ quy tắc riêng tại `docs/thesis/AGENT_THESIS_RULES.md`; PDF/biên bản workbook chưa có ở cây hiện tại. |
+| **`docs/` (root guide)** | `HUONG_DAN_GIAI_THICH_CODE.md` | Tài liệu chuyển giao kiến thức; cấu trúc thực tế hiện nằm tại `docs/HUONG_DAN_GIAI_THICH_CODE.md`. |
 
-### **9. Repository Structure, Access Permissions & `.gitignore` Policy**
+**Quy tắc riêng cho `docs/daily_logs/`:** mỗi phiên ghi một file `[YYMMDD]_[HHMM]_<alias>.md`; dùng alias thành viên thật, giữ nguyên đề mục trong template, và tách việc đã làm khỏi Todo/blocker. Không đặt file nhật ký phiên vào `reports/` hoặc `experiences/` để né quy tắc tên riêng.
+### **10. Repository Structure, Access Permissions & `.gitignore` Policy**
 
-**Phân quyền truy cập thư mục đối với AI Agent:**
+**Cây repository tham chiếu theo cấu trúc hiện hành (chi tiết nội dung có thể tăng theo task):**
+
 ```text
 BTL03/
-├── .venv/                       # [NO ACCESS; Môi trường ảo cục bộ, gitignored]
-├── configs/                     # [READ & WRITE; Cấu hình mặc định base_config.yaml, paths.yaml]
-├── data/
-│   ├── raw/                     # [READ-ONLY; Dữ liệu gốc 5 bài toán, CẤM sửa đổi hoặc commit]
-│   ├── processed/               # [WRITE-ONLY; Dữ liệu đã chuyển đổi tensor/npy, gitignored]
-│   └── README.md                # [READ & WRITE; Hướng dẫn tải data & link Google Drive]
-├── legacy_keras/                # [READ-ONLY; 10 file code mẫu Keras gốc để đối chiếu Baseline]
-├── src/                         # [READ & WRITE; 100% PyTorch, 100% OOP & Docstring Tiếng Việt]
-│   ├── __init__.py
-│   ├── datasets/                # [DataLoader, chuyển trục NHWC -> NCHW, Augmentation]
-│   ├── models/                  # [BaseMigratedModel, MLP, CNN, CNN+LSTM, SegNet, ObjDet]
-│   ├── callbacks.py             # [ModelCheckpoint, EarlyStopping, ReduceLROnPlateau, TB+CSV Logger]
-│   ├── train.py                 # [Vòng lặp huấn luyện chuẩn hóa]
-│   ├── evaluate.py              # [Đánh giá, trích xuất đặc trưng PCA, phân tích lỗi]
-│   ├── inference.py             # [Đóng gói suy luận độc lập]
-│   └── utils.py                 # [seed_everything(42), đếm tham số, vẽ biểu đồ]
-├── app/                         # [READ & WRITE; WP5: Ứng dụng demo giao diện Streamlit / Gradio]
-├── notebooks/                   # [READ & WRITE; Jupyter Notebooks thực nghiệm đa nền tảng]
-│   ├── colab/                   # [Google Colab GPU; mount Drive cho dữ liệu/checkpoints/logs]
-│   └── kaggle/                  # [Kaggle GPU P100/T4x2; /kaggle/input và /kaggle/working]
-├── scripts/                     # [READ & WRITE; Script CLI tải data & chạy thực nghiệm hàng loạt]
-├── experiments/                 # [READ & WRITE; Cấu hình YAML & logs chạy thực nghiệm]
-│   ├── configs/                 # [Cấu hình thực nghiệm YAML theo từng bài toán & Ablation]
-│   ├── csv_logs/                # [File CSV ghi chỉ số từng epoch đồng bộ Google Sheets]
-│   └── tensorboard/             # [Event files của TensorBoard, gitignored]
-├── outputs/                     # [WRITE-ONLY; Sản phẩm chạy code chính thức, gitignored]
-│   ├── checkpoints/             # [Trọng số mô hình .pt, .pth - đồng bộ lên Google Drive]
-│   └── figures/                 # [Biểu đồ Loss/Acc, PCA, SegNet masks, Detection boxes]
-├── docs/                        # [MANDATORY WRITE; Toàn bộ file bằng chứng PHẢI được Git track]
-│   ├── project_charter/         # [Tài liệu đặc tả dự án, đề bài, tài liệu tham khảo]
-│   ├── daily_logs/              # [Nhật ký mỗi ngày: [YYMMDD]_[HHMM].md]
-│   │   └── TEMPLATE-daily-log.md # [READ-ONLY TEMPLATE; CẤM SỬA/XÓA]
-│   ├── fix_logs/                # [Báo cáo fix bug: [YYMMDD]_[HHMM]_[tên_vấn_đề].md]
-│   │   └── TEMPLATE-bug-fix-report.md # [READ-ONLY TEMPLATE; CẤM SỬA/XÓA]
-│   ├── experiences/             # [Báo cáo thực nghiệm: [ex ID]_[YYMMDD]_[HHMM].md]
-│   │   └── experiences_template.md # [READ-ONLY TEMPLATE; CẤM SỬA/XÓA]
-│   ├── reports/                 # [Báo cáo hoàn thành task: [Task ID]_[YYMMDD]_[HHMM].md]
-│   │   └── TEMPLATE-execution-report.md # [READ-ONLY TEMPLATE; CẤM SỬA/XÓA]
-│   ├── presentation/            # [Biểu đồ, hình ảnh minh họa, Slide .pptx & Poster đề tài]
-│   └── thesis/                  # [Báo cáo tổng kết cuối kỳ .docx, .pdf, .tex]
-├── drafts/                      # [SCRATCHPAD; File nháp cá nhân, gitignored]
-├── tests/                       # [READ & WRITE; Unit tests kiểm tra tensor shape & param count]
-├── .gitignore                   # [PROTECTED; Ngăn chặn commit rác, dữ liệu, weights, tb logs]
-├── AGENTS.md                  # [SUPREME CONSTITUTION; HIẾN PHÁP TỐI CAO - CẤM TỰ Ý XÓA SỬA]
-├── README.md                    # [READ & WRITE; Tài liệu hướng dẫn cài đặt & tái lập kết quả]
-└── requirements.txt             # [PROTECTED; Chỉ chỉnh sửa khi có sự đồng ý của người dùng]
+├── app/                         # Vỏ thư mục demo; hiện có .gitkeep
+├── configs/                     # YAML model configs và paths
+├── data/                        # README + raw/processed .gitkeep; không commit dữ liệu nặng
+├── docs/
+│   ├── daily_logs/              # Nhật ký phiên + template
+│   ├── experiences/             # Evidence thực nghiệm + template
+│   ├── fix_logs/                # Evidence sửa lỗi + template
+│   ├── project_charter/         # Workbook, tài liệu đặc tả và examples/
+│   ├── reports/                 # Báo cáo task + template
+│   ├── thesis/                  # AGENT_THESIS_RULES.md, templates/, source_materials/, md_drafts/, tex_source/
+│   └── HUONG_DAN_GIAI_THICH_CODE.md
+├── experiments/                 # Logs và helpers
+│   ├── colab/
+│   ├── csv_logs/                # Baseline, master và epoch CSV
+│   └── tensorboard/             # Event files runtime, gitignored
+├── legacy_keras/                # Notebook Keras tham chiếu, READ-ONLY
+├── notebooks/                   # Adapter song song
+│   ├── colab/
+│   └── kaggle/
+├── outputs/                     # Checkpoints/figures runtime
+├── scripts/                     # Downloaders, runners và smoke harness
+├── src/
+│   ├── datasets/
+│   ├── engine/                  # trainer.py và callbacks.py
+│   ├── models/
+│   ├── evaluate.py
+│   ├── inference.py
+│   ├── logger.py                # ExperimentLogger, CheckpointManager
+│   ├── train.py
+│   └── utils.py                 # seed_everything(42)
+├── tests/
+├── .env                         # Local identity; gitignored
+├── AGENTS.md
+├── README.md
+└── requirements.txt
 ```
 
-**Cấu hình `.gitignore` bắt buộc của dự án:**
-Agent có trách nhiệm kiểm tra và đảm bảo file `.gitignore` luôn chứa các quy tắc bảo vệ sau trước khi thực hiện bất kỳ thao tác `git add` hoặc `git commit` nào:
+Workbook có một số deliverable/path dự kiến nhưng chưa có trong cây đã rà soát: `docs/presentation/`, `docs/project_charter/AGENTS.md`, `docs/project_charter/Project_Charter_BTL03.md`, PDF tổng kết và biên bản nghiệm thu. Không tạo placeholder rồi mô tả là đã nghiệm thu. Source thực tế có `src/engine/callbacks.py`; không giả định có `src/callbacks.py` hoặc `app/demo.py`.
 
-```gitignore
-# Byte-compiled / cache của Python
-__pycache__/
-*.py[cod]
-*$py.class
-.pytest_cache/
+**`.gitignore`:** `BTL03/.gitignore` hiện hành là nguồn có thẩm quyền. File đó bỏ qua `.env`/secrets, môi trường/cache, dữ liệu raw/processed, outputs, weights và TensorBoard events; có ngoại lệ cho `.gitkeep`, `data/README.md` và CSV logs được phép. Trước khi stage/commit đọc policy thực tế; không thay bằng snippet khác và không commit dữ liệu/artifacts nặng.
+### **11. CSV Logs, Google Drive/Sheets & Parity Acceptance**
+`experiments/csv_logs/master_experiment_runs.csv` phải giữ đúng schema 18 cột dưới đây, cùng thứ tự với hàng tiêu đề (row 2) của tab `Raw_TensorBoard_CSV_Logs`. Đồng bộ bằng **Paste Values Only** từ row 3; không sửa header hoặc tự điền metric thiếu.
 
-# Trọng số mô hình & Artifacts nặng (Tuyệt đối không đẩy lên Git)
-*.pth
-*.pt
-*.onnx
-*.ckpt
-*.h5
-*.hdf5
-checkpoints/
-weights/
-
-# Dữ liệu thô, dữ liệu đã xử lý & thư mục kết quả chạy (Chỉ giữ lại .gitkeep và data/README.md)
-data/raw/*
-!data/raw/.gitkeep
-data/processed/*
-!data/processed/.gitkeep
-!data/README.md
-outputs/*
-!outputs/**/.gitkeep
-
-# Thư mục TensorBoard events & file nháp (Giữ lại file CSV logs nhỏ gọn để đối chiếu)
-experiments/tensorboard/*
-!experiments/tensorboard/.gitkeep
-events.out.tfevents*
-drafts/
-
-# Môi trường ảo & Biến môi trường
-venv/
-.venv/
-env/
-.env
-
-# Jupyter Notebook checkpoints
-.ipynb_checkpoints/
-
-# Hệ điều hành & IDE
-.DS_Store
-Thumbs.db
-.vscode/
-.idea/
-
-# BẢO VỆ HỆ THỐNG BẰNG CHỨNG: Luôn cho phép Git theo dõi 4 file template và toàn bộ báo cáo docs/
-!docs/
-!docs/**/.gitkeep
-!docs/daily_logs/TEMPLATE-daily-log.md
-!docs/daily_logs/*.md
-!docs/fix_logs/TEMPLATE-bug-fix-report.md
-!docs/fix_logs/*.md
-!docs/experiences/experiences_template.md
-!docs/experiences/*.md
-!docs/reports/TEMPLATE-execution-report.md
-!docs/reports/*.md
+```text
+Timestamp, Run_ID, Model_Group, Model_Name, Exp_Type, Seed, Optimizer, LR, Batch_Size, Epochs, Best_Epoch, Train_Loss, Val_Loss, Train_Metric, Val_Metric, Test_Metric, Train_Time_Sec, Member_Alias
 ```
 
-### **10. Standard Execution Commands & Completion Checklist**
+- CSV master, baseline CSV và epoch CSV gọn được lưu trong `experiments/csv_logs/`; chúng là evidence có thể track khi tuân thủ `.gitignore`. Cây hiện có 37 `*_epochs.csv`; số lượng có thể thay đổi khi có run mới, vì vậy “49+” trong yêu cầu/lộ trình không phải số hiện hữu cố định.
+- Artifacts nặng hoặc tái sinh được — weights `.pt/.pth`, feature `.npz`, dữ liệu và TensorBoard event files — không commit lên Git. Lưu trong Drive chung theo `configs/paths.yaml`: `/content/drive/MyDrive/BTL03` khi Drive đã mount; các nhánh dự kiến gồm `data/raw/`, `checkpoints/{01_mlp,02_cnn_mlp,03_cnn_lstm,04_training_utilities,05_others}/`, TensorBoard runs và artifacts được nhóm duyệt. `CheckpointManager` không tự mount Drive; mirror chỉ xảy ra khi mount root tồn tại.
+- `configs/kaggle_paths.yaml` quy định input read-only `/kaggle/input` và artifacts tạm ở `/kaggle/working/`; trước khi chia sẻ artifacts, chuyển/đóng gói theo workflow được nhóm duyệt sang Drive. Không ghi credential/token vào Git.
+- Tab `Doi_Chieu_Keras_PyTorch` là bảng theo dõi parity/DoD, không phải bằng chứng tự thân. Tiêu chí kế hoạch của workbook là khớp kiến trúc và parameter count 100%, cùng delta metric trong ngưỡng cho phép (README nêu ±1.50% Accuracy hoặc ±0.02 MAE); phải ghi đúng metric/split, runtime, Run_ID và evidence. Chỉ đánh dấu `ĐẠT` khi có run/evidence đối chiếu tương ứng và DoD được owner/reviewer chấp nhận. Ngưỡng không phải kết quả đã đạt.
+- Nếu workbook, README, baseline CSV, source và task report khác nhau, không tự chọn số thuận tiện: giữ provenance, ghi `CẦN ĐỐI CHIẾU`, ưu tiên execution report/CSV/source theo quy tắc evidence, và yêu cầu owner đồng bộ sheet. Parameter-count equality không chứng minh output/accuracy parity.
 
-**Các lệnh thực thi chuẩn trên Terminal:**
+### **12. Standard Execution Commands & Completion Checklist**
+
+**Lệnh tham khảo cho môi trường được nhóm phê duyệt (không chạy nếu task/guardrail cấm cài đặt hoặc thực thi):**
 ```bash
 # 1. Kích hoạt môi trường ảo & Cài đặt thư viện
 source .venv/bin/activate  # Linux/macOS (hoặc .venv\Scripts\activate trên Windows)
@@ -380,22 +336,21 @@ git config user.name
 # 3. Chạy Unit Tests kiểm tra kiến trúc, chuyển trục NCHW & đếm số tham số khớp Keras
 pytest tests/
 
-# 4. Huấn luyện mô hình với cấu hình chuẩn (khóa Seed=42, ghi TensorBoard & CSV Logs)
-python -m src.train --config experiments/configs/cnn/exp03_emotion_cnn.yaml
+# 4. Tra cứu CLI/config hiện hành; dùng đúng runner/config được report xác nhận
+python -m src.train --help
 
 # 5. Mở giao diện Web TensorBoard để theo dõi biểu đồ Loss/Accuracy trực quan
 tensorboard --logdir experiments/tensorboard --port 6006
 
-# 6. Chạy đánh giá tổng hợp, trích xuất PCA & phân tích lỗi
-python -m src.evaluate --config experiments/configs/cnn/exp03_emotion_cnn.yaml --checkpoint outputs/checkpoints/best_emotion_cnn.pth
+# 6. Tra cứu giao diện đánh giá trước khi dùng config/checkpoint thực tế
+python -m src.evaluate --help
 
-# 7. Khởi chạy ứng dụng Web Demo bằng Streamlit
-streamlit run app/demo.py
+# 7. Chỉ chạy demo sau khi entry point được tạo và nghiệm thu; hiện app/ chỉ có .gitkeep.
 ```
 
 **Checklist bắt buộc của Agent trước khi báo cáo hoàn thành bất kỳ yêu cầu nào:**
-1. [ ] **Kiểm tra Định danh Con người (Anti-AI Attribution):** Đã xác nhận `git config user.name` là tên thành viên thật (VD: `Duy-DS`), tuyệt đối không có `Codex`/`Copilot`/AI trong commit và đã ghi tên thành viên thật vào mục `Người thực hiện` / `Author` trong mọi báo cáo chưa?
-2. [ ] **Kiểm tra Branch:** Đã đứng đúng nhánh `[chức năng]/BTL03_[Task ID]_[tên công việc]` chưa?
+1. [ ] **Kiểm tra Định danh Con người (Anti-AI Attribution):** Đã xác định owner theo WBS/prompt, đọc cặp `MEMBER_XX_NAME`/`MEMBER_XX_EMAIL` từ `.env`, dùng identity người thật cho Author/Committer và không thêm AI `Co-authored-by` chưa? Git config global có thể khác; không dùng nó thay cho `.env` identity.
+2. [ ] **Kiểm tra Branch:** Đang dùng branch theo task `[feat|fix|exp|docs|refactor|test]/BTL03_Txxxx_<mo-ta>` hoặc theo module `feature/<ten-nhom-module>`; không commit trực tiếp lên `main` chưa?
 3. [ ] **Kiểm tra PyTorch, OOP & Tiếng Việt:** Mã nguồn trong `src/` viết 100% bằng PyTorch (không dùng Keras/TF), tuân thủ OOP kế thừa `BaseMigratedModel` và có đầy đủ Docstring + Comment bằng Tiếng Việt chưa?
 4. [ ] **Kiểm tra Chuyển trục & Reproducibility:** Đã cố định `Seed = 42`, xử lý đúng định dạng tensor `NCHW` (hoặc `TimeDistributed` reshape) và đếm số tham số khớp với bản gốc Keras chưa?
 5. [ ] **Kiểm tra TensorBoard + CSV Logs & `.gitignore`:** Đã cấu hình xuất đồng thời TensorBoard events và CSV Logs chưa? Đã đảm bảo không stage nhầm file `.pth`, `data/`, `outputs/` hoặc `experiments/tensorboard/` vào Git chưa?
