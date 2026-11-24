@@ -1,0 +1,27 @@
+% Tự động sinh bởi ThesisArtifactExporter; không chỉnh sửa thủ công.
+\begingroup
+\setlength{\tabcolsep}{4pt}
+\setlength{\LTcapwidth}{\textwidth}
+\begin{longtable}{>{\centering\arraybackslash}p{1.5cm}>{\raggedright\arraybackslash}p{2.3cm}>{\raggedright\arraybackslash}p{3.0cm}>{\centering\arraybackslash}p{0.8cm}>{\centering\arraybackslash}p{1.0cm}>{\raggedleft\arraybackslash}p{1.8cm}>{\raggedleft\arraybackslash}p{1.8cm}>{\raggedleft\arraybackslash}p{1.6cm}}
+\footnotesize
+\caption{Các chỉ số thực nghiệm khảo sát độ sâu kiến trúc Custom CNN (RQ1)}\label{tab:rq1-depth} \\
+\toprule
+Run ID & Kiến trúc & RQ/nhóm & Ảnh & Best epoch & Public/Val Acc (\%) & Private Acc (\%) & Macro-F1 \\
+\midrule
+\endfirsthead
+\multicolumn{8}{c}{{\bfseries Bảng \thetable\ (tiếp theo)}} \\
+\toprule
+Run ID & Kiến trúc & RQ/nhóm & Ảnh & Best epoch & Public/Val Acc (\%) & Private Acc (\%) & Macro-F1 \\
+\midrule
+\endhead
+\midrule
+\multicolumn{8}{r@{}}{\footnotesize\itshape (Xem tiếp trang sau)} \\
+\endfoot
+\bottomrule
+\multicolumn{8}{p{0.92\textwidth}}{\footnotesize\itshape Ghi chú: Run ID hiển thị 8 ký tự tiền tố định danh từ MLflow; toàn bộ mã 32 ký tự lưu trong CSV log.} \\
+\endlastfoot
+\code{95f11a8c} & LargeCNN & RQ1 & 48 & 32 & 63.83 & \textbf{64.95} & \textbf{0.6356} \\
+\code{2a57e857} & MediumCNN & RQ1 & 48 & 22 & 63.81 & 63.56 & 0.6254 \\
+\code{8e46ec64} & SmallCNN & RQ1 & 48 & 24 & 53.41 & 51.55 & 0.4718 \\
+\end{longtable}
+\endgroup

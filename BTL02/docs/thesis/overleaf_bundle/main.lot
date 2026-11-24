@@ -1,0 +1,12 @@
+\babel@toc {vietnamese}{}\relax 
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {3.1}{\ignorespaces Các chỉ số thực nghiệm khảo sát độ sâu kiến trúc Custom CNN (RQ1)}}{11}{table.3.1}%
+\contentsline {table}{\numberline {3.2}{\ignorespaces Đối chiếu hiệu năng các mô hình học chuyển giao tiền huấn luyện ở kích thước $128 \times 128$ (RQ2)}}{13}{table.3.2}%
+\contentsline {table}{\numberline {3.3}{\ignorespaces Benchmark chi phí tính toán và tài nguyên mô hình trên CPU (T0305)}}{13}{table.3.3}%
+\contentsline {table}{\numberline {3.4}{\ignorespaces Kết quả các thử nghiệm cắt bỏ thành phần huấn luyện (Ablation Studies - RQ3)}}{15}{table.3.4}%
+\contentsline {table}{\numberline {3.5}{\ignorespaces Tổng hợp toàn bộ 28 cấu hình thực nghiệm trên bộ dữ liệu FER2013}}{17}{table.3.5}%
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\contentsfinish 

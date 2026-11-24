@@ -1,0 +1,155 @@
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{btl02-style}[2026/11/24 BTL02 thesis style]
+
+\RequirePackage{iftex}
+\RequirePackage{ifthen}
+\ifPDFTeX
+  \RequirePackage[utf8]{inputenc}
+  \RequirePackage[T5]{fontenc}
+  \RequirePackage{mathptmx}
+  \RequirePackage{textcomp}
+  \RequirePackage[vietnamese]{babel}
+\else
+  \RequirePackage{fontspec}
+  \IfFontExistsTF{Times New Roman}{\setmainfont{Times New Roman}}{\setmainfont{Latin Modern Roman}}
+  \RequirePackage[english]{babel}
+  \babelprovide[import,main]{vietnamese}
+  \babelprovide[import]{english}
+\fi
+
+\addto\captionsvietnamese{%
+  \renewcommand{\contentsname}{MỤC LỤC}%
+  \renewcommand{\listfigurename}{DANH MỤC HÌNH ẢNH}%
+  \renewcommand{\listtablename}{DANH MỤC BẢNG BIỂU}%
+  \renewcommand{\bibname}{TÀI LIỆU THAM KHẢO}%
+  \renewcommand{\figurename}{Hình}%
+  \renewcommand{\tablename}{Bảng}%
+  \renewcommand{\chaptername}{CHƯƠNG}%
+  \renewcommand{\appendixname}{PHỤ LỤC}%
+}
+
+\ifPDFTeX
+  \DeclareUnicodeCharacter{2013}{\textendash}
+  \DeclareUnicodeCharacter{2014}{\textemdash}
+  \DeclareUnicodeCharacter{201C}{``}
+  \DeclareUnicodeCharacter{201D}{''}
+  \DeclareUnicodeCharacter{2018}{`}
+  \DeclareUnicodeCharacter{2019}{'}
+  \DeclareUnicodeCharacter{2026}{\ldots}
+  \DeclareUnicodeCharacter{00B0}{\textdegree}
+  \DeclareUnicodeCharacter{00D7}{\ensuremath{\times}}
+  \DeclareUnicodeCharacter{00F7}{\ensuremath{\div}}
+  \DeclareUnicodeCharacter{00B1}{\ensuremath{\pm}}
+  \DeclareUnicodeCharacter{2248}{\ensuremath{\approx}}
+  \DeclareUnicodeCharacter{2264}{\ensuremath{\le}}
+  \DeclareUnicodeCharacter{2265}{\ensuremath{\ge}}
+  \DeclareUnicodeCharacter{2260}{\ensuremath{\ne}}
+  \DeclareUnicodeCharacter{00B2}{\textsuperscript{2}}
+  \DeclareUnicodeCharacter{00B3}{\textsuperscript{3}}
+  \DeclareUnicodeCharacter{2192}{\ensuremath{\rightarrow}}
+  \DeclareUnicodeCharacter{2190}{\ensuremath{\leftarrow}}
+  \DeclareUnicodeCharacter{2194}{\ensuremath{\leftrightarrow}}
+  \DeclareUnicodeCharacter{03B1}{\ensuremath{\alpha}}
+  \DeclareUnicodeCharacter{03B2}{\ensuremath{\beta}}
+  \DeclareUnicodeCharacter{03B3}{\ensuremath{\gamma}}
+  \DeclareUnicodeCharacter{0394}{\ensuremath{\Delta}}
+  \DeclareUnicodeCharacter{03A3}{\ensuremath{\Sigma}}
+  \DeclareUnicodeCharacter{03BC}{\ensuremath{\mu}}
+  \DeclareUnicodeCharacter{03C3}{\ensuremath{\sigma}}
+  \DeclareUnicodeCharacter{03C1}{\ensuremath{\rho}}
+  \DeclareUnicodeCharacter{03C4}{\ensuremath{\tau}}
+  \DeclareUnicodeCharacter{221E}{\ensuremath{\infty}}
+  \DeclareUnicodeCharacter{2208}{\ensuremath{\in}}
+  \DeclareUnicodeCharacter{2211}{\ensuremath{\sum}}
+  \DeclareUnicodeCharacter{2202}{\ensuremath{\partial}}
+  \DeclareUnicodeCharacter{221A}{\ensuremath{\sqrt{\vphantom{x}}}}
+\fi
+
+\RequirePackage[a4paper,left=3cm,right=1.5cm,top=2cm,bottom=2cm]{geometry}
+\RequirePackage{setspace}
+\RequirePackage{graphicx}
+\RequirePackage{longtable}
+\RequirePackage{booktabs}
+\RequirePackage{tabularx}
+\RequirePackage{array}
+\RequirePackage{makecell}
+\RequirePackage[most]{tcolorbox}
+\RequirePackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric,calc}
+
+% ---------------------------- Khung bìa ------------------------------
+\newcommand{\coverframe}{%
+  \begin{tikzpicture}[remember picture,overlay]
+    \draw[line width=2.4pt]
+      ($(current page.north west)+(2.2cm,-1.3cm)$) rectangle
+      ($(current page.south east)+(-1.0cm,1.3cm)$);
+    \draw[line width=0.7pt]
+      ($(current page.north west)+(2.42cm,-1.52cm)$) rectangle
+      ($(current page.south east)+(-1.22cm,1.52cm)$);
+  \end{tikzpicture}}
+\RequirePackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\RequirePackage{listings}
+\RequirePackage{xcolor}
+\RequirePackage{enumitem}
+\RequirePackage{etoolbox}
+\RequirePackage{titlesec}
+\RequirePackage{titletoc}
+\RequirePackage{caption}
+\RequirePackage[hidelinks,unicode,psdextra]{hyperref}
+
+\onehalfspacing
+\setstretch{1.3}
+\AtBeginDocument{\fontsize{13pt}{16.9pt}\selectfont}
+\setlength{\parindent}{1.25cm}
+\setlength{\parskip}{0.25em}
+
+\ifPDFTeX
+  \hypersetup{bookmarks=false}
+\fi
+\hypersetup{colorlinks=true,linkcolor=blue!50!black,citecolor=green!40!black,urlcolor=blue!60!black}
+
+\titlecontents{chapter}[0pt]{\addvspace{5pt}\bfseries}
+  {CHƯƠNG \thecontentslabel:\ }{}{\titlerule*[0.6pc]{.}\contentspage}
+\titlecontents{section}[1.0cm]{}
+  {\contentslabel{1.0cm}}{}{\titlerule*[0.6pc]{.}\contentspage}
+\titlecontents{subsection}[2.2cm]{\small}
+  {\contentslabel{1.2cm}}{}{\titlerule*[0.6pc]{.}\contentspage}
+
+\newcommand{\code}[1]{\texttt{\detokenize{#1}}}
+\newcommand{\todofigure}[1]{%
+  \begin{tcolorbox}[colback=yellow!8,colframe=orange!70!black,title={Hình cần bổ sung}]
+  \centering\textbf{TODO:} #1
+  \end{tcolorbox}}
+\newtcolorbox{calloutbox}[1][Phát hiện chính]{breakable,colback=blue!4,colframe=blue!55!black,
+  title={#1},fonttitle=\bfseries,arc=1mm,boxrule=0.7pt}
+
+\newcommand{\makecover}[5]{%
+  \begin{titlepage}
+    \coverframe
+    \setstretch{1.15}
+    \centering
+    {\fontsize{14}{18}\selectfont\bfseries TRƯỜNG ĐẠI HỌC SÀI GÒN\par
+     KHOA TOÁN - ỨNG DỤNG\par}
+    \vspace{2pt}
+    \rule{4.2cm}{0.8pt}\par
+    \vspace{0.9cm}
+    \IfFileExists{logo_sgu.jpg}{\includegraphics[width=3.4cm]{logo_sgu.jpg}\par\vspace{0.8cm}}{}
+    {\fontsize{16}{21}\selectfont\bfseries #1\par
+     MÔN HỌC SÂU (DEEP LEARNING)\par}
+    \vspace{1.0cm}
+    {\fontsize{15}{22}\selectfont\bfseries #2\par}
+    \vfill
+    {\fontsize{13}{18}\selectfont
+    \begin{tabular}{@{}l@{\hspace{8pt}}l@{}}
+      \textbf{Lớp:}                   & DDU1231\\
+      \textbf{Giảng viên hướng dẫn:}  & #3\\
+      \textbf{Nhóm thực hiện:}        & Nhóm 5\\
+      \textbf{Sinh viên thực hiện:}   & #4\\
+    \end{tabular}\par}
+    \vfill
+    {\itshape\bfseries Thành phố Hồ Chí Minh, #5\par}
+    \vspace{0.4cm}
+  \end{titlepage}%
+}
+\endinput

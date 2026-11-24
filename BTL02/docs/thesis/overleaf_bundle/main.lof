@@ -1,0 +1,12 @@
+\babel@toc {vietnamese}{}\relax 
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\contentsline {figure}{\numberline {2.1}{\ignorespaces Phân bố bảy lớp và ba split FER2013; ảnh được khôi phục từ output notebook EDA T0105 đã thực thi.}}{7}{figure.caption.9}%
+\contentsline {figure}{\numberline {2.2}{\ignorespaces Lưới 3\ensuremath {\times }7 ảnh mẫu FER2013, ba ảnh mỗi lớp, từ output notebook EDA T0105 đã thực thi.}}{8}{figure.caption.10}%
+\addvspace {10\p@ }
+\contentsline {figure}{\numberline {3.1}{\ignorespaces Độ chính xác PublicTest validation, PrivateTest và Macro-F1 của ba mô hình Custom CNN (RQ1); Macro-F1 được đổi sang đơn vị phần trăm để cùng tỷ lệ trục.}}{12}{figure.caption.11}%
+\contentsline {figure}{\numberline {3.2}{\ignorespaces Độ chính xác Public/Private và Macro-F1 của ba backbone tiền huấn luyện ở kích thước $128 \times 128$ (seed 42).}}{14}{figure.caption.12}%
+\contentsline {figure}{\numberline {3.3}{\ignorespaces Chỉ số PrivateTest Accuracy và Macro-F1 của các recipe ablation trong summary; các nhóm được phân loại theo tag thực nghiệm.}}{17}{figure.caption.13}%
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\contentsfinish 
