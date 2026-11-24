@@ -260,9 +260,9 @@ Trả lời: Không. MLflow chứa tracking và trạng thái run, không mặc 
 
 ### 9.3. Trạng thái kiểm chứng T0402
 
-- Đã triển khai module loss, Trainer integration, ba recipe EXP-11, unit tests và runner notebook Colab/Kaggle. Unit tests riêng T0402: **13 passed**. Kiểm tra JSON notebook và cú pháp từng code cell đã qua.
-- Máy phát triển dùng PyTorch 2.5.1 CPU-only (`torch.cuda.is_available() == False`); không có `t0402_ablation_imbalance_24col.csv`. Full test suite đang được kiểm tra; chưa tuyên bố đã pass cho đến khi có summary cuối.
-- Do chưa có GPU runs, chưa có Run IDs, best epoch hoặc số đo Private Acc/Macro-F1/recall thực tế. Không kết luận Weighted CE/Focal cải thiện Disgust/Fear hoặc đánh đổi accuracy khi chưa có CSV và per-class JSON artifacts từ các run.
+- Đã triển khai module loss, Trainer integration, ba recipe EXP-11, unit tests và runner notebook Colab/Kaggle. Kiểm thử T0402 được chạy lại trong phiên nghiệm thu này; trạng thái cuối được ghi trong execution report.
+- CSV thật `outputs/logs/t0402_ablation_imbalance_24col.csv` có đúng 24 cột và 3 run `FINISHED`, cùng seed 42. Số liệu đối sánh và diễn giải thực tế được ghi tại mục 9.4 bên dưới; CSV không chứa per-class report.
+- Không suy luận rằng Weighted CE/Focal cải thiện riêng Disgust/Fear từ Macro-F1 tổng. Muốn khẳng định cần đối chiếu artifact classification report/confusion matrix của đúng các Run ID.
 - Colab runner dùng `/content/mlruns_t0402`, checkpoint/log local SSD rồi atomic-sync Drive tại `MyDrive/BTL02/T0402_Imbalance`; lọc torch/torchvision khi cài requirements. Kaggle runner giữ nguyên framework trong image, đọc Secrets, hỗ trợ competition archive/Kaggle API token và khôi phục chỉ run MLflow `FINISHED` từ dataset backup mà không ghi đè run local. Hai runner xuất schema `MLflowLogger.CSV_COLUMNS` 24 cột; Auto-Skip chỉ áp dụng run FINISHED.
 
 **Hỏi: Vì sao class weights chỉ được tính từ Training?**
@@ -282,6 +282,36 @@ Trả lời: Không. Macro-F1 là trung bình F1 của các lớp, nhưng có th
 
 **Hỏi: Auto-Skip có resume run bị ngắt giữa epoch không?**
 Trả lời: Không. Runner chỉ bỏ qua run MLflow `FINISHED`. Run dở không được coi là hoàn thành; resume giữa epoch cần checkpoint chứa đủ model, optimizer, scheduler và epoch state, hiện không được runner giả định.
+
+### 9.4. Kết quả định lượng EXP-11 thực tế (CSV 24 cột)
+
+CSV `outputs/logs/t0402_ablation_imbalance_24col.csv` xác nhận ba cấu hình cùng EfficientNet-B0 pretrained, ảnh RGB 128×128, seed 42, augmentation basic, AdamW, LR 0.0001, batch 32 và scheduler ReduceLROnPlateau; chỉ loss thay đổi. `Best Val Acc` là PublicTest được dùng làm validation/model selection trong pipeline. Generalization gap được tính bằng Train Acc trừ Private Test Acc, đơn vị điểm phần trăm (pp).
+
+| Chiến lược loss | MLflow Run ID | Best Epoch | Train Loss | Train Acc | Best Val / Public Test Acc | Private Test Acc | Macro-F1 (Private) | Generalization Gap |
+| :--- | :--- | :---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| CrossEntropyLoss (đối chứng) | `382d2ca2a18f4a219c877c7c5d4354c6` | 16 | 0.455350 | 83.520847% | 69.657286% | 70.130956% | 0.700074 | 13.389891 pp |
+| Weighted CrossEntropyLoss | `a82a528fa1154003a203021ba8f71c45` | 16 | 0.464777 | 81.629454% | 68.124826% | 69.434383% | 0.684786 | 12.195071 pp |
+| Focal Loss (γ=2.0, α=None) | `2f3cd08e2bc145baa0636a9317af3c58` | 28 | 0.155761 | 85.899892% | 70.075230% | 69.685149% | 0.695393 | 16.214743 pp |
+
+- So với đối chứng, Weighted CE giảm Macro-F1 **0.015288** (xấp xỉ 2.18% tương đối) và Private Acc **0.696573 pp**; Public/validation Acc giảm **1.532460 pp**. Gap giảm **1.194820 pp**, nhưng đây không bù được suy giảm ở cả Macro-F1 lẫn Private Acc.
+- Focal Loss giảm Macro-F1 **0.004682** (xấp xỉ 0.67% tương đối) và Private Acc **0.445807 pp**, dù Public/validation Acc tăng **0.417944 pp**. Gap tăng **2.824852 pp**. Với cấu hình/seed quan sát được, focal chưa thể hiện ưu thế tổng quát hóa trên PrivateTest.
+- Cả hai loss được đề xuất đều cho Macro-F1 thấp hơn đối chứng; do đó thực nghiệm này **không ủng hộ giả thuyết** rằng chúng cải thiện Macro-F1 tổng trong recipe hiện tại. Weighted CE có thể tăng trọng số lớp hiếm về mặt mục tiêu tối ưu, còn Focal Loss tập trung vào mẫu khó, nhưng cơ chế đó không đảm bảo metric kiểm thử sẽ tăng.
+- Macro-F1 là trung bình F1 của 7 lớp, không cho biết riêng F1/recall của `Disgust` hay `Fear`. CSV tổng kết không mang precision/recall/F1 từng lớp; cần artifact `classification_report`/confusion matrix gắn đúng Run ID để kết luận nhận diện lớp thiểu số. Kết quả hiện tại chỉ có một seed, nên đây là so sánh mô tả, không phải kết luận ý nghĩa thống kê.
+
+**Hỏi: Weighted CE có cải thiện Macro-F1 và Private Accuracy trong T0402 không?**
+Trả lời: Không trong run seed 42 này. So với CE, Macro-F1 giảm từ 0.700074 xuống 0.684786 và Private Acc giảm 0.696573 điểm phần trăm. Gap nhỏ hơn khoảng 1.194820 điểm, nhưng không làm thay đổi kết luận về hai metric đánh giá chính.
+
+**Hỏi: Focal Loss có thể coi là tốt hơn vì Best Val Acc cao nhất không?**
+Trả lời: Không. Focal đạt Public/validation Acc 70.075230%, cao hơn CE 0.417944 điểm, nhưng Private Acc thấp hơn 0.445807 điểm và Macro-F1 thấp hơn 0.004682. Hơn nữa, PublicTest tham gia chọn checkpoint nên không thay thế kết quả PrivateTest.
+
+**Hỏi: Vì sao Focal Loss có Train Loss thấp nhưng Macro-F1 không cao nhất?**
+Trả lời: Các trị loss của các hàm mất mát khác nhau không cùng thang đo để so sánh trực tiếp. Focal nhân CE từng mẫu với $(1-p_t)^\gamma$, làm thay đổi mục tiêu tối ưu; Train Loss thấp hơn không đồng nghĩa với accuracy/Macro-F1 kiểm thử cao hơn.
+
+**Hỏi: Có thể nói Weighted CE/Focal nhận diện Disgust hoặc Fear tốt hơn không?**
+Trả lời: Chưa thể. Bảng CSV chỉ ghi Macro-F1 tổng và accuracy, không có điểm từng lớp. Cần mở classification report hoặc confusion matrix đúng Run ID, kiểm tra riêng precision/recall/F1 của Disgust, Fear và đối chứng; không suy ra per-class từ Macro-F1 tổng.
+
+**Hỏi: Kết quả này đã chứng minh CE luôn tốt nhất chưa?**
+Trả lời: Không. Chỉ có một seed (42), một recipe EfficientNet-B0/augmentation basic và một lần chạy cho mỗi loss. Kết quả chỉ cho thấy CE dẫn đầu trên Private Acc và Macro-F1 ở lần chạy này; cần nhiều seed và per-class report để đánh giá độ ổn định và khả năng cải thiện lớp hiếm.
 
 ## Bổ sung kỹ thuật ngày 2026-11-18: Audit và kagglehub
 
