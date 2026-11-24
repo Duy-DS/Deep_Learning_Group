@@ -7,6 +7,10 @@ __all__ = [
     "FER2013TransformBuilder",
     "FER2013_MEAN",
     "FER2013_STD",
+    "SOTATransformBuilder",
+    "ToPILImage",
+    "IMAGENET_MEAN",
+    "IMAGENET_STD",
 ]
 
 
@@ -20,4 +24,8 @@ def __getattr__(name: str):
         from src.data import transforms
 
         return getattr(transforms, name)
+    if name in ("SOTATransformBuilder", "ToPILImage", "IMAGENET_MEAN", "IMAGENET_STD"):
+        from src.data import transforms_sota
+
+        return getattr(transforms_sota, name)
     raise AttributeError(f"module {__name__!r} không có thuộc tính {name!r}")

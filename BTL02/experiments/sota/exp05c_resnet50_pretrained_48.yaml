@@ -1,0 +1,46 @@
+# Đối chứng độ phân giải thấp của EXP-05; ImageNet weights giữ nguyên.
+exp_id: "EXP-05C"
+exp_group: "EXP-05"
+rq_tag: "RQ2_InputSize_48_vs_128"
+architecture: "ResNet50"
+pretrained: true
+freeze_backbone: false
+dropout_rate: 0.5
+hidden_dim: null
+seed: 42
+image_size: 48
+in_channels: 3
+num_classes: 7
+normalization: "imagenet"
+transform_mode: "sota"
+use_augmentation: true
+aug_config:
+  horizontal_flip_p: 0.5
+  rotation_degrees: 10.0
+  affine_degrees: 0.0
+  translate: [0.05, 0.05]
+  color_jitter: 0.05
+  random_erasing_p: 0.0
+augmentation: "Standard (train only; eval deterministic)"
+split_counts:
+  Training: 28709
+  PublicTest: 3589
+  PrivateTest: 3589
+optimizer: "adamw"
+lr: 0.0001
+weight_decay: 0.0001
+scheduler: "ReduceLROnPlateau"
+scheduler_params:
+  mode: "min"
+  factor: 0.1
+  patience: 3
+  min_lr: 0.000001
+batch_size: 32
+epochs: 30
+dropout: 0.5
+num_workers: 0
+patience: 7
+member: "Thành viên 3"
+checkpoint_path: "outputs/checkpoints/exp05c_resnet50_{optimizer}.pth"
+summary_csv_path: "outputs/logs/exp05c_resnet50_{optimizer}_24col.csv"
+csv_path: "data/raw/fer2013.csv"

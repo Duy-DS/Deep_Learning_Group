@@ -55,8 +55,43 @@ Thumbs.db
 # Temporary & intermediate output caches
 .pytest_cache/
 
+# Thesis/Overleaf build artifacts (không commit bundle hoặc file biên dịch)
+#docs/thesis/overleaf_bundle/
+#docs/thesis/build/
+#docs/thesis/*.zip
+*.aux
+*.log
+*.out
+*.toc
+*.bbl
+*.blg
+
+# Thesis sources, policies, references and generated TeX tables remain trackable
+#!docs/thesis/AGENTS_THESIS.md
+#!docs/thesis/samples/
+#!docs/thesis/samples/**
+#!docs/thesis/templates/
+#!docs/thesis/templates/**
+#!docs/thesis/generated/
+#!docs/thesis/generated/**
+
 # Evidence tracking & templates in docs/
 !docs/
 !docs/**/
 !docs/**/*.md
 !docs/**/.gitkeep
+
+# Luật cuối: artifacts thesis luôn bị ignore sau các ngoại lệ chung của docs/
+#docs/thesis/overleaf_bundle/
+#docs/thesis/overleaf_bundle/**
+#docs/thesis/build/
+#docs/thesis/build/**
+#docs/thesis/*.zip
+#docs/thesis/**/*.aux
+#docs/thesis/**/*.log
+#docs/thesis/**/*.out
+#docs/thesis/**/*.toc
+#docs/thesis/**/*.bbl
+#docs/thesis/**/*.blg
+#docs/thesis/samples/
+#docs/thesis/samples/**

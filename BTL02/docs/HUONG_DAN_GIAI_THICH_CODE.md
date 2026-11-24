@@ -1,5 +1,43 @@
 # 📚 TÀI LIỆU TOÀN DIỆN GIẢI THÍCH CODE & KIẾN TRÚC DỰ ÁN (BTL02 - FER2013)
 
+## WP5 T0501: Metrics, Confusion Matrix và Classification Report
+
+`src/evaluate/plot_metrics.py` đóng gói việc đọc epoch-history, suy luận và trực quan hóa trong `MetricsVisualizer`. Input `DataLoader` phải được tạo từ pipeline evaluation hiện hữu: ảnh FER2013 grayscale 48×48 qua transform deterministic; ảnh SOTA RGB/resize dùng eval transform ImageNet. Module không tạo augmentation và `infer()` gọi `model.eval()`/`torch.no_grad()`. Tensor logits `[B,7]` được argmax để lấy dự đoán; `sklearn.metrics` tính confusion matrix cố định thứ tự bảy lớp và precision/recall/F1/support, macro/weighted averages. Ma trận chuẩn hóa chia tổng mỗi hàng, hiển thị phần trăm; ma trận đếm giữ số nguyên. Hình lưu 300 dpi, report xuất JSON/CSV/Markdown.
+
+Learning curves cần CSV **epoch-level** có epoch, train_loss, train_acc, lr (val_loss/val_acc tùy chọn). CSV tổng hợp MLflow 24 cột chỉ giữ metric cuối run, không phải history; module chủ động báo lỗi thay vì nội suy/giả lập đường cong. `--mock` tạo dữ liệu tổng hợp chỉ để thử luồng vẽ, không phải kết quả thí nghiệm FER2013.
+
+**Hỏi: Vì sao không thể vẽ đường cong từ CSV 24 cột hiện có?** Trả lời: CSV T0403 có một dòng/run và `metrics.train_loss` là số tổng kết; không có chuỗi epoch, do đó không chứa trajectory Loss/Accuracy/LR.
+
+**Hỏi: PublicTest có phải holdout độc lập không?** Trả lời: Không trong pipeline hiện tại; Trainer dùng PublicTest làm validation/model selection. Chỉ diễn giải như validation; PrivateTest là split đánh giá cuối.
+
+---
+
+## WP5 T0502: Conv Filters, Feature Maps và Grad-CAM (RQ4)
+
+`src/evaluate/gradcam_vis.py` cung cấp `GradCAMVisualizer` làm việc với mọi `nn.Module` có `nn.Conv2d`, bao gồm CNN dự án và backbone. Nếu không chỉ định tầng, feature-map extraction chọn convolution đầu/cuối; Grad-CAM ưu tiên `get_target_layer()` của model rồi fallback Conv cuối. Forward hook lưu activation $A\in\mathbb{R}^{1\times K\times h\times w}$; backward hook lấy gradient. Trọng số kênh $\alpha_k=\frac{1}{hw}\sum_{ij}\frac{\partial y^c}{\partial A^k_{ij}}$; heatmap $L^c=\operatorname{ReLU}(\sum_k\alpha_kA^k)$ được nội suy bilinear về $H\times W$ và min-max chuẩn hóa về [0,1]. Hook được gỡ trong `finally`, model trở về train/eval mode ban đầu và gradient được xóa.
+
+Filter visualization hiển thị kernel `Conv2d.weight`; feature-map hook chỉ giữ activation detach trên CPU. Overlay chuẩn hóa tensor đầu vào đã nhận từ evaluation pipeline để hiển thị; đây là minh họa chứ không phục hồi pixel ảnh gốc sau ImageNet normalization. RQ4 xem vùng kích hoạt là tín hiệu giải thích, không phải bằng chứng nhân quả hay khẳng định model luôn tập trung đúng mắt/miệng.
+
+**Hỏi: Vì sao ResNet50 chọn convolution cuối của layer4?** Trả lời: Model cung cấp `get_target_layer()` để chọn feature map ngữ nghĩa sâu, nhưng vẫn giữ độ phân giải không gian để nội suy CAM. Có thể truyền tầng khác khi cần kiểm tra độ phân giải.
+
+**Hỏi: Tại sao ảnh overlay được chuẩn hóa min-max?** Trả lời: Input evaluation có thể là grayscale [0,1] hoặc RGB chuẩn hóa ImageNet, nên chuẩn hóa chỉ nhằm hiển thị. Phân tích định lượng không dùng ảnh hiển thị này và input model không bị thay đổi.
+
+---
+
+## WP5 T0503: Phân tích True/Fail Cases (RQ4)
+
+`src/evaluate/error_analysis.py` cung cấp `ErrorAnalyzer`. Với batch ảnh `[B,C,H,W]`, model ở `eval()` và `torch.no_grad()` trả logits `[B,7]`; softmax cho xác suất mỗi lớp, `topk(3)` lưu ba lớp/xác suất, argmax là nhãn dự đoán. Bảng mỗi mẫu lưu chỉ số, nhãn thật/dự đoán, confidence và top-3; nhóm đúng chia confidence cao/thấp theo ngưỡng cấu hình, sai giữ nguyên để phân tích. Cặp lỗi là confusion có hướng `true → predicted`, sắp theo số lượng giảm dần. Lưới hình dùng đúng tensor evaluation của DataLoader, không có augmentation mới.
+
+Phần nguyên nhân trong Markdown là danh sách giả thuyết cần xác minh ảnh thật: che khuất, góc/ánh sáng, nhãn mơ hồ/nhiễu và mất cân bằng lớp thiểu số Disgust. Chỉ thống kê lớp không chứng minh nguyên nhân cụ thể; cần xem ảnh gốc/người gán nhãn và đối chiếu support/per-class recall. Kết quả synthetic unit test chỉ xác nhận logic phần mềm.
+
+**Hỏi: Vì sao cặp lỗi có hướng?** Trả lời: Fear→Sad và Sad→Fear là lỗi khác nhau và có thể bất đối xứng; giữ nhãn thật và nhãn dự đoán riêng giúp chẩn đoán lớp nguồn đích.
+
+**Hỏi: Top-3 xác suất là độ tin cậy đã hiệu chuẩn chưa?** Trả lời: Không. Đây là softmax score, hữu ích để xem thứ tự tương đối; không được diễn giải như xác suất calibrated nếu chưa chạy calibration đánh giá riêng.
+
+**Hỏi: Có thể kết luận Disgust bị nhầm do mất cân bằng chỉ từ confusion matrix không?** Trả lời: Không; mất cân bằng là giả thuyết cần kiểm tra support, recall, thí nghiệm class-weight/focal và xem ảnh/nhãn.
+
+---
+
 Tài liệu này tổng hợp và giải thích chi tiết bản chất kỹ thuật của **toàn bộ 5 nhiệm vụ** (`T0103`, `T0105`, `T0104`, `T0201`, `T0202`) thuộc 2 Gói công việc **WP1 (Hạ tầng & Dữ liệu)** và **WP2 (Mô hình Baseline & Custom CNN)**. 
 
 Tài liệu được biên soạn để bạn nắm vững 100% bản chất mã nguồn, sẵn sàng bảo vệ và trả lời tự tin mọi câu hỏi vấn đáp của Giảng viên.
@@ -189,7 +227,7 @@ Hai mô hình này được thiết kế để giải quyết câu hỏi nghiên
 * *Trả lời:* Đây là nguyên tắc vàng **Chống rò rỉ dữ liệu (No Data Leakage)**. Trong bài toán thực tế, mô hình không hề biết trước dữ liệu tương lai (tập Test). Việc lấy tập Test tính Mean/Std sẽ làm lộ phân phối dữ liệu kiểm thử vào quá trình tiền xử lý, khiến kết quả đánh giá không còn khách quan.
 
 **Q3: Nhóm đã thực hiện quá trình huấn luyện thực nghiệm ở đâu và mất bao lâu?**
-* *Trả lời:* Nhóm xây dựng notebook chuẩn hóa `notebooks/02_colab_training.ipynb` và thực hiện huấn luyện tự động toàn bộ 3 mô hình trên phần cứng GPU NVIDIA Tesla T4 của Google Colab:
+* *Trả lời:* Nhóm xây dựng notebook chuẩn hóa `notebooks/colab/02_colab_training.ipynb` và thực hiện huấn luyện tự động toàn bộ 3 mô hình trên phần cứng GPU NVIDIA Tesla T4 của Google Colab:
   - `SmallCNN`: 18 epochs, mất 3 phút 13 giây.
   - `MediumCNN`: 30 epochs, mất 5 phút 55 giây.
   - `LargeCNN`: 42 epochs, mất 10 phút 19 giây.
@@ -203,6 +241,186 @@ Hai mô hình này được thiết kế để giải quyết câu hỏi nghiên
 
 **Q6: Tại sao ở mô hình LargeCNN, độ chính xác trên Private Test (64.95%) lại cao hơn Validation Acc (63.83%)?**
 * *Trả lời:* Trong quá trình huấn luyện, mô hình được áp dụng cơ chế điều hòa rất mạnh: `Dropout2d (0.2–0.3)` ở các tầng Conv và `Dropout (0.5)` ở tầng Fully Connected. Khi bước sang pha đánh giá (`model.eval()`), toàn bộ Dropout được tắt đi, 100% neuron hoạt động đồng thời. Tập Private Test chứa nhiều khuôn mặt có biểu cảm rõ nét, giúp mô hình phát huy tối đa năng lực khái quát hóa mà không bị bias bởi tập Validation.
+## 8. TASK T0401 — CONTROLLED ABLATION DATA AUGMENTATION (RQ3)
+
+### 8.1. Luồng cấu hình và pipeline biến đổi
+
+- `experiments/ablation/exp09_aug_none.yaml`, `exp09_aug_basic.yaml` và `exp10_aug_advanced.yaml` cố định EfficientNet-B0 pretrained, RGB 128×128, ImageNet normalization, seed 42, split chuẩn, AdamW, LR/weight decay, ReduceLROnPlateau, batch size và epochs. Chỉ `augmentation.mode` khác nhau giữa `none`, `basic`, `advanced`; EXP-09 chứa hai đối chứng, EXP-10 là mức RandomErasing.
+- `Trainer` đọc mode từ YAML, truyền mode và `aug_config` qua `get_dataloaders()` tới `SOTATransformBuilder`. `none` không thêm phép ngẫu nhiên; `basic` áp dụng HorizontalFlip(p=0.5), Rotation(10°), Affine translation 8%; `advanced` thêm `RandomErasing(p=0.25, scale=(0.02,0.15), ratio=(0.3,3.3), value="random")` sau `ToTensor`/Normalize.
+- `build_eval_transform()` là pipeline độc lập và chỉ gồm chuyển RGB, resize, `ToTensor`, Normalize. Do dataset gán transform này cho cả PublicTest và PrivateTest, không có augmentation ngẫu nhiên trên hai split đánh giá.
+- Run name SOTA có hậu tố `aug-<mode>` để Auto-Skip phân biệt ba recipe; param `augmentation` lưu mode, còn `scheduler` và `batch_size` được ghi vào MLflow để xuất qua đúng các cột CSV 24-column hiện có.
+
+### 8.2. Runner đa nền tảng và trạng thái thực nghiệm
+
+- `notebooks/colab/run_t0401_colab.ipynb` dùng local-first MLflow/checkpoint trên SSD, đồng bộ Drive bằng thay thế file tạm atomic, giữ `.trash` cho MLflow FileStore, bỏ qua cài lại Torch/Torchvision và cập nhật pin scikit-learn khi Python 3.13.
+- `notebooks/kaggle/run_t0401_kaggle.ipynb` giữ nguyên CUDA image, đọc GitHub/Kaggle Secrets, ưu tiên competition archive, fallback downloader, có thể merge backup `mlruns` từ Kaggle Dataset và xuất artifacts vào `/kaggle/working/BTL02/T0401/`.
+- Auto-Skip chỉ áp dụng cho run MLflow `FINISHED`; không phải resume giữa epoch. Khi chuyển file store, vẫn cần xác minh artifact URI và checkpoint thực tế.
+- **Trạng thái định lượng (cập nhật 2026-11-23):** CSV thực tế `outputs/logs/t0401_ablation_augmentation_24col.csv` có đúng 24 cột và 3 run `FINISHED`, đều seed 42. `none`: Run ID `7498d3c0b68743a1805ca06826e5c1ea`, Best Epoch 16, Train Loss 0.205217, Train Acc 93.252987%, Public Acc 66.759543%, Private Acc 68.152689%, Macro-F1 0.665690, Train−Private gap 25.100298 pp. `basic`: Run ID `622a723ec334441898003282a5d8d725`, Epoch 16, Loss 0.455350, Train Acc 83.520848%, Public 69.657286%, Private 70.130956%, Macro-F1 0.700074, gap 13.389891 pp. `advanced`: Run ID `35093d88d1a44e67b5117d8076f715ec`, Epoch 20, Loss 0.478602, Train Acc 82.326100%, Public 69.267205%, Private 70.186682%, Macro-F1 0.698806, gap 12.139418 pp. Gap là Train Acc trừ Private Test Acc; PublicTest được Trainer dùng làm validation/model selection.
+- **Diễn giải RQ3 có điều kiện:** từ none sang basic, Private Acc tăng 1.9783 điểm phần trăm, Macro-F1 tăng 0.034384 và gap giảm 11.7104 điểm phần trăm. Từ basic sang advanced, Private Acc chỉ tăng 0.0557 điểm, Macro-F1 giảm 0.001269, gap giảm thêm 1.2505 điểm. Đây là mô tả của một seed, không có mean±std/kiểm định nên không khẳng định ý nghĩa thống kê hoặc recipe tối ưu phổ quát.
+- **Giới hạn per-class:** CSV 24 cột không có classification report từng lớp, confusion matrix, epoch history hoặc ví dụ ảnh bị erase. Không thể khẳng định EXP-10 làm giảm điểm một lớp cảm xúc cụ thể hay đã che mắt/miệng/lông mày; đó là cơ chế có thể xảy ra cần kiểm chứng bằng per-class metrics và trực quan hóa các mẫu biến đổi.
+
+**Hỏi: Vì sao run name phải kèm augmentation mode?**
+Trả lời: Nếu chỉ dựa vào EXP ID/architecture/optimizer, hai recipe EXP-09 none và basic có thể trùng identity; Auto-Skip có nguy cơ bỏ qua nhầm một biến thể. Hậu tố mode làm mỗi recipe có run name riêng.
+
+**Hỏi: RandomErasing có thể áp dụng lên PublicTest/PrivateTest không?**
+Trả lời: Không. RandomErasing chỉ có trong train transform của mode advanced. Eval transform riêng không chứa random operator, nên PublicTest và PrivateTest luôn deterministic.
+
+**Hỏi: Có thể kết luận mức augmentation tốt nhất khi mới có smoke test không?**
+Trả lời: Smoke test chỉ kiểm tra forward/backward và hợp đồng pipeline. Hiện đã có ba run GPU `FINISHED` trong CSV 24 cột nên có thể so sánh mô tả các metric; tuy nhiên chỉ một seed và không có per-class report, vì vậy chưa đủ để kết luận thống kê hoặc xác định augmentation tối ưu tổng quát.
+
+**Hỏi: Basic augmentation đã thay đổi kết quả thế nào so với không augmentation trong T0401?**
+Trả lời: Ở seed 42, Private Acc tăng từ 68.1527% lên 70.1310%, Macro-F1 từ 0.665690 lên 0.700074, trong khi Train−Private gap giảm từ 25.1003 xuống 13.3899 điểm phần trăm. Đây là bằng chứng mô tả của một lần chạy, không thay thế đánh giá nhiều seed.
+
+**Hỏi: RandomErasing có làm mô hình tổng quát hóa tốt hơn basic không?**
+Trả lời: Advanced có gap nhỏ hơn 1.2505 điểm phần trăm và Private Acc nhỉnh hơn 0.0557 điểm, nhưng Macro-F1 thấp hơn 0.001269. Chênh lệch nhỏ, chỉ một seed; kết quả chưa cho thấy cải thiện nhất quán. Cần nhiều seed và metrics theo lớp trước khi kết luận.
+
+**Hỏi: Có thể nói RandomErasing làm mất chi tiết mắt/miệng/lông mày và gây giảm điểm lớp nào không?**
+Trả lời: Chưa. RandomErasing có thể che ngẫu nhiên một vùng ảnh, nhưng CSV tổng kết không lưu tọa độ vùng che hoặc F1 từng lớp. Muốn kết luận cần lưu/kiểm tra ảnh augmented, confusion matrix và classification report theo 7 lớp; không được suy ra lớp bị ảnh hưởng chỉ từ Macro-F1 tổng.
+
+**Hỏi: Chép thư mục MLflow có tiếp tục một epoch đang chạy dở không?**
+Trả lời: Không. MLflow chứa tracking và trạng thái run, không mặc nhiên chứa đủ trạng thái optimizer/model để tiếp tục epoch. Auto-Skip chỉ áp dụng cho run `FINISHED`; resume cần checkpoint được pipeline hỗ trợ.
+
+## 9. TASK T0402 — CLASS IMBALANCE LOSSES (EXP-11, RQ3)
+
+### 9.1. Luồng cấu hình và ranh giới chống rò rỉ
+
+- Ba YAML `experiments/ablation/exp11_loss_ce.yaml`, `exp11_loss_weighted_ce.yaml`, `exp11_loss_focal.yaml` giữ nguyên EfficientNet-B0 pretrained, ảnh RGB 128×128, seed 42, split 28.709/3.589/3.589, augmentation `basic`, AdamW, LR/weight decay, scheduler, batch size và epoch budget. Biến độc lập duy nhất là loss: `cross_entropy`, `weighted_ce`, `focal` (gamma=2).
+- `Trainer` khởi tạo ba DataLoader theo hợp đồng hiện có; class weights chỉ nhận `train_loader.dataset.labels`, vốn được tạo sau khi `FER2013Dataset` lọc `Usage == "Training"`. Nhãn của `val_loader` và `test_loader` không được đưa vào `LossFactory`. Nếu weighted mode không có nhãn Training hoặc thiếu bất kỳ lớp nào thì Factory dừng bằng lỗi rõ ràng, không ước lượng từ tập đánh giá.
+- Công thức `inverse_freq`: $w_c=N/(K\,N_c)$, sau đó chuẩn hóa vector để trung bình trọng số bằng 1. `effective_num` là tùy chọn thay thế trong Factory. Với FER2013, nhãn có shape `[N]`, class weights `[7]`, logits của EfficientNet-B0 `[B,7]`, targets `[B]`.
+- Chỉ vòng lặp train sử dụng `self.criterion` do YAML chọn. Validation và PrivateTest luôn dùng `self.eval_criterion = CrossEntropyLoss()` không trọng số để chọn checkpoint/đánh giá trên cùng thước đo giữa ba ablation; augmentation của các split đánh giá tiếp tục deterministic và không nhận augmentation train.
+
+### 9.2. CrossEntropy, Weighted CE và Focal Loss
+
+- CrossEntropy chuẩn lấy negative log-probability của lớp đúng. Weighted CE thay đổi đóng góp từng mẫu bằng `weight[target]`, nhờ đó lỗi của lớp ít mẫu như Disgust có ảnh hưởng lớn hơn tới gradient. Chuẩn hóa trọng số trung bình 1 giúp hạn chế thay đổi thang loss tổng.
+- `FocalLoss(nn.Module)` tính `ce = F.cross_entropy(logits, targets, reduction="none")`, `pt = exp(-ce)`, rồi `((1-pt)**gamma) * ce`. Với gamma=2, mẫu phân loại dễ (pt gần 1) bị giảm mạnh loss; mẫu khó giữ ảnh hưởng tương đối lớn. `alpha` có thể là hệ số vô hướng hoặc vector lớp, được đăng ký thành buffer để chuyển cùng criterion sang CPU/CUDA. Khi gamma=0 và alpha=None, focal loss bằng CrossEntropy chuẩn.
+- `LossFactory.create()` đọc khối YAML, sinh criterion và chuyển buffer/weight sang device của Trainer. YAML cũ không khai báo `loss` mặc định dùng `cross_entropy`; tên run chỉ thêm hậu tố loss khi loss được khai báo, giúp không đổi identity các run cũ và ngăn Auto-Skip lẫn ba EXP-11.
+- Trainer tạo `classification_report` trên PrivateTest với danh sách nhãn cố định 0–6 và `zero_division=0`, rồi lưu JSON thành MLflow artifact. Báo cáo gồm precision/recall/F1 từng lớp và macro/weighted averages; file này bổ sung chứ không sửa schema CSV MLflow 24 cột.
+
+### 9.3. Trạng thái kiểm chứng T0402
+
+- Đã triển khai module loss, Trainer integration, ba recipe EXP-11, unit tests và runner notebook Colab/Kaggle. Kiểm thử T0402 được chạy lại trong phiên nghiệm thu này; trạng thái cuối được ghi trong execution report.
+- CSV thật `outputs/logs/t0402_ablation_imbalance_24col.csv` có đúng 24 cột và 3 run `FINISHED`, cùng seed 42. Số liệu đối sánh và diễn giải thực tế được ghi tại mục 9.4 bên dưới; CSV không chứa per-class report.
+- Không suy luận rằng Weighted CE/Focal cải thiện riêng Disgust/Fear từ Macro-F1 tổng. Muốn khẳng định cần đối chiếu artifact classification report/confusion matrix của đúng các Run ID.
+- Colab runner dùng `/content/mlruns_t0402`, checkpoint/log local SSD rồi atomic-sync Drive tại `MyDrive/BTL02/T0402_Imbalance`; lọc torch/torchvision khi cài requirements. Kaggle runner giữ nguyên framework trong image, đọc Secrets, hỗ trợ competition archive/Kaggle API token và khôi phục chỉ run MLflow `FINISHED` từ dataset backup mà không ghi đè run local. Hai runner xuất schema `MLflowLogger.CSV_COLUMNS` 24 cột; Auto-Skip chỉ áp dụng run FINISHED.
+
+**Hỏi: Vì sao class weights chỉ được tính từ Training?**
+Trả lời: Tần suất lớp là thống kê được dùng để thay đổi quá trình tối ưu. Dùng nhãn PublicTest/PrivateTest sẽ làm lộ phân phối đánh giá vào huấn luyện, gây data leakage và làm so sánh không còn độc lập. Trainer chỉ chuyển nhãn từ `train_loader.dataset.labels` vào LossFactory.
+
+**Hỏi: Weighted CE khác Focal Loss ở điểm nào?**
+Trả lời: Weighted CE tăng/giảm loss theo lớp thật của mẫu; trọng số nghịch đảo tần suất nhắm tới cân bằng đóng góp lớp. Focal Loss điều tiết theo độ khó từng mẫu bằng `(1-pt)^gamma`, giảm ảnh hưởng mẫu dễ bất kể lớp. Chúng có thể kết hợp qua alpha/class weights nhưng EXP-11 focal hiện để alpha=None để cô lập focal modulation.
+
+**Hỏi: Vì sao validation/test không dùng criterion có class weights?**
+Trả lời: Validation dùng chọn checkpoint và cần cùng một thước đo cho cả ba cấu hình; PrivateTest cần báo cáo loss/accuracy theo đánh giá không trọng số. Chỉ loss của các batch train thay đổi theo ablation. Accuracy và Macro-F1 được tính từ logits/nhãn, không từ class-weighted loss.
+
+**Hỏi: Focal Loss gamma=0 có gì đặc biệt?**
+Trả lời: Với alpha=None, `(1-pt)^0=1`, nên loss trở về CrossEntropy. Đây là kiểm tra quan trọng để xác minh implementation và cho thấy gamma điều khiển mức tập trung vào mẫu khó.
+
+**Hỏi: Nếu Macro-F1 tăng thì có chắc Recall của Disgust và Fear tăng không?**
+Trả lời: Không. Macro-F1 là trung bình F1 của các lớp, nhưng có thể tăng do lớp khác. Cần đọc precision/recall/F1 từng lớp từ JSON classification report và confusion matrix; đồng thời so sánh PrivateTest Acc để lượng hóa trade-off.
+
+**Hỏi: Auto-Skip có resume run bị ngắt giữa epoch không?**
+Trả lời: Không. Runner chỉ bỏ qua run MLflow `FINISHED`. Run dở không được coi là hoàn thành; resume giữa epoch cần checkpoint chứa đủ model, optimizer, scheduler và epoch state, hiện không được runner giả định.
+
+## 10. TASK T0403 — ABLATION LEARNING-RATE SCHEDULER (EXP-12, RQ3)
+
+### 10.1. Controlled recipe và cách đặt tên run
+
+- Ba YAML `experiments/ablation/exp12_sched_step_or_plateau.yaml`, `exp12_sched_cosine.yaml`, `exp12_sched_warmup_cosine.yaml` kế thừa recipe EXP-11 trên EfficientNet-B0 pretrained, ảnh RGB 128×128, seed 42, split chuẩn FER2013, augmentation basic chỉ trên Training, AdamW `lr=1e-4`, `weight_decay=1e-4`, batch 32, tối đa 30 epochs, patience 7 và CrossEntropyLoss. Scheduler là biến thí nghiệm.
+- Biến thể đối chứng mang tên file `step_or_plateau` dùng `ReduceLROnPlateau(mode=min)` trên `val_loss`, factor 0.1, patience 3; cosine dùng `CosineAnnealingLR(T_max=30, eta_min=1e-6)`; warmup-cosine dùng `LinearLR` 3 epochs từ 0.2× LR nền tới LR nền rồi `CosineAnnealingLR` 27 epochs.
+- `Trainer._build_scheduler()` chuẩn hóa alias để chấp nhận `step`/`StepLR`, `plateau`/`reduce_on_plateau`/`ReduceLROnPlateau`, `cosine`/`cosine_annealing`/`CosineAnnealingLR` và `WarmupCosine`. YAML cũ vẫn mặc định `None`, còn tên ReduceLROnPlateau/CosineAnnealingLR cũ hoạt động như trước.
+- Scheduler được cập nhật một lần mỗi epoch sau khi tính validation metrics: Plateau nhận `val_loss` nếu `mode=min`, hoặc `val_acc` nếu `mode=max`; scheduler theo lịch gọi `.step()` không đối số. `SequentialLR` ghép warmup/cosine theo milestone epoch. Optimizer update theo batch vẫn diễn ra trước scheduler step của epoch.
+- T0403 thêm hậu tố scheduler vào run name cho ba recipe mới để Auto-Skip không thể nhầm các scheduler cùng EXP/architecture/optimizer. Hậu tố chỉ xuất hiện khi YAML bật `scheduler_run_suffix`; run name của cấu hình cũ không thay đổi.
+- Notebook Colab đặt tracking/checkpoint/log trên SSD trước, atomic-sync artifact ổn định sang Drive sau mỗi run; Kaggle hỗ trợ competition CSV/archive hoặc Secret `KAGGLE_API_TOKEN`, GitHub PAT dạng `x-access-token:...`, và phục hồi các MLflow run `FINISHED` từ dataset backup. Cả hai xuất cùng `MLflowLogger.CSV_COLUMNS` 24 cột.
+
+### 10.2. Giải thích thuật toán và ý nghĩa trong RQ3
+
+- **StepLR:** sau mỗi `step_size` epoch, nhân learning rate hiện tại với `gamma`. Đây là lịch giảm theo mốc cố định, đơn giản và không phản ứng trực tiếp với validation.
+- **ReduceLROnPlateau:** theo dõi metric validation đã chọn; khi metric không cải thiện đủ số epoch theo `patience`, LR nhân `factor` nhưng không thấp hơn `min_lr`. Với `mode=min`, metric là validation loss; với `mode=max`, Trainer dùng validation accuracy.
+- **CosineAnnealingLR:** LR giảm theo nửa chu kỳ cosine từ LR ban đầu tới `eta_min` trong `T_max` epoch. Lịch mượt, không cần metric validation để quyết định thời điểm giảm.
+- **Warmup + Cosine:** `LinearLR` khởi động ở một tỷ lệ LR nhỏ để giảm cập nhật quá lớn lúc đầu; sau số warmup epoch định trước, `SequentialLR` chuyển sang cosine annealing. `warmup_epochs` phải lớn hơn 0 và nhỏ hơn tổng số epoch.
+- Với EfficientNet-B0, logits cho một batch là `[B,7]`; scheduler không thay đổi shape tensor hoặc số tham số mô hình, chỉ cập nhật `optimizer.param_groups[*]['lr']`. PublicTest là validation/model-selection split; PrivateTest chỉ đánh giá checkpoint sau huấn luyện. Eval transforms xác định và không áp dụng augmentation.
+- CSV 24 cột lưu LR tổng kết qua params nhưng không lưu toàn bộ chuỗi learning rate theo epoch dưới một cột riêng. MLflow history ghi `metrics.lr`, `train_loss`, `val_loss`, `train_acc`, `val_acc` tại từng epoch; cần truy vấn history để định lượng độ mượt/quỹ đạo hội tụ. Best Epoch và CSV tổng kết một mình không chứng minh dao động hay kẹt cực tiểu.
+
+### 10.3. Kiểm thử và trạng thái thực nghiệm
+
+- `tests/test_ablation_scheduler.py` kiểm tra lớp scheduler PyTorch, alias cũ/mới, thay đổi LR, warmup rồi cosine giảm, controlled invariants, forward/backward một batch CPU và tính duy nhất của tên run. Chạy targeted suite: **11 passed**.
+- Hai notebook T0403 có JSON hợp lệ, code cell parse được; chưa thực thi trên Colab/Kaggle trong phiên nghiệm thu. Máy phát triển dùng PyTorch CPU-only, `torch.cuda.is_available() == False`.
+- CSV thực tế `outputs/logs/t0403_ablation_scheduler_24col.csv` có đúng 24 cột, ba run `FINISHED`, seed 42. Bảng metric và diễn giải bên dưới là quan sát của một run mỗi scheduler; không có per-epoch history kèm theo CSV.
+- Full test suite đã hoàn tất: **152 passed**, 2 warning, 298.84s; targeted scheduler tests **11 passed**.
+
+### 10.4. Kết quả thực nghiệm EXP-12 thực tế
+
+| Scheduler | MLflow Run ID | Best Epoch | Train Loss | Train Acc | Best Val / Public Acc | Private Test Acc | Macro-F1 | Train−Private Gap |
+| :--- | :--- | :---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| ReduceLROnPlateau (đối chứng) | `f97118d157a04325842acaa091362a03` | 16 | 0.455350 | 83.520847% | 69.657286% | **70.130956%** | **0.700074** | **13.389891 pp** |
+| CosineAnnealingLR | `7348e1b10b22408fb71dc61920b1ef5c` | 28 | 0.247717 | 91.187433% | 69.490109% | 69.963778% | 0.694598 | 21.223654 pp |
+| Linear Warmup + Cosine | `a312721f1e884bb7891f464f984e6551` | 22 | 0.264893 | 90.682364% | 69.517972% | 69.935915% | 0.689152 | 20.746449 pp |
+
+- Trong seed 42, Plateau cao hơn cosine **0.167177 điểm phần trăm Private Acc** và **0.005476 Macro-F1**; cao hơn warmup-cosine lần lượt **0.195040 điểm** và **0.010922 Macro-F1**. Gap của cosine và warmup-cosine lần lượt lớn hơn Plateau **7.833763 pp** và **7.356558 pp**.
+- Cosine đạt Train Loss nhỏ nhất (0.247717) và Train Acc cao nhất (91.187433%), nhưng Private Acc/Macro-F1 thấp hơn Plateau. Điều này minh họa rằng metric train hoặc loss cuối không tự động đồng nghĩa tổng quát hóa tốt hơn.
+- Best Epoch lần lượt 16/28/22; Duration CSV lần lượt 1,988.973/2,561.110/2,608.358 giây (~33.15/42.69/43.47 phút; Plateau/Cosine/WarmupCosine). Best Epoch là epoch đạt validation accuracy cao nhất; duration run đơn không cô lập chi phí scheduler vì throughput có thể biến thiên.
+- **Giới hạn trajectory:** CSV 24 cột không lưu per-epoch history và không có VRAM. Best Epoch/Duration không đủ để khẳng định scheduler nào mượt, ít dao động hoặc tránh kẹt cực tiểu tốt hơn. Cần MLflow history của `metrics.lr`, `train_loss`, `val_loss` và nhiều seed.
+- **Kết luận có điều kiện:** Plateau là tốt nhất về Private Acc, Macro-F1 và gap trong ba lần chạy được cung cấp; với một seed, không tuyên bố đây là scheduler tối ưu phổ quát hoặc kết quả có ý nghĩa thống kê.
+
+**Hỏi: Scheduler nào thắng EXP-12 theo số liệu hiện có?**
+Trả lời: ReduceLROnPlateau đạt Private Acc 70.130956%, Macro-F1 0.700074 và gap 13.389891 pp, tốt nhất trong ba run seed 42. Cosine và warmup-cosine có Private Acc/Macro-F1 thấp hơn; kết luận chỉ áp dụng cho các run này.
+
+**Hỏi: Vì sao cosine có Train Loss thấp nhất nhưng không thắng trên PrivateTest?**
+Trả lời: Train Loss phản ánh tối ưu trên tập train, còn PrivateTest đo khả năng tổng quát hóa. Cosine có Train Acc 91.187433% nhưng gap 21.223654 pp và Private Acc 69.963778%, thấp hơn Plateau; chỉ nhìn train loss sẽ bỏ qua khoảng cách tổng quát hóa.
+
+**Hỏi: Best Epoch 28 của cosine chứng minh hội tụ chậm hoặc mượt hơn không?**
+Trả lời: Không. Best Epoch chỉ cho biết epoch có validation accuracy tốt nhất, không mô tả các epoch trước/sau. Muốn đánh giá tốc độ và độ mượt cần chuỗi `lr`, train/validation loss/accuracy theo epoch.
+
+**Hỏi: Đã chứng minh Plateau là scheduler tốt nhất cho FER2013 chưa?**
+Trả lời: Chưa. Mỗi scheduler chỉ có một seed; chưa có mean±std hoặc kiểm định. Có thể nói Plateau tốt nhất theo ba run được ghi nhận, nhưng cần lặp nhiều seed để kết luận ổn định.
+
+**Hỏi: Vì sao cần hậu tố scheduler trong tên MLflow run?**
+Trả lời: Nếu identity chỉ gồm EXP-12, kiến trúc và optimizer, ba lịch LR có thể trùng tên; Auto-Skip sẽ bỏ qua sai cấu hình. Hậu tố được bật cho riêng EXP-12 để phân biệt run mà không thay đổi tên các run lịch sử.
+
+**Hỏi: Vì sao gọi ReduceLROnPlateau với validation metric còn CosineAnnealingLR không có đối số?**
+Trả lời: Plateau cần metric để xác định có chững lại hay không; `mode=min` truyền validation loss, `mode=max` truyền validation accuracy. Cosine và StepLR tiến theo lịch epoch định trước nên `.step()` không cần metric.
+
+**Hỏi: Warmup có làm tăng số tham số hoặc đổi kiến trúc không?**
+Trả lời: Không. Warmup chỉ thay learning rate của optimizer qua các epoch; kiến trúc, tensor logits `[B,7]` và số tham số giữ nguyên.
+
+**Hỏi: Có thể nhìn Best Epoch/CSV tổng kết để kết luận scheduler nào hội tụ mượt nhất không?**
+Trả lời: Không. CSV cuối run chỉ lưu điểm tổng kết và Best Epoch, không giữ chuỗi loss/LR. Cần truy vấn per-epoch metrics từ MLflow và vẽ `train_loss`, `val_loss`, `lr`; so sánh nhiều seed nếu muốn đánh giá ổn định.
+
+**Hỏi: Có thể chọn scheduler có PublicTest accuracy cao nhất làm scheduler tốt nhất không?**
+Trả lời: PublicTest được dùng làm validation/model-selection nên không phải holdout độc lập. Cần báo cáo PrivateTest Accuracy/Macro-F1 cùng gap, đồng thời nhiều seed; không suy luận độ mượt chỉ từ accuracy cuối.
+
+**Hỏi: T0403 đã có kết luận thực nghiệm chưa?**
+Trả lời: Đã có CSV gồm ba run `FINISHED`; trong seed 42, Plateau dẫn đầu Private Acc/Macro-F1 và có gap thấp nhất. Tuy nhiên chưa có epoch history và chỉ có một seed, nên chưa thể đánh giá độ mượt hoặc kết luận scheduler tối ưu phổ quát.
+
+### 9.4. Kết quả định lượng EXP-11 thực tế (CSV 24 cột)
+
+CSV `outputs/logs/t0402_ablation_imbalance_24col.csv` xác nhận ba cấu hình cùng EfficientNet-B0 pretrained, ảnh RGB 128×128, seed 42, augmentation basic, AdamW, LR 0.0001, batch 32 và scheduler ReduceLROnPlateau; chỉ loss thay đổi. `Best Val Acc` là PublicTest được dùng làm validation/model selection trong pipeline. Generalization gap được tính bằng Train Acc trừ Private Test Acc, đơn vị điểm phần trăm (pp).
+
+| Chiến lược loss | MLflow Run ID | Best Epoch | Train Loss | Train Acc | Best Val / Public Test Acc | Private Test Acc | Macro-F1 (Private) | Generalization Gap |
+| :--- | :--- | :---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| CrossEntropyLoss (đối chứng) | `382d2ca2a18f4a219c877c7c5d4354c6` | 16 | 0.455350 | 83.520847% | 69.657286% | 70.130956% | 0.700074 | 13.389891 pp |
+| Weighted CrossEntropyLoss | `a82a528fa1154003a203021ba8f71c45` | 16 | 0.464777 | 81.629454% | 68.124826% | 69.434383% | 0.684786 | 12.195071 pp |
+| Focal Loss (γ=2.0, α=None) | `2f3cd08e2bc145baa0636a9317af3c58` | 28 | 0.155761 | 85.899892% | 70.075230% | 69.685149% | 0.695393 | 16.214743 pp |
+
+- So với đối chứng, Weighted CE giảm Macro-F1 **0.015288** (xấp xỉ 2.18% tương đối) và Private Acc **0.696573 pp**; Public/validation Acc giảm **1.532460 pp**. Gap giảm **1.194820 pp**, nhưng đây không bù được suy giảm ở cả Macro-F1 lẫn Private Acc.
+- Focal Loss giảm Macro-F1 **0.004682** (xấp xỉ 0.67% tương đối) và Private Acc **0.445807 pp**, dù Public/validation Acc tăng **0.417944 pp**. Gap tăng **2.824852 pp**. Với cấu hình/seed quan sát được, focal chưa thể hiện ưu thế tổng quát hóa trên PrivateTest.
+- Cả hai loss được đề xuất đều cho Macro-F1 thấp hơn đối chứng; do đó thực nghiệm này **không ủng hộ giả thuyết** rằng chúng cải thiện Macro-F1 tổng trong recipe hiện tại. Weighted CE có thể tăng trọng số lớp hiếm về mặt mục tiêu tối ưu, còn Focal Loss tập trung vào mẫu khó, nhưng cơ chế đó không đảm bảo metric kiểm thử sẽ tăng.
+- Macro-F1 là trung bình F1 của 7 lớp, không cho biết riêng F1/recall của `Disgust` hay `Fear`. CSV tổng kết không mang precision/recall/F1 từng lớp; cần artifact `classification_report`/confusion matrix gắn đúng Run ID để kết luận nhận diện lớp thiểu số. Kết quả hiện tại chỉ có một seed, nên đây là so sánh mô tả, không phải kết luận ý nghĩa thống kê.
+
+**Hỏi: Weighted CE có cải thiện Macro-F1 và Private Accuracy trong T0402 không?**
+Trả lời: Không trong run seed 42 này. So với CE, Macro-F1 giảm từ 0.700074 xuống 0.684786 và Private Acc giảm 0.696573 điểm phần trăm. Gap nhỏ hơn khoảng 1.194820 điểm, nhưng không làm thay đổi kết luận về hai metric đánh giá chính.
+
+**Hỏi: Focal Loss có thể coi là tốt hơn vì Best Val Acc cao nhất không?**
+Trả lời: Không. Focal đạt Public/validation Acc 70.075230%, cao hơn CE 0.417944 điểm, nhưng Private Acc thấp hơn 0.445807 điểm và Macro-F1 thấp hơn 0.004682. Hơn nữa, PublicTest tham gia chọn checkpoint nên không thay thế kết quả PrivateTest.
+
+**Hỏi: Vì sao Focal Loss có Train Loss thấp nhưng Macro-F1 không cao nhất?**
+Trả lời: Các trị loss của các hàm mất mát khác nhau không cùng thang đo để so sánh trực tiếp. Focal nhân CE từng mẫu với $(1-p_t)^\gamma$, làm thay đổi mục tiêu tối ưu; Train Loss thấp hơn không đồng nghĩa với accuracy/Macro-F1 kiểm thử cao hơn.
+
+**Hỏi: Có thể nói Weighted CE/Focal nhận diện Disgust hoặc Fear tốt hơn không?**
+Trả lời: Chưa thể. Bảng CSV chỉ ghi Macro-F1 tổng và accuracy, không có điểm từng lớp. Cần mở classification report hoặc confusion matrix đúng Run ID, kiểm tra riêng precision/recall/F1 của Disgust, Fear và đối chứng; không suy ra per-class từ Macro-F1 tổng.
+
+**Hỏi: Kết quả này đã chứng minh CE luôn tốt nhất chưa?**
+Trả lời: Không. Chỉ có một seed (42), một recipe EfficientNet-B0/augmentation basic và một lần chạy cho mỗi loss. Kết quả chỉ cho thấy CE dẫn đầu trên Private Acc và Macro-F1 ở lần chạy này; cần nhiều seed và per-class report để đánh giá độ ổn định và khả năng cải thiện lớp hiếm.
 
 ## Bổ sung kỹ thuật ngày 2026-11-18: Audit và kagglehub
 
@@ -236,6 +454,7 @@ Trả lời: Không thể kết luận như vậy: cả Public và Private đề
 - Cell cài dependency lọc `torch`/`torchvision` để giữ nguyên bản CUDA của Colab. Nếu runtime là Python 3.13, notebook thay pin scikit-learn 1.5.2 bằng 1.6.1; các phiên bản Python khác vẫn cài theo `requirements.txt`.
 - `MLflowLogger` chọn URI theo thứ tự: đối số `tracking_uri`, biến `MLFLOW_TRACKING_URI`, mặc định `mlruns`. Vì vậy notebook có thể ghi tracking file-store trực tiếp vào Drive. CSV xuất qua `CSV_COLUMNS` cố định, đúng 24 cột.
 - Symlink `outputs/checkpoints` cho phép YAML hiện tại giữ nguyên đường dẫn tương đối nhưng checkpoint được ghi vào Drive. Notebook chỉ thay symlink/thư mục rỗng có `.gitkeep`; nếu phát hiện dữ liệu khác thì dừng, không xóa/ghi đè.
+- MLflow FileStore duyệt cả experiment đã xóa khi ghi metric và yêu cầu thư mục `<tracking-root>/.trash`. Google Drive mount có thể làm thiếu thư mục này sau khi logger đã khởi tạo; `MLflowLogger` vì thế bảo đảm root và `.trash` tồn tại lúc khởi tạo cũng như trước mỗi lần ghi metric. Notebook T0304 dùng FileStore trên SSD local và đồng bộ Drive theo chu kỳ/sau mỗi cấu hình; checkpoint được đặt local để tránh FUSE trong vòng lặp huấn luyện.
 - **Hỏi: Vì sao không chỉ đặt `MLFLOW_TRACKING_URI` trong notebook?** Trước thay đổi T0203, `MLflowLogger.__init__` luôn gọi URI mặc định `mlruns`, bỏ qua biến môi trường; notebook sẽ ghi sai nơi. Regression test bảo đảm URI Drive được sử dụng.
 - **Hỏi: Vì sao không cài lại torch trong cell requirements?** Colab cung cấp PyTorch/Torchvision tương thích CUDA với runtime của họ; cài pin CPU/version khác có thể thay bản GPU. Notebook lọc hai package này khỏi requirements.
 - **Giới hạn thí nghiệm:** Cấu hình mạng tăng đồng thời channels, độ sâu và regularization; bảng kết quả chỉ so sánh các gói kiến trúc, không cô lập nhân quả riêng số block. Chưa có kết quả T4 thì không được suy luận bão hòa/overfitting.
@@ -249,4 +468,55 @@ Trả lời: Không thể kết luận như vậy: cả Public và Private đề
 - **Hỏi: Vì sao cần epoch-metrics CSV ngoài schema 24 cột?** CSV chuẩn chỉ chứa metrics tổng kết của run, không lưu chuỗi từng epoch; muốn phân tích tốc độ hội tụ phải lấy history từ MLflow.
 - **Hỏi: Vì sao thay activation cả ở convolution và FC?** Thiết kế T0204 kiểm tra chính sách activation thống nhất toàn LargeCNN. Muốn tách riêng vị trí activation cần một nghiên cứu factorial khác.
 - **Trạng thái:** Hạ tầng và forward tests đã chuẩn bị; chưa chạy bốn train runs và chưa kết luận activation tối ưu.
+
+## T0302: VGG16 fine-tuning ImageNet cho FER2013 (RQ2)
+
+- `src/models/pretrained_vgg.py` bọc `torchvision.models.vgg16` trong `BaseEmotionModel`; đầu vào cần RGB `[B,3,H,W]`. `AdaptiveAvgPool2d((7,7))` của torchvision giữ tensor đặc trưng cuối thành `[B,512,7,7]` cho cả ảnh 128 và 224. Flatten tạo 25.088 đặc trưng rồi head mới gồm `Linear(25088,512) -> ReLU -> Dropout -> Linear(512,7)` trả logits `[B,7]`.
+- `pretrained=True` chọn `VGG16_Weights.IMAGENET1K_V1`; `False` khởi tạo backbone ngẫu nhiên, dùng cho kiểm thử offline và đối chứng scratch. Trọng số head được khởi tạo Kaiming; bias bằng 0.
+- `freeze_backbone()` chỉ khóa `backbone.features`, giữ classifier trainable để warm-up. `unfreeze_backbone()` mở toàn bộ; `unfreeze_backbone(from_block=1..5)` chỉ mở các tầng thuộc block chỉ định trở về cuối. Bộ đếm summary phân biệt tổng, trainable và frozen parameters.
+- `experiments/sota/exp04_vgg16_finetune.yaml` cấu hình EXP-04, RQ2, ảnh RGB 128, chuẩn hóa ImageNet, AdamW, ReduceLROnPlateau và augmentation chỉ ở train. `get_dataloaders(transform_mode="sota")` tái sử dụng transform eval xác định cho cả PublicTest và PrivateTest, không augmentation.
+- Trainer chấp nhận tên `VGG16` hoặc `PretrainedVGG16`; CNN hiện hữu vẫn dùng transform `custom` mặc định. Optimizer chỉ nhận tham số `requires_grad=True`.
+
+**Hỏi: Vì sao VGG16 vẫn nhận được ảnh 128×128 dù cấu hình gốc thường dùng 224×224?**
+Trả lời: Feature extractor dùng các phép pooling tích lũy và AdaptiveAvgPool2d `(7,7)` chuẩn hóa kích thước không gian trước classifier; cả hai đầu vào cho kích thước feature map đủ lớn để pooling về 7×7.
+
+**Hỏi: Freeze backbone có nghĩa là tổng số tham số giảm không?**
+Trả lời: Không. Tổng số tham số không đổi; chỉ số tham số cập nhật gradient giảm. `get_parameter_summary()` báo riêng ba con số này.
+
+**Hỏi: Chạy unit test có tải pretrained weights không?**
+Trả lời: Không. Các test kiến trúc chạy `pretrained=False`; kiểm tra chế độ pretrained xác nhận enum và đối số weights qua mock, tránh tải mạng. Khi huấn luyện EXP-04 thật, torchvision cần tải/có sẵn weights ImageNet V1.
+
+## T0303: ResNet50 và EfficientNet-B0 ImageNet cho FER2013 (RQ2)
+
+- `src/models/pretrained_resnet.py` bọc `torchvision.models.resnet50`, dùng weights ImageNet V2 khi pretrained. Tensor RGB đi qua stem và residual stages `layer1`–`layer4`, pooling toàn cục trong ResNet tạo vector 2048 chiều. Head mặc định `Dropout -> Linear(2048,7)`; có thể đặt `hidden_dim` để dùng head hai lớp.
+- `src/models/pretrained_efficientnet.py` bọc `efficientnet_b0`, dùng ImageNet V1. Backbone tạo vector 1280 chiều; head mặc định `Dropout(inplace=True) -> Linear(1280,7)`, có thể bổ sung hidden layer. Hai mô hình đều nhận ảnh 128×128 hoặc 224×224 và trả logits `[B,7]`.
+- Cả hai kế thừa `BaseEmotionModel`, cung cấp tầng Conv cuối cho Grad-CAM, `get_parameter_summary()` và điều khiển freeze. ResNet có thể unfreeze từ residual stage 1–4; EfficientNet từ feature block index 0–8. Optimizer Trainer giữ tham chiếu toàn bộ tham số, nên fine-tuning có thể mở khóa thêm các layer sau khi khởi tạo.
+- `exp05_resnet50_finetune.yaml` và `exp06_efficientnet_b0_finetune.yaml` dùng seed 42, ảnh RGB 128, ImageNet normalization và `transform_mode: sota`. `get_dataloaders` gán augmentation chỉ cho transform train, dùng eval transform xác định cho PublicTest/PrivateTest.
+- Trainer nhận các alias `ResNet50`/`PretrainedResNet50` và `EfficientNetB0`/`PretrainedEfficientNetB0`; các kiến trúc cũ và VGG16 vẫn được giữ.
+
+**Hỏi: Freeze backbone có làm giảm tổng số tham số của mô hình không?**
+Trả lời: Không, tổng tham số kiến trúc không đổi; chỉ lượng tham số được cập nhật gradient giảm. Summary phân biệt total, trainable, frozen.
+
+**Hỏi: Vì sao ResNet50 có thể mở từ `layer4` mà không mở stem?**
+Trả lời: Các residual stage có thứ tự tuần tự. Mở layer4 chỉ tinh chỉnh tầng đặc trưng cuối và classifier; các stage trước giữ trọng số ImageNet, giảm số tham số cần cập nhật.
+
+**Hỏi: Vì sao EfficientNet-B0 phù hợp để so sánh với ResNet50 trong RQ2?**
+Trả lời: Đây là đối chứng kiến trúc hiệu quả tham số; phải so sánh trên cùng split, seed, transform, batch/recipe và đánh giá riêng tài nguyên tính toán, không kết luận chỉ từ một chỉ số accuracy.
+
+## T0304: Thiết kế đối chứng Transfer Learning và kích thước ảnh (RQ2)
+
+- Chín YAML trong `experiments/sota/` tạo ma trận 3 kiến trúc × 3 điều kiện: ImageNet pretrained 128, scratch 128, ImageNet pretrained 48. Seed, split counts, transform, augmentation train-only, optimizer, LR, scheduler, batch, epochs và patience được kiểm tra bằng unit test để giữ recipe cố định.
+- `SOTATransformBuilder` cho phép cạnh ảnh từ 48 trở lên; ảnh FER grayscale được đổi thành 3 kênh và chuẩn hóa ImageNet. Kiểm tra forward 48×48 cho thấy output logits của cả ba model là `[B,7]`; feature cuối thực đo: VGG16 `[B,512,1,1]`, ResNet50 `[B,2048,2,2]`, EfficientNet-B0 `[B,1280,2,2]`. Vì vậy không được giả định mọi backbone có cùng năm lần giảm kích thước.
+- Trainer đặt tên run SOTA duy nhất theo EXP ID, kiến trúc, pretrained/scratch, image size và optimizer. Thời gian epoch có synchronize CUDA trước/sau vùng đo; tổng tham số và Public Macro-F1 được ghi vào MLflow metrics bổ sung.
+- CSV 24 cột là schema cố định và không có exp_id, pretrained, Macro-F1 Public hoặc total params. Notebook giữ nguyên schema này, nối mỗi run với manifest YAML qua tên run, đồng thời xuất metrics chi tiết bổ sung riêng. PublicTest là validation dùng early stopping/model selection theo pipeline hiện hữu; không diễn giải nó như holdout độc lập. PrivateTest được đánh giá sau khi chọn checkpoint.
+- `run_t0304_colab.ipynb` chạy chín cấu hình tuần tự, gắn Drive cho MLflow/checkpoint/log/figure, kiểm tra CSV FER2013 có đúng split counts và tiếp tục bỏ qua các run đã FINISHED. Colab Secret được dùng khi tải dữ liệu và token được gỡ khỏi môi trường sau tiến trình tải.
+
+**Hỏi: Vì sao chưa thể kết luận Pretrained tốt hơn Scratch từ smoke test?**
+Trả lời: Smoke test chỉ xác minh pipeline forward/backward; không đo hội tụ hay accuracy. Chỉ CSV/MLflow của đủ run thật mới cho phép tính ΔAcc, macro-F1 và best epoch.
+
+**Hỏi: Vì sao 48×48 không cho cùng feature map ở ba model?**
+Trả lời: ResNet50 có stem stride/pooling và adaptive average pooling; EfficientNet có stem cùng stride stages; VGG16 dùng chuỗi max-pooling và adaptive pool 7×7 ở classifier. Hình dạng không gian do kiến trúc cụ thể quyết định, nên phải đo từng backbone.
+
+**Hỏi: PublicTest có phải test set độc lập trong Trainer hiện tại không?**
+Trả lời: Không. Trainer dùng PublicTest làm validation để chọn checkpoint/EarlyStopping. Do đó chỉ báo cáo là validation/model-selection metric; không tuyên bố nó là đánh giá holdout không thiên lệch. PrivateTest là split đánh giá cuối theo cấu hình hiện có.
 

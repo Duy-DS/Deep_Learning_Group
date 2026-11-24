@@ -1,7 +1,12 @@
 import os
+from pathlib import Path
 from typing import Any, Dict, Optional
+
 import mlflow
+import numpy as np
 import pandas as pd
+from mlflow.utils.file_utils import local_file_uri_to_path
+from mlflow.utils.uri import is_local_uri
 
 
 class MLflowLogger:
@@ -32,9 +37,58 @@ class MLflowLogger:
         os.environ["MLFLOW_ALLOW_FILE_STORE"] = "true"
         os.environ["MLFLOW_DISABLE_AGENT_HINT"] = "1"
         resolved_tracking_uri = tracking_uri or os.environ.get("MLFLOW_TRACKING_URI", "mlruns")
+        self.tracking_uri = resolved_tracking_uri
         mlflow.set_tracking_uri(resolved_tracking_uri)
+        self._ensure_file_store_trash_directory()
         mlflow.set_experiment(experiment_name)
         self.experiment_name = experiment_name
+
+    def _ensure_file_store_trash_directory(self) -> None:
+        """Khôi phục thư mục trash mà MLflow FileStore cần, kể cả trên Drive mount."""
+        if not is_local_uri(self.tracking_uri):
+            return
+        tracking_root = Path(local_file_uri_to_path(self.tracking_uri))
+        os.makedirs(tracking_root, exist_ok=True)
+        os.makedirs(tracking_root / ".trash", exist_ok=True)
+
+    @staticmethod
+    def _sanitize_python_scalar(value: Any) -> Any:
+        """Chuyển giá trị NumPy/lồng nhau thành scalar Python an toàn cho CSV."""
+        if isinstance(value, np.generic):
+            return MLflowLogger._sanitize_python_scalar(value.item())
+        if isinstance(value, np.ndarray):
+            if value.ndim == 0:
+                return MLflowLogger._sanitize_python_scalar(value.item())
+            return str(MLflowLogger._sanitize_python_scalar(value.tolist()))
+        if isinstance(value, (list, tuple, dict)):
+            if isinstance(value, dict):
+                value = {
+                    str(key): MLflowLogger._sanitize_python_scalar(item)
+                    for key, item in value.items()
+                }
+            else:
+                value = [MLflowLogger._sanitize_python_scalar(item) for item in value]
+            return str(value)
+        if value is None or type(value) in (bool, int, float, str):
+            return value
+        return str(value)
+
+    @classmethod
+    def normalize_records(cls, records: Any) -> list[dict[str, Any]]:
+        """Chuẩn hóa các record NumPy trước khi tạo DataFrame hoặc ghi CSV."""
+        normalized = []
+        for record in records:
+            if isinstance(record, pd.Series):
+                record = record.to_dict()
+            if not isinstance(record, dict):
+                raise TypeError("Mỗi record cần chuẩn hóa phải là dictionary.")
+            normalized.append(
+                {
+                    str(key): cls._sanitize_python_scalar(value)
+                    for key, value in record.items()
+                }
+            )
+        return normalized
 
     def start_run(
         self,
@@ -60,6 +114,7 @@ class MLflowLogger:
 
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
         """Ghi nhận các chỉ số mất mát và độ chính xác."""
+        self._ensure_file_store_trash_directory()
         if step is not None:
             mlflow.log_metrics(metrics, step=step)
         else:
@@ -79,7 +134,9 @@ class MLflowLogger:
         output_dir = os.path.dirname(output_path)
         if output_dir:
             os.makedirs(output_dir, exist_ok=True)
-        runs_df = mlflow.search_runs(experiment_names=[self.experiment_name])
+        raw_runs = mlflow.search_runs(experiment_names=[self.experiment_name])
+        safe_runs = self.normalize_records(raw_runs.to_dict(orient="records"))
+        runs_df = pd.DataFrame(safe_runs)
         column_mapping = {
             "Start Time": "start_time",
             "Run ID": "run_id",
@@ -105,5 +162,7 @@ class MLflowLogger:
 
         summary_df = summary_df.reindex(columns=self.CSV_COLUMNS)
         assert len(summary_df.columns) == 24, "Schema CSV MLflow phải có đúng 24 cột."
+        safe_records = self.normalize_records(summary_df.to_dict(orient="records"))
+        summary_df = pd.DataFrame(safe_records, columns=self.CSV_COLUMNS)
         summary_df.to_csv(output_path, index=False, encoding="utf-8-sig")
         return output_path

@@ -1,0 +1,43 @@
+\chapter{Cơ sở lý thuyết và tổng quan phương pháp}
+
+\section{Tích chập và biểu diễn phân cấp}
+Với input nhiều kênh $X\in\mathbb{R}^{C_{in}\times H\times W}$ và kernel $K\in\mathbb{R}^{C_{in}\times k_h\times k_w}$, phép tích chập tại vị trí $(i,j)$ có dạng
+\begin{equation}
+Y_{o,i,j}=b_o+\sum_{c=1}^{C_{in}}\sum_{u=1}^{k_h}\sum_{v=1}^{k_w}K_{o,c,u,v}X_{c,i+u,j+v}.
+\end{equation}
+Các kernel dùng chung trọng số trên không gian ảnh nên số tham số ít hơn kết nối đầy đủ ở cùng kích thước feature map. Những tầng đầu có thể học cạnh và tương phản; các tầng sau kết hợp chúng thành đặc trưng phức tạp hơn. Pooling/stride làm giảm độ phân giải và tăng receptive field, nhưng cũng có thể làm mất chi tiết trên ảnh 48×48.
+
+\section{Hàm kích hoạt}
+ReLU, LeakyReLU, GELU và ELU được khảo sát trong các cấu hình activation. Các định nghĩa lần lượt có thể viết:
+\begin{align}
+\operatorname{ReLU}(x) &= \max(0, x),\\
+\text{LeakyReLU}(x) &= \begin{cases} x, & x \ge 0 \\ \alpha x, & x < 0 \end{cases},\\
+\operatorname{GELU}(x) &= x\,\Phi(x),\\
+\text{ELU}(x) &= \begin{cases} x, & x > 0 \\ \alpha(e^x - 1), & x \le 0 \end{cases}.
+\end{align}
+Các hàm khác nhau ở đạo hàm miền âm và độ trơn. Điều đó có thể ảnh hưởng gradient, nhưng không tự đảm bảo một activation sẽ cho kết quả tốt hơn; cần so trên cùng recipe và đọc metrics thực nghiệm.
+
+\section{Batch Normalization, Dropout và Weight Decay}
+Batch Normalization chuẩn hóa activation theo thống kê mini-batch rồi áp dụng scale/shift học được \citep{ioffe2015batchnorm}. Trong train, Dropout đặt ngẫu nhiên một phần activation về 0; khi gọi \code{model.eval()} cơ chế này tắt. Weight decay thêm regularization vào cập nhật tham số; AdamW tách decay khỏi bước cập nhật gradient thích nghi \citep{loshchilov2019adamw}. Nếu nhiều thành phần của recipe cùng thay đổi, chênh lệch không thể quy hoàn toàn cho một thành phần riêng.
+
+\section{Học chuyển giao: VGG16, ResNet50 và EfficientNet-B0}
+VGG16 xây dựng biểu diễn qua các khối convolution và pooling tuần tự \citep{simonyan2014vgg}. ResNet dùng shortcut kết nối residual để hỗ trợ truyền gradient qua mạng sâu \citep{he2016resnet}. EfficientNet-B0 dùng các khối MBConv và thiết kế scaling cân bằng giữa chiều sâu, chiều rộng và độ phân giải \citep{tan2019efficientnet}. Trong đồ án, ảnh xám được chuyển thành ba kênh và chuẩn hóa ImageNet cho backbone SOTA; việc lặp kênh không tạo thông tin màu mới. Kích thước ảnh và chế độ pretrained/scratch phải được đọc theo YAML của từng run.
+
+\section{Weighted Cross-Entropy và Focal Loss}
+Với logits $z$ và nhãn đúng $y$, Cross-Entropy đa lớp là
+\begin{equation}
+\mathcal{L}_{CE}=-\log p_y,\qquad p_y=\frac{e^{z_y}}{\sum_c e^{z_c}}.
+\end{equation}
+Weighted Cross-Entropy nhân loss của lớp $y$ với trọng số $w_y$. Focal Loss dùng $\mathcal{L}_{FL}=-\alpha_y(1-p_y)^\gamma\log(p_y)$ để giảm đóng góp tương đối của mẫu dễ \citep{lin2017focal}. Hai cách này có thể hỗ trợ dữ liệu lệch lớp, nhưng kết quả cần xem đồng thời accuracy, Macro-F1 và per-class recall. Trong các run T0402 hiện có, CE vẫn dẫn đầu Private Accuracy và Macro-F1; không nên mô tả weighted/focal là cải thiện nếu số liệu không cho thấy điều đó.
+
+\section{Grad-CAM}
+Grad-CAM lấy activation $A^k$ của kênh $k$ ở một tầng convolution, rồi tính trọng số từ gradient của logit lớp $y^c$:
+\begin{equation}
+\alpha_k^c=\frac{1}{HW}\sum_{i=1}^{H}\sum_{j=1}^{W}\frac{\partial y^c}{\partial A_{ij}^{k}},\qquad
+L_{\mathrm{Grad-CAM}}^c=\operatorname{ReLU}\left(\sum_k\alpha_k^c A^k\right).
+\end{equation}
+Heatmap được nội suy về kích thước ảnh để hiển thị. Nó cho biết vùng activation liên hệ với logit trong phép tính của model, không chứng minh quan hệ nhân quả hay đảm bảo vùng sáng trùng đúng bộ phận giải phẫu \citep{selvaraju2017gradcam}.
+
+\begin{calloutbox}[Phát hiện chính]
+Các phương pháp trên giải thích vì sao cần đọc kết quả theo kiến trúc, recipe và split cụ thể. Công thức nêu cơ chế tổng quát; bằng chứng định lượng của đồ án được trình bày ở Chương 3.
+\end{calloutbox}

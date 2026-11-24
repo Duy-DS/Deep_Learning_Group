@@ -10,11 +10,12 @@ Tuân thủ nghiêm ngặt hiến pháp AGENTS.md:
 
 import argparse
 import os
+import time
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple, Union
 
 import numpy as np
-from sklearn.metrics import f1_score
+from sklearn.metrics import classification_report, f1_score
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -22,8 +23,16 @@ from torch.utils.data import DataLoader
 import yaml
 
 from src.data.dataset import get_dataloaders
-from src.models import LargeCNN, MediumCNN, SmallCNN
+from src.models import (
+    LargeCNN,
+    MediumCNN,
+    PretrainedEfficientNetB0,
+    PretrainedResNet50,
+    PretrainedVGG16,
+    SmallCNN,
+)
 from src.train.mlflow_logger import MLflowLogger
+from src.train.losses import LossFactory
 from src.train.utils import count_parameters, get_device, seed_everything
 
 
@@ -59,7 +68,19 @@ class Trainer:
         self.rq_tag = str(self.config.get("rq_tag", "RQ1"))
         self.image_size = int(self.config.get("image_size", 48))
         self.in_channels = int(self.config.get("in_channels", 1))
-        self.augmentation = str(self.config.get("augmentation", "None"))
+        augmentation_config = self.config.get("augmentation")
+        if isinstance(augmentation_config, dict):
+            self.augmentation_mode = str(augmentation_config.get("mode", "none")).strip().lower()
+            self.augmentation_label = self.augmentation_mode
+            self.augmentation = self.augmentation_mode
+        else:
+            self.augmentation_mode = str(self.config.get("augmentation_mode", "")).strip().lower() or None
+            self.augmentation_label = (
+                self.augmentation_mode
+                if self.augmentation_mode is not None
+                else str(augmentation_config if augmentation_config is not None else "None")
+            )
+            self.augmentation = self.augmentation_label
         self.batch_size = int(self.config.get("batch_size", 64))
         self.lr = float(self.config.get("lr", 1e-3))
         self.weight_decay = float(self.config.get("weight_decay", 0.0))
@@ -72,7 +93,23 @@ class Trainer:
         self.channels = self.config.get("channels")
         self.num_workers = int(self.config.get("num_workers", 0))
         self.num_classes = int(self.config.get("num_classes", 7))
+        self.loss_config = dict(self.config.get("loss") or {})
+        self.loss_name = str(self.loss_config.get("name", "cross_entropy")).strip().lower()
+        self.loss_gamma = float(self.loss_config.get("gamma", 2.0)) if self.loss_name == "focal" else None
+        self.loss_configured = "loss" in self.config
         self.normalization = str(self.config.get("normalization", "fer2013"))
+        self.transform_mode = str(self.config.get("transform_mode", "custom"))
+        self.use_augmentation = bool(self.config.get("use_augmentation", True))
+        if self.augmentation_mode == "none":
+            self.use_augmentation = False
+        self.aug_config = self.config.get(
+            "aug_config",
+            augmentation_config.get("aug_config") if isinstance(augmentation_config, dict) else None,
+        )
+        self.pretrained = bool(self.config.get("pretrained", True))
+        self.freeze_backbone = bool(self.config.get("freeze_backbone", False))
+        self.dropout_rate = float(self.config.get("dropout_rate", self.dropout))
+        self.hidden_dim = self.config.get("hidden_dim", 512)
         self.patience = int(self.config.get("patience", 10))
         self.member = str(self.config.get("member", "Thành viên 2"))
 
@@ -93,6 +130,10 @@ class Trainer:
             in_channels=self.in_channels,
             augmentation=self.augmentation,
             normalization=self.normalization,
+            transform_mode=self.transform_mode,
+            use_augmentation=self.use_augmentation,
+            aug_config=self.aug_config,
+            augmentation_mode=self.augmentation_mode,
             seed=self.seed,
             pin_memory=torch.cuda.is_available(),
         )
@@ -101,13 +142,23 @@ class Trainer:
         self.model = self._build_model().to(self.device)
         print(f"[*] Khởi tạo thành công mô hình {self.architecture}: {count_parameters(self.model):,} tham số.")
 
-        # 7. Khởi tạo Hàm mất mát và Bộ tối ưu hóa (Optimizer)
-        self.criterion = nn.CrossEntropyLoss()
+        # 7. Class weights chỉ được tính từ nhãn của Dataset thuộc train_loader.
+        train_dataset = getattr(self.train_loader, "dataset", None)
+        train_labels = getattr(train_dataset, "labels", None)
+        self.criterion = LossFactory.create(
+            config=self.loss_config,
+            train_labels=train_labels,
+            num_classes=self.num_classes,
+            device=self.device,
+        )
+        # Dùng cùng một loss không trọng số để so sánh validation/test giữa các ablation.
+        self.eval_criterion = nn.CrossEntropyLoss().to(self.device)
+        self.last_classification_report: Dict[str, Any] = {}
         self.optimizer = self._build_optimizer()
         self.lr_scheduler = self._build_scheduler()
 
         # 8. Khởi tạo MLflowLogger
-        self.logger = MLflowLogger()
+        self.logger = MLflowLogger(tracking_uri=self.config.get("mlflow_tracking_uri"))
 
     @staticmethod
     def _format_artifact_path(
@@ -129,6 +180,53 @@ class Trainer:
                 optimizer=optimizer or "",
             )
         )
+
+    @staticmethod
+    def _format_run_name(
+        exp_id: str,
+        architecture: str,
+        optimizer: str,
+        activation: str = "relu",
+        pretrained: Optional[bool] = None,
+        image_size: Optional[int] = None,
+        augmentation_mode: Optional[str] = None,
+        loss_name: Optional[str] = None,
+        scheduler_name: Optional[str] = None,
+    ) -> str:
+        """Tạo tên run phân biệt theo recipe được ablation khi được cấu hình.
+
+        Args:
+            exp_id: Mã thực nghiệm.
+            architecture: Tên kiến trúc mô hình.
+            optimizer: Tên bộ tối ưu.
+            activation: Hàm kích hoạt cho CNN tùy biến.
+            pretrained: Trạng thái pretrained của backbone.
+            image_size: Cạnh ảnh đầu vào.
+            augmentation_mode: Chế độ tăng cường dữ liệu.
+            loss_name: Hậu tố loss tùy chọn.
+            scheduler_name: Hậu tố scheduler tùy chọn để tránh Auto-Skip chéo.
+
+        Returns:
+            Tên MLflow run ổn định, duy nhất cho các biến thể ablation.
+        """
+        sota_architectures = {
+            "VGG16", "PretrainedVGG16", "ResNet50", "PretrainedResNet50",
+            "EfficientNetB0", "PretrainedEfficientNetB0",
+        }
+        if architecture in sota_architectures:
+            weight_mode = "pretrained" if pretrained else "scratch"
+            base_name = f"{exp_id}_{architecture}_{weight_mode}_{image_size}_{optimizer}"
+            if augmentation_mode:
+                base_name = f"{base_name}_aug-{augmentation_mode}"
+        else:
+            base_name = f"{exp_id}_{architecture}_{activation}_{optimizer}"
+        if loss_name:
+            base_name = f"{base_name}_loss-{loss_name}"
+        if scheduler_name:
+            normalized_scheduler = str(scheduler_name).strip().lower()
+            if normalized_scheduler not in {"", "none", "null"}:
+                base_name = f"{base_name}_sched-{normalized_scheduler}"
+        return base_name
 
     def _build_model(self) -> nn.Module:
         """Khởi tạo kiến trúc mô hình tương ứng với tham số architecture."""
@@ -157,6 +255,30 @@ class Trainer:
                 channels=self.channels if self.channels is not None else (64, 128, 256, 512),
                 dropout_rate=self.dropout,
             )
+        elif self.architecture in ("VGG16", "PretrainedVGG16"):
+            return PretrainedVGG16(
+                num_classes=self.num_classes,
+                pretrained=self.pretrained,
+                freeze_backbone=self.freeze_backbone,
+                dropout_rate=self.dropout_rate,
+                hidden_dim=self.hidden_dim,
+            )
+        elif self.architecture in ("ResNet50", "PretrainedResNet50"):
+            return PretrainedResNet50(
+                num_classes=self.num_classes,
+                pretrained=self.pretrained,
+                freeze_backbone=self.freeze_backbone,
+                dropout_rate=self.dropout_rate,
+                hidden_dim=self.hidden_dim,
+            )
+        elif self.architecture in ("EfficientNetB0", "PretrainedEfficientNetB0"):
+            return PretrainedEfficientNetB0(
+                num_classes=self.num_classes,
+                pretrained=self.pretrained,
+                freeze_backbone=self.freeze_backbone,
+                dropout_rate=float(self.config.get("dropout_rate", 0.2)),
+                hidden_dim=self.hidden_dim,
+            )
         raise ValueError(f"Kiến trúc mô hình '{self.architecture}' chưa được hỗ trợ trong Trainer.")
 
     def _build_optimizer(self) -> optim.Optimizer:
@@ -182,12 +304,20 @@ class Trainer:
             raise ValueError(f"Không hỗ trợ bộ tối ưu hóa: '{opt_name}'")
 
     def _build_scheduler(self) -> Optional[optim.lr_scheduler.LRScheduler]:
-        """Khởi tạo bộ điều chỉnh learning rate theo cấu hình YAML."""
+        """Khởi tạo scheduler PyTorch, hỗ trợ alias để tương thích YAML cũ.
+
+        Returns:
+            Scheduler theo epoch, hoặc ``None`` nếu cấu hình tắt scheduler.
+
+        Raises:
+            ValueError: Tên scheduler hoặc tham số warmup không hợp lệ.
+        """
         scheduler_name = str(self.config.get("scheduler", "None")).strip().lower()
+        normalized_name = scheduler_name.replace("_", "").replace("-", "").replace("+", "").replace(" ", "")
         scheduler_params = self.config.get("scheduler_params", {}) or {}
-        if scheduler_name in ("none", "null", ""):
+        if normalized_name in ("none", "null", ""):
             return None
-        if scheduler_name == "reducelronplateau":
+        if normalized_name in ("plateau", "reduceonplateau", "reducelronplateau"):
             return optim.lr_scheduler.ReduceLROnPlateau(
                 self.optimizer,
                 mode=str(scheduler_params.get("mode", "min")),
@@ -195,15 +325,44 @@ class Trainer:
                 patience=int(scheduler_params.get("patience", 3)),
                 min_lr=float(scheduler_params.get("min_lr", 1e-6)),
             )
-        if scheduler_name == "cosineannealinglr":
+        if normalized_name in ("step", "steplr"):
+            return optim.lr_scheduler.StepLR(
+                self.optimizer,
+                step_size=int(scheduler_params.get("step_size", 10)),
+                gamma=float(scheduler_params.get("gamma", 0.1)),
+            )
+        if normalized_name in ("cosine", "cosineannealing", "cosineannealinglr"):
             return optim.lr_scheduler.CosineAnnealingLR(
                 self.optimizer,
                 T_max=int(scheduler_params.get("T_max", self.epochs)),
                 eta_min=float(scheduler_params.get("eta_min", 0.0)),
             )
+        if normalized_name in ("warmupcosine", "linearwarmupcosine", "warmupcosineannealing"):
+            warmup_epochs = int(scheduler_params.get("warmup_epochs", 3))
+            start_factor = float(scheduler_params.get("start_factor", 0.2))
+            if warmup_epochs <= 0 or warmup_epochs >= self.epochs:
+                raise ValueError("warmup_epochs phải lớn hơn 0 và nhỏ hơn tổng số epochs.")
+            if not 0.0 < start_factor <= 1.0:
+                raise ValueError("start_factor của warmup phải thuộc (0, 1].")
+            warmup = optim.lr_scheduler.LinearLR(
+                self.optimizer,
+                start_factor=start_factor,
+                end_factor=1.0,
+                total_iters=warmup_epochs,
+            )
+            cosine = optim.lr_scheduler.CosineAnnealingLR(
+                self.optimizer,
+                T_max=int(scheduler_params.get("T_max", self.epochs - warmup_epochs)),
+                eta_min=float(scheduler_params.get("eta_min", 0.0)),
+            )
+            return optim.lr_scheduler.SequentialLR(
+                self.optimizer,
+                schedulers=[warmup, cosine],
+                milestones=[warmup_epochs],
+            )
         raise ValueError(
             f"Scheduler '{self.config.get('scheduler')}' không được hỗ trợ; "
-            "chọn ReduceLROnPlateau, CosineAnnealingLR hoặc None."
+            "chọn StepLR, ReduceLROnPlateau, CosineAnnealingLR, WarmupCosine hoặc None."
         )
 
     def train_one_epoch(self) -> Tuple[float, float]:
@@ -257,7 +416,7 @@ class Trainer:
                 labels = labels.to(self.device)
 
                 outputs = self.model(images)
-                loss = self.criterion(outputs, labels)
+                loss = self.eval_criterion(outputs, labels)
 
                 running_loss += loss.item() * images.size(0)
                 preds = outputs.argmax(dim=1)
@@ -269,6 +428,20 @@ class Trainer:
         eval_loss = running_loss / total_samples
         eval_acc = (np.sum(np.array(all_preds) == np.array(all_targets)) / total_samples) * 100.0
         macro_f1 = float(f1_score(all_targets, all_preds, average="macro", zero_division=0))
+        fer_class_names = ["Angry", "Disgust", "Fear", "Happy", "Sad", "Surprise", "Neutral"]
+        class_names = (
+            fer_class_names[: self.num_classes]
+            if self.num_classes <= len(fer_class_names)
+            else [str(index) for index in range(self.num_classes)]
+        )
+        self.last_classification_report = classification_report(
+            all_targets,
+            all_preds,
+            labels=list(range(self.num_classes)),
+            target_names=class_names,
+            output_dict=True,
+            zero_division=0,
+        )
 
         return eval_loss, eval_acc, macro_f1
 
@@ -278,7 +451,21 @@ class Trainer:
         Returns:
             Dict[str, Any]: Từ điển chứa kết quả thực nghiệm tổng kết.
         """
-        run_name = f"{self.exp_id}_{self.architecture}_{self.activation}_{self.optimizer_name}"
+        run_name = self._format_run_name(
+            exp_id=self.exp_id,
+            architecture=self.architecture,
+            optimizer=self.optimizer_name,
+            activation=self.activation,
+            pretrained=self.pretrained,
+            image_size=self.image_size,
+            augmentation_mode=self.augmentation_mode,
+            loss_name=self.loss_name if self.loss_configured else None,
+            scheduler_name=(
+                self.config.get("scheduler")
+                if self.config.get("scheduler_run_suffix", False)
+                else None
+            ),
+        )
         print(f"\n{'='*70}")
         print(f"🚀 BẮT ĐẦU THỰC NGHIỆM: {run_name} (Nhóm: {self.exp_group} | Câu hỏi: {self.rq_tag})")
         print(f"{'='*70}")
@@ -289,19 +476,27 @@ class Trainer:
         # 2. Ghi nhận tham số khởi tạo (Params)
         init_params = {
             "architecture": self.architecture,
+            "experiment_id": self.exp_id,
+            "pretrained": str(self.pretrained),
             "exp_group": self.exp_group,
             "rq_tag": self.rq_tag,
+            "hidden_dim": str(self.hidden_dim),
+            "total_params": sum(parameter.numel() for parameter in self.model.parameters()),
             "seed": self.seed,
             "image_size": self.image_size,
-            "augmentation": self.augmentation,
+            "augmentation": self.augmentation_label,
             "optimizer": str(self.config.get("optimizer", "Adam")),
             "lr": self.lr,
+            "scheduler": str(self.config.get("scheduler", "None")),
+            "batch_size": self.batch_size,
             "weight_decay": self.weight_decay,
             "momentum": self.momentum,
             "nesterov": str(self.nesterov),
             "dropout": self.dropout,
             "activation": self.activation,
             "channels": str(self.channels) if self.channels is not None else "default",
+            "loss_name": self.loss_name,
+            "loss_gamma": self.loss_gamma if self.loss_gamma is not None else -1.0,
             "member": self.member,
         }
         self.logger.log_params(init_params)
@@ -313,8 +508,14 @@ class Trainer:
 
         # 3. Vòng lặp từng Epoch
         for epoch in range(1, self.epochs + 1):
+            if self.device.type == "cuda":
+                torch.cuda.synchronize(self.device)
+            epoch_started = time.perf_counter()
             train_loss, train_acc = self.train_one_epoch()
             val_loss, val_acc, val_f1 = self.evaluate(self.val_loader)
+            if self.device.type == "cuda":
+                torch.cuda.synchronize(self.device)
+            epoch_duration = time.perf_counter() - epoch_started
 
             # Scheduler giảm LR theo validation loss hoặc theo lịch cosine.
             if isinstance(self.lr_scheduler, optim.lr_scheduler.ReduceLROnPlateau):
@@ -336,6 +537,7 @@ class Trainer:
                 "val_acc": val_acc,
                 "val_macro_f1": val_f1,
                 "lr": self.optimizer.param_groups[0]["lr"],
+                "epoch_time_seconds": epoch_duration,
             }, step=epoch)
 
             # Cơ chế EarlyStopping & Lưu trữ Checkpoint tốt nhất dựa trên Val Acc
@@ -362,6 +564,12 @@ class Trainer:
             self.model.load_state_dict(torch.load(self.checkpoint_path, map_location=self.device))
 
         test_loss, private_test_acc, private_macro_f1 = self.evaluate(self.test_loader)
+        report_path = self.checkpoint_path.with_name(f"{self.checkpoint_path.stem}_private_classification_report.json")
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        import json
+
+        with report_path.open("w", encoding="utf-8") as report_file:
+            json.dump(self.last_classification_report, report_file, ensure_ascii=False, indent=2)
         print(f"[*] KẾT QUẢ ĐÁNH GIÁ CUỐI KỲ (Private Test):")
         print(f"    - Private Test Acc : {private_test_acc:.2f}%")
         print(f"    - Private Macro-F1 : {private_macro_f1:.4f}")
@@ -378,10 +586,19 @@ class Trainer:
             "best_epoch": best_epoch,
         }
         self.logger.log_metrics(final_summary_metrics)
+        # Log bổ sung ngoài schema CSV 24 cột; PublicTest là validation dùng chọn checkpoint.
+        self.logger.log_metrics({
+            "best_val_macro_f1": best_val_macro_f1,
+            "total_params": sum(parameter.numel() for parameter in self.model.parameters()),
+            "pretrained": float(self.pretrained),
+            "image_size": float(self.image_size),
+        })
 
         # Lưu checkpoint làm artifact trong MLflow
         if self.checkpoint_path.exists():
             self.logger.log_artifact(str(self.checkpoint_path))
+        if report_path.exists():
+            self.logger.log_artifact(str(report_path))
 
         # Đóng phiên chạy MLflow và xuất file CSV tổng kết
         self.logger.end_run()
@@ -399,6 +616,7 @@ class Trainer:
             "best_val_acc": best_val_acc,
             "private_test_acc": private_test_acc,
             "macro_f1": private_macro_f1,
+            "private_classification_report": self.last_classification_report,
         }
 
 

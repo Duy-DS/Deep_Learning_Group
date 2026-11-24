@@ -1,0 +1,53 @@
+# EXP-12: CosineAnnealingLR; mọi tham số ngoài lịch LR giữ nguyên đối chứng.
+exp_id: "EXP-12"
+exp_group: "EXP-12"
+rq_tag: "RQ3_Ablation_LRScheduler"
+architecture: "EfficientNetB0"
+pretrained: true
+freeze_backbone: false
+dropout_rate: 0.5
+hidden_dim: null
+seed: 42
+image_size: 128
+in_channels: 3
+num_classes: 7
+normalization: "imagenet"
+transform_mode: "sota"
+use_augmentation: true
+augmentation_mode: "basic"
+augmentation:
+  mode: "basic"
+  aug_config:
+    mode: "basic"
+    horizontal_flip_p: 0.5
+    rotation_degrees: 10.0
+    affine_degrees: 0.0
+    translate: [0.08, 0.08]
+    color_jitter: 0.0
+    random_erasing_p: 0.25
+    random_erasing_scale: [0.02, 0.15]
+    random_erasing_ratio: [0.3, 3.3]
+    random_erasing_value: "random"
+split_counts:
+  Training: 28709
+  PublicTest: 3589
+  PrivateTest: 3589
+optimizer: "adamw"
+lr: 0.0001
+weight_decay: 0.0001
+scheduler: "CosineAnnealingLR"
+scheduler_run_suffix: true
+scheduler_params:
+  T_max: 30
+  eta_min: 0.000001
+batch_size: 32
+epochs: 30
+dropout: 0.5
+num_workers: 0
+patience: 7
+member: "Thành viên 4"
+loss:
+  name: "cross_entropy"
+checkpoint_path: "outputs/checkpoints/t0403_exp12_sched_cosine.pth"
+summary_csv_path: "outputs/logs/t0403_ablation_scheduler_24col.csv"
+csv_path: "data/raw/fer2013.csv"

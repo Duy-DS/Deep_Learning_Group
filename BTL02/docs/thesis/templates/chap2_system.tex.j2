@@ -1,0 +1,64 @@
+\chapter{Dữ liệu FER2013 và kiến trúc hệ thống PyTorch}
+
+\section{Nguồn dữ liệu và phân bố bảy lớp}
+FER2013 gồm 35.887 ảnh xám 48×48, có bảy nhãn Angry, Disgust, Fear, Happy, Sad, Surprise và Neutral \citep{goodfellow2013fer}. Báo cáo T0105 ghi nhận Happy có 8.989 ảnh (25,05%), trong khi Disgust có 547 ảnh (1,52%), chênh khoảng 16,4 lần. Vì thế, accuracy cần được xem cùng Macro-F1; tuy nhiên số lượng ít không tự cho biết mức recall của Disgust.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{eda_distribution.png}
+\caption{Phân bố bảy lớp và ba split FER2013; ảnh được khôi phục từ output notebook EDA T0105 đã thực thi.}
+\label{fig:eda-distribution}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.95\textwidth]{eda_sample_faces.png}
+\caption{Lưới 3×7 ảnh mẫu FER2013, ba ảnh mỗi lớp, từ output notebook EDA T0105 đã thực thi.}
+\label{fig:eda-samples}
+\end{figure}
+\todofigure{Lưới ảnh FER2013 sau augmentation none/basic/advanced; cần dữ liệu ảnh thô để sinh đúng biến đổi}
+
+Các ảnh EDA này là output đã lưu trong notebook, không phải ảnh được tái sinh từ CSV local hiện vắng mặt. Chúng minh họa phân bố và mẫu dữ liệu đã được xem xét trong T0105; không được dùng như các mẫu prediction hoặc bằng chứng Grad-CAM.
+
+\section{Phân chia dữ liệu và phòng tránh rò rỉ}
+\begin{longtable}{p{0.23\textwidth}p{0.47\textwidth}r}
+\toprule Split & Vai trò trong pipeline & Số ảnh \\
+\midrule
+\endfirsthead
+\toprule Split & Vai trò trong pipeline & Số ảnh \\
+\midrule
+\endhead
+Training & Cập nhật tham số; augmentation chỉ áp dụng ở nhánh này & 28.709 \\
+PublicTest & Validation/model selection; transform đánh giá xác định & 3.589 \\
+PrivateTest & Đánh giá cuối sau chọn checkpoint; transform xác định & 3.589 \\
+\bottomrule
+\end{longtable}
+
+Pipeline custom xử lý ảnh grayscale 48×48; pipeline SOTA đổi grayscale thành ba kênh, resize 48/128/224 theo YAML và chuẩn hóa ImageNet. Việc lặp một kênh thành ba không khôi phục màu. Dataloader tách train transform khỏi eval transform; không dùng PublicTest hay PrivateTest để fit mean/std hoặc áp dụng augmentation ngẫu nhiên. PublicTest trong Trainer là validation dùng chọn checkpoint, không phải holdout độc lập.
+
+\section{Kiến trúc phần mềm}
+\begin{center}
+\begin{tikzpicture}[every node/.style={draw,rounded corners,align=center,text width=3.4cm,minimum height=1.1cm,font=\small}]
+\node (data) at (0, 0) {\textbf{\code{src/data}}\\[0.2em]Dataset và transforms};
+\node (train) at (5.0, 0) {\textbf{\code{src/train}}\\[0.2em]Trainer, loss, seed};
+\node (model) at (10.0, 0) {\textbf{\code{src/models}}\\[0.2em]CNN và backbones};
+\node (eval) at (0, -2.4) {\textbf{\code{src/evaluate}}\\[0.2em]Metrics, Grad-CAM, lỗi};
+\node (infer) at (5.0, -2.4) {\textbf{\code{src/inference}}\\[0.2em]Model serving};
+\node (demo) at (10.0, -2.4) {\textbf{\code{demo/app.py}}\\[0.2em]Giao diện tương tác};
+\draw[->, thick] (data) -- (train);
+\draw[->, thick] (train) -- (model);
+\draw[->, thick] (model.south) -- ++(0,-0.4) -| (infer.north);
+\draw[->, thick] (train.south) -- ++(0,-0.4) -| node[pos=0.25,above,draw=none,font=\footnotesize]{log summary} (eval.north);
+\draw[->, thick] (eval) -- (infer);
+\draw[->, thick] (infer) -- (demo);
+\end{tikzpicture}
+\end{center}
+
+Mô hình kế thừa lớp cơ sở, trả logits `[B,7]`; Trainer điều phối seed, split, optimizer, loss và MLflow. Các module đánh giá nhận DataLoader đã tạo theo pipeline dự án, không tự thay đổi phép tiền xử lý. README mô tả giao diện Streamlit/Gradio, nhưng trong workspace hiện tại chỉ có source placeholder/demo và không có screenshot runtime; vì vậy chương này không khẳng định chức năng webcam đã được chạy kiểm chứng.
+
+\section{Quản lý thí nghiệm và cấu hình tái lập}
+CSV summary MLflow có 24 cột, gồm Run ID, trạng thái, cấu hình chính, metric tổng kết và best epoch. Sau khi hợp nhất, tám CSV hiện có cho 28 Run ID duy nhất; summary không chứa metric theo từng epoch, confusion matrix, logits hoặc prediction từng mẫu. T0305 ghi benchmark CPU riêng trong experience; file CSV benchmark không có trong workspace hiện tại nên các chi phí chỉ có thể được dẫn lại từ báo cáo đó và phải gắn rõ nguồn.
+
+\begin{calloutbox}[Phát hiện chính]
+Split cố định, train-only augmentation và ghi rõ vai trò validation của PublicTest là các điều kiện để diễn giải kết quả không nhầm lẫn giữa chọn mô hình và đánh giá cuối.
+\end{calloutbox}

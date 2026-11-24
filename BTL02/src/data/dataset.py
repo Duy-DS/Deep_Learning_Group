@@ -9,7 +9,7 @@ Tuân thủ nghiêm ngặt hiến pháp AGENTS.md:
 
 import os
 from pathlib import Path
-from typing import Callable, Dict, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -202,6 +202,10 @@ def get_dataloaders(
     seed: int = 42,
     pin_memory: bool = False,
     normalization: str = "fer2013",
+    transform_mode: str = "custom",
+    use_augmentation: bool = True,
+    aug_config: Optional[Dict[str, Any]] = None,
+    augmentation_mode: Optional[str] = None,
 ) -> Tuple[DataLoader, DataLoader, DataLoader]:
     """Hàm kiến tạo và trả về bộ 3 DataLoaders (Training, Validation/PublicTest, Test/PrivateTest).
 
@@ -214,17 +218,40 @@ def get_dataloaders(
         augmentation: Chiến lược tăng cường dữ liệu cho tập Train ("None", "Standard", "Advanced").
         seed: Random seed cố định tính ngẫu nhiên của DataLoader shuffle.
         pin_memory: Bật pin_memory nếu huấn luyện trên GPU để tăng tốc chuyển đổi CPU -> CUDA.
+        normalization: Chuẩn hóa ``fer2013`` cho pipeline cũ hoặc ``imagenet`` khi mode SOTA.
+        transform_mode: ``custom`` giữ pipeline WP2; ``sota`` dùng ảnh RGB ImageNet đa kích thước.
+        use_augmentation: Chỉ bật augmentation cho transform của tập Training ở mode SOTA.
+        aug_config: Các mức augmentation tùy chọn dành riêng cho tập Training SOTA.
 
     Returns:
         Tuple[DataLoader, DataLoader, DataLoader]: (train_loader, val_loader, test_loader)
     """
-    # 1. Tạo chuỗi transforms
-    train_transform, eval_transform = get_transforms(
-        image_size=image_size,
-        in_channels=in_channels,
-        augmentation=augmentation,
-        normalization=normalization,
-    )
+    # 1. Chọn pipeline theo mode; giữ mặc định cũ để không ảnh hưởng WP2.
+    mode = transform_mode.strip().lower()
+    if mode == "custom":
+        train_augmentation = augmentation
+        if augmentation_mode is not None:
+            train_augmentation = {"mode": augmentation_mode}
+            if aug_config:
+                train_augmentation.update(aug_config)
+        train_transform, eval_transform = get_transforms(
+            image_size=image_size,
+            in_channels=in_channels,
+            augmentation=train_augmentation,
+            normalization=normalization,
+        )
+    elif mode == "sota":
+        from src.data.transforms_sota import SOTATransformBuilder
+
+        builder = SOTATransformBuilder(
+            image_size=image_size,
+            use_augmentation=use_augmentation,
+            aug_config={**(aug_config or {}), **({"mode": augmentation_mode} if augmentation_mode else {})},
+        )
+        train_transform = builder.build_train_transform()
+        eval_transform = builder.build_eval_transform()
+    else:
+        raise ValueError("transform_mode phải là 'custom' hoặc 'sota'.")
 
     # 2. Khởi tạo 3 phân tập Dataset
     train_dataset = FER2013Dataset(

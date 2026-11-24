@@ -1,0 +1,23 @@
+\chapter*{Mở đầu}
+\addcontentsline{toc}{chapter}{Mở đầu}
+
+\section{Lý do chọn đề tài}
+FER2013 đặt ra một bài toán phân loại ảnh có độ phân giải thấp: mỗi khuôn mặt là ảnh xám 48×48, trong khi khác biệt giữa một số cảm xúc chỉ thể hiện qua thay đổi nhỏ ở mắt, chân mày hoặc miệng. Ảnh còn có khác biệt về tư thế, ánh sáng, che khuất và độ rõ của biểu cảm. Vì vậy, nhóm chọn bài toán này để khảo sát khả năng học đặc trưng của CNN và những giới hạn của mô hình khi dữ liệu nhỏ, nhiễu và lệch lớp.
+
+\section{Lược khảo phương pháp}
+Các phương pháp nhận diện biểu cảm ban đầu thường mô tả thủ công hướng gradient cục bộ, như HOG \citep{dalal2005hog}, hoặc kết cấu vi mô, như LBP \citep{ojala2002lbp}, rồi đưa đặc trưng vào bộ phân loại. CNN thay bước thiết kế đặc trưng bằng các bộ lọc học từ dữ liệu. Những kiến trúc như VGG16 và ResNet50 mở rộng độ sâu mạng; transfer learning cho phép khởi tạo từ trọng số ImageNet khi dữ liệu đích hạn chế. FER2013 cũng là bộ dữ liệu được dùng trong các khảo sát về học biểu diễn và phân loại biểu cảm \citep{goodfellow2013fer}. Trong đồ án, nhóm không huấn luyện lại HOG/LBP để đối chứng; phần thực nghiệm tập trung vào các kiến trúc và recipe đã có log.
+
+\section{Mục tiêu và câu hỏi nghiên cứu}
+Mục tiêu của nhóm là xây dựng và đánh giá pipeline PyTorch có thể tái lập, giữ nguyên ba split FER2013 và so sánh mô hình bằng accuracy, Macro-F1 cùng các chỉ số có nguồn. Bốn câu hỏi nghiên cứu được đặt ra như sau:
+\begin{enumerate}
+\item \textbf{RQ1:} Độ sâu và thiết kế của Custom CNN ảnh hưởng thế nào đến kết quả trên ảnh 48×48?
+\item \textbf{RQ2:} Pretraining ImageNet, kiến trúc backbone và kích thước đầu vào ảnh hưởng ra sao đến hiệu năng và chi phí tính toán?
+\item \textbf{RQ3:} Augmentation, activation, optimizer, scheduler và loss xử lý mất cân bằng ảnh hưởng thế nào trong các recipe đã chạy?
+\item \textbf{RQ4:} Có thể dùng Conv filters, Grad-CAM và các trường hợp dự đoán để xem xét quyết định và lỗi của mô hình ra sao?
+\end{enumerate}
+
+\section{Đối tượng, phạm vi và phương pháp}
+Đối tượng nghiên cứu là ảnh khuôn mặt FER2013 và các CNN phân loại bảy lớp cảm xúc. Bộ dữ liệu gồm 35.887 ảnh; split cố định là 28.709 ảnh Training, 3.589 PublicTest và 3.589 PrivateTest. PublicTest được Trainer sử dụng cho validation/model selection, còn PrivateTest là đánh giá cuối theo pipeline hiện có. Các thí nghiệm dùng seed 42 và PyTorch; augmentation chỉ thuộc train transform. Phương pháp gồm đối chiếu CSV 24 cột với YAML/report, phân tích các recipe đã hoàn tất và tách riêng những trường hợp không có dữ liệu cần thiết.
+
+\section{Cấu trúc báo cáo}
+Chương 1 trình bày cơ sở CNN, transfer learning, loss và Grad-CAM. Chương 2 mô tả FER2013, tiền xử lý và kiến trúc phần mềm. Chương 3 tổng hợp kết quả RQ1–RQ3 từ CSV/run evidence. Chương 4 trình bày khả năng trực quan hóa và phân tích lỗi; những hình cần checkpoint hoặc dự đoán từng ảnh nhưng chưa có trên máy được đánh dấu TODO.

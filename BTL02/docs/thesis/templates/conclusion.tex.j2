@@ -1,0 +1,34 @@
+\chapter*{Kết luận và hướng phát triển}
+\addcontentsline{toc}{chapter}{Kết luận và hướng phát triển}
+
+\section*{1. Kết luận và trả lời câu hỏi nghiên cứu}
+Qua quá trình thực nghiệm, khảo sát và đánh giá trên bộ dữ liệu FER2013 với pipeline chuẩn hóa trong khuôn khổ đồ án môn Học sâu, nhóm thực hiện rút ra các kết luận chính tương ứng với bốn câu hỏi nghiên cứu như sau:
+\begin{enumerate}[label=\textbf{RQ\arabic*:},leftmargin=*]
+\item \textbf{Độ sâu và thiết kế kiến trúc Custom CNN (RQ1):}
+Trên tập dữ liệu ảnh xám $48 \times 48$ với cấu hình cố định seed 42, việc gia tăng độ sâu mạng từ \code{SmallCNN} (2 block tích chập) lên \code{MediumCNN} (3 block tích chập) mang lại bước nhảy vọt về hiệu năng: \code{PrivateTest Accuracy} tăng từ $51{,}55\%$ lên $63{,}56\%$ (tăng $12{,}01$ điểm phần trăm) và \code{Macro-F1} tăng từ $0{,}4718$ lên $0{,}6254$. Tuy nhiên, khi tiếp tục mở rộng lên \code{LargeCNN} (4 block tích chập kết hợp BatchNorm và Dropout), tốc độ cải thiện chững lại rõ rệt: \code{PrivateTest Accuracy} chỉ tăng thêm $1{,}39$ điểm phần trăm lên $64{,}95\%$ và \code{Macro-F1} đạt $0{,}6356$, trong khi khoảng cách giữa \code{Train Accuracy} và \code{PrivateTest Accuracy} nới rộng lên tới $27{,}45$ điểm phần trăm. Kết quả này phản ánh giới hạn biên của việc tăng độ sâu mạng tự thiết kế khi làm việc với ảnh khuôn mặt độ phân giải thấp ($48 \times 48$), nơi các chi tiết biểu cảm dễ bị triệt tiêu qua các tầng pooling liên tiếp.
+
+\item \textbf{Học chuyển giao, kích thước ảnh và chi phí tính toán (RQ2):}
+Việc tận dụng trọng số tiền huấn luyện từ tập ImageNet kết hợp nâng kích thước ảnh đầu vào lên $128 \times 128 \times 3$ giúp cải thiện vượt bậc hiệu năng phân loại so với huấn luyện từ đầu (train from scratch) và kích thước $48 \times 48$. Trong ba kiến trúc SOTA được khảo sát, \code{VGG16} đạt hiệu năng cao nhất trên tập kiểm thử độc lập với \code{PrivateTest Accuracy} đạt $71{,}02\%$ và \code{Macro-F1} đạt $0{,}7073$ (chính thức vượt mốc mục tiêu $71\%$ trên Private Test), theo sau sát sao là \code{ResNet50} ($70{,}77\%$ Private Acc, $70{,}47\%$ Public Acc) và \code{EfficientNet-B0} ($69{,}82\%$ Private Acc, $0{,}6975$ Macro-F1). Về mặt chi phí tính toán theo benchmark CPU trong thực nghiệm T0305, \code{EfficientNet-B0} thể hiện ưu thế vượt trội khi chỉ tiêu tốn $4{,}02\text{M}$ tham số và $0{,}25\text{ GFLOPs}$, đạt tốc độ xử lý nhanh gấp khoảng $3{,}4$ lần so với \code{VGG16} ($27{,}56\text{M}$ tham số, $10{,}05\text{ GFLOPs}$) ở cùng kích thước đầu vào $128 \times 128$.
+
+\item \textbf{Khảo sát các thành phần huấn luyện qua Ablation Studies (RQ3):}
+Trên mô hình đại diện \code{EfficientNet-B0} ($128 \times 128$), áp dụng kỹ thuật tăng cường dữ liệu cơ bản (\code{basic augmentation}) giúp \code{PrivateTest Accuracy} tăng từ $68{,}15\%$ lên $70{,}13\%$, \code{Macro-F1} tăng từ $0{,}6657$ lên $0{,}7001$ và thu hẹp khoảng cách quá khớp (overfitting gap) từ $25{,}10$ xuống còn $13{,}39$ điểm phần trăm. Khi bổ sung \code{RandomErasing} (\code{advanced augmentation}), \code{PrivateTest Accuracy} tăng nhẹ lên $70{,}19\%$ nhưng \code{Macro-F1} giảm còn $0{,}6988$. Đối với hàm mất mát và bộ điều chỉnh tốc độ học, cấu hình sử dụng hàm mất mát \code{CrossEntropy} tiêu chuẩn kết hợp bộ lập lịch \code{ReduceLROnPlateau} duy trì kết quả tổng thể cân bằng và tốt nhất ($70{,}13\%$ Private Acc, $0{,}7001$ Macro-F1) so với \code{Weighted CrossEntropy}, \code{Focal Loss} hay \code{CosineAnnealing} trong điều kiện thử nghiệm một seed đã ghi nhận.
+
+\item \textbf{Trực quan hóa mô hình và phân tích lỗi (RQ4):}
+Nhóm đã triển khai hoàn chỉnh mã nguồn phục vụ việc trực quan hóa trọng số bộ lọc tích chập, bản đồ nhiệt Grad-CAM (\code{src/evaluate/}), ma trận nhầm lẫn chuẩn hóa và ứng dụng demo tương tác (\code{demo/app.py}). Do trọng số checkpoint mô hình huấn luyện trên GPU Cloud chưa được đồng bộ về không gian làm việc cục bộ tại thời điểm kết xuất bản thảo này, các vị trí hình ảnh trực quan hóa được đánh dấu rõ ràng (\code{TODO}) để nhóm cập nhật bổ sung từ kho lưu trữ thực nghiệm trước khi nộp bản in chính thức.
+\end{enumerate}
+
+\section*{2. Hạn chế của đề tài}
+Mặc dù đồ án đã đạt được các mục tiêu đề ra về mô hình hóa và xây dựng pipeline thực nghiệm, nhóm thực hiện thẳng thắn nhìn nhận các hạn chế kỹ thuật hiện tại:
+\begin{itemize}[leftmargin=*]
+\item \textbf{Giới hạn về số lượng seed:} Toàn bộ các thử nghiệm hiện tại mới được thực hiện trên một seed duy nhất (seed 42), do đó kết quả chưa có khoảng tin cậy thống kê (mean $\pm$ std) để khẳng định tính ổn định tuyệt đối giữa các lần chạy ngẫu nhiên.
+\item \textbf{Thiếu số liệu chi tiết theo từng lớp (Per-class Metrics):} Tệp nhật ký tổng hợp CSV summary của hệ thống chưa lưu vết độ đo chi tiết cho từng cảm xúc riêng lẻ (đặc biệt là lớp thiểu số \textit{Disgust}), cũng như chưa lưu lịch sử hàm mất mát và độ chính xác theo từng epoch để vẽ biểu đồ huấn luyện hoàn chỉnh.
+\item \textbf{Độ phân giải và chất lượng nhãn FER2013:} Kích thước ảnh gốc $48 \times 48$ có độ phân giải thấp, tồn tại nhiều mẫu bị che khuất một phần hoặc nhãn gán chưa thực sự đồng nhất, gây khó khăn cho việc phân biệt các cặp cảm xúc có biểu hiện vi mô tương tự nhau như Sợ hãi (\textit{Fear}) -- Buồn bã (\textit{Sad}) hay Sợ hãi (\textit{Fear}) -- Giận dữ (\textit{Angry}).
+\end{itemize}
+
+\section*{3. Hướng phát triển tiếp theo}
+Từ các kết quả và hạn chế trên, nhóm đề xuất các hướng mở rộng và hoàn thiện trong tương lai:
+\begin{itemize}[leftmargin=*]
+\item Mở rộng thực nghiệm trên nhiều seed độc lập (ví dụ 3 hoặc 5 seed) và ghi nhận đầy đủ lịch sử epoch cùng ma trận nhầm lẫn chi tiết cho từng lớp cảm xúc.
+\item Tích hợp bước tiền xử lý căn chỉnh khuôn mặt tự động (\textit{facial landmarks alignment}) để chuẩn hóa góc quay và tư thế khuôn mặt trước khi đưa vào mạng tích chập.
+\item Khảo sát các kiến trúc hiện đại hơn như Vision Transformer (ViT, Swin Transformer) và áp dụng kỹ thuật chưng cất tri thức (\textit{Knowledge Distillation}) từ mô hình lớn (\code{VGG16}, \code{ResNet50}) sang các mô hình gọn nhẹ phục vụ triển khai thời gian thực trên thiết bị biên.
+\end{itemize}
