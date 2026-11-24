@@ -1,9 +1,16 @@
 """Xuất bảng và đồ thị TeX từ bằng chứng thực nghiệm BTL02 đã có."""
 
 import csv
+import argparse
 import re
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Sequence, Tuple
+
+import matplotlib
+
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+import numpy as np
 
 
 class ThesisArtifactExporter:
@@ -18,11 +25,10 @@ class ThesisArtifactExporter:
         "metrics.macro_f1", "metrics.best_epoch", "tags.member",
     )
     SUMMARY_FIELDS = (
-        ("Run ID", "Run ID"), ("Name", "Tên run"), ("params.architecture", "Kiến trúc"),
-        ("params.rq_tag", "RQ"), ("params.seed", "Seed"), ("params.image_size", "Kích thước ảnh"),
-        ("metrics.best_epoch", "Best epoch"), ("metrics.train_acc", "Train Acc"),
-        ("metrics.best_val_acc", "Public/Val Acc"), ("metrics.private_test_acc", "Private Acc"),
-        ("metrics.macro_f1", "Macro-F1"),
+        ("Run ID", "Run ID"), ("params.architecture", "Kiến trúc"),
+        ("params.rq_tag", "RQ/nhóm"), ("params.image_size", "Ảnh"),
+        ("metrics.best_epoch", "Best epoch"), ("metrics.best_val_acc", "Public/Val Acc (%)"),
+        ("metrics.private_test_acc", "Private Acc (%)"), ("metrics.macro_f1", "Macro-F1"),
     )
     BENCHMARK_COLUMNS = (
         "architecture", "image_size", "device", "warmup_runs", "measure_runs",
@@ -36,10 +42,13 @@ class ThesisArtifactExporter:
         "~": r"\textasciitilde{}", "^": r"\textasciicircum{}",
     }
 
-    def __init__(self, logs_dir: Path, generated_dir: Path) -> None:
+    def __init__(self, logs_dir: Path, generated_dir: Path, figure_dir: Optional[Path] = None,
+                 evidence_dir: Optional[Path] = None) -> None:
         """Khởi tạo thư mục nguồn CSV và đích sinh mã TeX."""
         self.logs_dir = Path(logs_dir)
         self.generated_dir = Path(generated_dir)
+        self.figure_dir = Path(figure_dir) if figure_dir else self.logs_dir.parent / "figures"
+        self.evidence_dir = Path(evidence_dir) if evidence_dir else self.logs_dir.parent / "docs" / "experiences"
 
     @classmethod
     def escape_latex(cls, value: object) -> str:
@@ -68,7 +77,10 @@ class ThesisArtifactExporter:
                 for row in reader:
                     run_id = (row.get("Run ID") or "").strip()
                     if run_id:
-                        merged[run_id] = row
+                        # Giữ cả tên run và thời điểm nguồn để phân biệt EXP-01 run với
+                        # run ReLU trong ablation có cùng architecture/checkpoint metrics.
+                        identity = f"{run_id}|{row.get('Name', '')}|{row.get('Start Time', '')}"
+                        merged[identity] = row
         return list(merged.values())
 
     def _write_table(self, destination: Path, headers: Sequence[str],
@@ -109,13 +121,19 @@ class ThesisArtifactExporter:
         """Sinh bảng toàn run và bảng best theo Private Acc/Macro-F1."""
         rows = self._summary_rows()
         outputs: Dict[str, Path] = {}
-        for name, selected in (("all_runs", rows), ("rq1_depth", [r for r in rows if "RQ1" in r.get("params.rq_tag", "")]),
-                               ("rq2_transfer", [r for r in rows if "RQ2" in r.get("params.rq_tag", "")]),
-                               ("rq3_ablation", [r for r in rows if "RQ3" in r.get("params.rq_tag", "") or "Ablation" in r.get("params.exp_group", "")])):
+        groups = (
+            ("all_runs", rows),
+            ("rq1_depth", [row for row in rows if row.get("params.rq_tag", "") == "RQ1"]),
+            ("rq2_transfer", [row for row in rows if row.get("params.rq_tag", "") == "RQ2_SOTA_Pretrained_128"]),
+            ("rq3_ablation", [row for row in rows if str(row.get("params.rq_tag", "")).startswith("RQ3_")
+                               or str(row.get("params.rq_tag", "")).startswith("Ablation_")
+                               or row.get("params.rq_tag") == "RQ1_Ablation_Activation"]),
+        )
+        for name, selected in groups:
             rendered = []
             for row in selected:
                 cells = [self.escape_latex(row.get(key, "") or "--") for key, _ in self.SUMMARY_FIELDS]
-                for metric_index, metric_key in ((9, "metrics.private_test_acc"), (10, "metrics.macro_f1")):
+                for metric_index, metric_key in ((6, "metrics.private_test_acc"), (7, "metrics.macro_f1")):
                     candidates = [self._numeric(item.get(metric_key, "")) for item in selected]
                     valid = [value for value in candidates if value is not None]
                     current = self._numeric(row.get(metric_key, ""))
@@ -135,15 +153,50 @@ class ThesisArtifactExporter:
         if self.logs_dir.is_dir():
             for path in sorted(self.logs_dir.glob("*benchmark*.csv")):
                 rows.extend(self._read_csv(path, self.BENCHMARK_COLUMNS))
+        if not rows and self.evidence_dir.is_dir():
+            rows = self._benchmark_rows_from_experience()
         fields = ("architecture", "image_size", "total_params", "flops", "latency_ms_bs1", "throughput_images_per_sec")
         labels = ("Kiến trúc", "Ảnh", "Params", "FLOPs", "Latency (ms)", "Ảnh/giây")
         rendered = [[self.escape_latex(row.get(key, "") or "--") for key in fields] for row in rows]
         return self._write_table(self.generated_dir / "tables" / "compute_cost.tex", labels, rendered,
                                  "Chưa có CSV benchmark SOTA hợp lệ; Params/FLOPs chưa được xác nhận.")
 
+    def _benchmark_rows_from_experience(self) -> List[Dict[str, str]]:
+        """Đọc đúng bảng benchmark đã nghiệm thu khi CSV benchmark không còn local."""
+        evidence_files = sorted(self.evidence_dir.glob("*COST*.md"))
+        rows: List[Dict[str, str]] = []
+        for path in sorted(self.evidence_dir.glob("*COST*.md")):
+            lines = path.read_text(encoding="utf-8").splitlines()
+            parameter_counts: Dict[str, str] = {}
+            for line in lines:
+                cells = [cell.strip().replace(",", "") for cell in line.strip().strip("|").split("|")]
+                # Bảng accuracy T0304 ghi số Params theo topology ở cột cuối.
+                if len(cells) == 8 and cells[0] in {"VGG16", "ResNet50", "EfficientNet-B0"}:
+                    if cells[-1].isdigit():
+                        parameter_counts[cells[0]] = cells[-1]
+            for line in lines:
+                cells = [cell.strip().replace(",", "") for cell in line.strip().strip("|").split("|")]
+                # Bảng T0305 có 9 cột, gồm cột Status cuối; hàng phải có marker CPU.
+                if (len(cells) != 9 or cells[0] not in {"VGG16", "ResNet50", "EfficientNet-B0"}
+                        or ("CPU" not in cells[8] and cells[8] != "OK")):
+                    continue
+                try:
+                    int(cells[1]); int(cells[2]); int(cells[3])
+                    float(cells[4]); float(cells[5]); float(cells[6]); float(cells[7])
+                except ValueError:
+                    continue
+                rows.append({
+                    "architecture": cells[0], "image_size": cells[1],
+                    "total_params": parameter_counts.get(cells[0], "--"),
+                    "macs": cells[2], "flops": cells[3],
+                    "model_tensor_mb": cells[4], "checkpoint_size_mb": cells[5],
+                    "latency_ms_bs1": cells[6], "throughput_images_per_sec": cells[7],
+                })
+        return rows
+
     def export_vector_plot(self) -> Path:
-        """Sinh PGFPlots so sánh các run thật; không tạo series giả khi thiếu metrics."""
-        rows = self._summary_rows()
+        """Sinh PGFPlots cho ba cấu hình RQ1 từ CSV; không nội suy theo epoch."""
+        rows = [row for row in self._summary_rows() if row.get("params.rq_tag") == "RQ1"]
         valid = [(row, self._numeric(row.get("metrics.private_test_acc", "")),
                   self._numeric(row.get("metrics.macro_f1", ""))) for row in rows]
         valid = [item for item in valid if item[1] is not None and item[2] is not None]
@@ -157,22 +210,107 @@ class ThesisArtifactExporter:
             return destination
         labels = [self.escape_latex(item[0].get("Name", "Run")) for item in valid]
         indices = list(range(1, len(valid) + 1))
-        content = (
-            "% Tự động sinh từ metrics có trong CSV summary; không chỉnh sửa thủ công.\n"
-            r"\begin{tikzpicture}" + "\n" + r"\begin{axis}[ybar,bar width=7pt,width=\textwidth,height=7cm," + "\n"
-            + r"  ylabel={Metric}, xtick={" + ",".join(map(str, indices)) + "}, xticklabels={"
-            + ",".join("{" + label + "}" for label in labels) + "}, x tick label style={rotate=60,anchor=east}," + "\n"
-            + r"  legend style={at={(0.5,1.02)},anchor=south,legend columns=2}, ymin=0]" + "\n"
-            + r"\addplot coordinates {" + " ".join(f"({index},{item[1]:.6g})" for index, item in zip(indices, valid)) + "};\n"
-            + r"\addplot coordinates {" + " ".join(f"({index},{item[2] * 100.0:.6g})" for index, item in zip(indices, valid)) + "};\n"
-            + r"\legend{Private Test Acc,Macro-F1}" + "\n" + r"\end{axis}" + "\n" + r"\end{tikzpicture}" + "\n"
+        public_points = " ".join(
+            f"({index},{float(item[0].get('metrics.best_val_acc', 0.0)):.6g})"
+            for index, item in zip(indices, valid)
         )
+        private_points = " ".join(f"({index},{item[1]:.6g})" for index, item in zip(indices, valid))
+        macro_points = " ".join(f"({index},{item[2] * 100.0:.6g})" for index, item in zip(indices, valid))
+        labels_tex = ",".join("{" + label + "}" for label in labels)
+        lines = [
+            "% Tự động sinh từ metrics CSV summary; không chỉnh sửa thủ công.",
+            r"\begin{tikzpicture}",
+            r"\begin{axis}[ybar,bar width=5pt,width=\textwidth,height=7cm,",
+            "ylabel={Accuracy / F1 (\\%)},",
+            "xtick={" + ",".join(map(str, indices)) + "},",
+            "xticklabels={" + labels_tex + "},",
+            r"x tick label style={rotate=55,anchor=east},",
+            r"legend style={at={(0.5,1.02)},anchor=south,legend columns=3},",
+            "ymin=0, ymax=100]",
+            r"\addplot coordinates {" + public_points + "};",
+            r"\addplot coordinates {" + private_points + "};",
+            r"\addplot coordinates {" + macro_points + "};",
+            r"\legend{PublicTest validation Acc,PrivateTest Acc,Macro-F1}",
+            r"\end{axis}",
+            r"\end{tikzpicture}",
+            "",
+        ]
+        content = "\n".join(lines)
         destination.write_text(content, encoding="utf-8")
         return destination
+
+    def export_comparison_figures(self, dpi: int = 300) -> Dict[str, Path]:
+        """Vẽ các so sánh Public/Private/Macro-F1 từ run summary đã khử trùng.
+
+        Các hình là đối chiếu metrics cuối/best từ CSV, không phải training curves.
+        RQ2 giới hạn ở pretrained 128; RQ3 tách các nhóm recipe để không trộn
+        thí nghiệm khác kiến trúc hoặc mục tiêu vào một phép so sánh duy nhất.
+        """
+        if dpi <= 0:
+            raise ValueError("dpi phải là số nguyên dương.")
+        rows = self._summary_rows()
+        figure_dir = self.figure_dir / "t0602"
+        groups = {
+            "t0602_rq1_metrics": [row for row in rows if row.get("params.rq_tag") == "RQ1"],
+            "t0602_rq2_metrics": [row for row in rows if row.get("params.rq_tag") == "RQ2_SOTA_Pretrained_128"],
+            "t0602_rq3_metrics": [row for row in rows
+                                  if str(row.get("params.rq_tag", "")).startswith("RQ3_")
+                                  or str(row.get("params.rq_tag", "")).startswith("Ablation_")
+                                  or row.get("params.rq_tag") == "RQ1_Ablation_Activation"],
+        }
+        outputs: Dict[str, Path] = {}
+        figure_dir.mkdir(parents=True, exist_ok=True)
+        for name, selected in groups.items():
+            valid = [row for row in selected if self._numeric(row.get("metrics.private_test_acc", "")) is not None
+                     and self._numeric(row.get("metrics.macro_f1", "")) is not None]
+            if not valid:
+                continue
+            labels = [row.get("Name", "Run") for row in valid]
+            public = [self._numeric(row["metrics.best_val_acc"]) for row in valid]
+            private = [self._numeric(row["metrics.private_test_acc"]) for row in valid]
+            macro = [self._numeric(row["metrics.macro_f1"]) * 100.0 for row in valid]
+            x = np.arange(len(valid), dtype=float)
+            width = 0.25
+            fig, axis = plt.subplots(figsize=(max(9, len(valid) * 0.72), 5.5), constrained_layout=True)
+            axis.bar(x - width, public, width, label="PublicTest validation Accuracy (%)")
+            axis.bar(x, private, width, label="PrivateTest Accuracy (%)")
+            axis.bar(x + width, macro, width, label="Private Macro-F1 (%)")
+            axis.set_xticks(x, labels, rotation=55, ha="right", fontsize=8)
+            axis.set_ylabel("Phần trăm (%)")
+            axis.set_title(f"Metrics thực nghiệm — {name.upper()} (CSV summary; một run/seed)")
+            axis.grid(axis="y", alpha=0.25)
+            axis.legend()
+            destination = figure_dir / f"{name}.png"
+            fig.savefig(destination, dpi=dpi, bbox_inches="tight")
+            plt.close(fig)
+            outputs[name] = destination
+        return outputs
 
     def export_all(self) -> Dict[str, object]:
         """Sinh mọi bảng chuẩn và vector plot nếu dữ liệu nguồn hợp lệ."""
         outputs: Dict[str, object] = {"tables": self.export_summary_tables()}
         outputs["tables"]["compute_cost"] = self.export_compute_table()
         outputs["plot"] = self.export_vector_plot()
+        outputs["figures"] = self.export_comparison_figures()
         return outputs
+
+    @classmethod
+    def cli(cls, argv: Optional[Sequence[str]] = None) -> int:
+        """Chạy exporter trực tiếp với thư mục gốc BTL02 được cấu hình."""
+        parser = argparse.ArgumentParser(description="Xuất artifacts LaTeX từ logs BTL02.")
+        parser.add_argument("--project-root", type=Path, default=Path(__file__).resolve().parents[2])
+        parser.add_argument("--dpi", type=int, default=300)
+        args = parser.parse_args(argv)
+        if args.dpi <= 0:
+            parser.error("--dpi phải là số nguyên dương.")
+        root = args.project_root.resolve()
+        exporter = cls(root / "outputs" / "logs", root / "docs" / "thesis" / "generated",
+                       root / "outputs" / "figures")
+        artifacts = exporter.export_all()
+        exporter.export_comparison_figures(dpi=args.dpi)
+        print(f"Export complete: {len(artifacts['tables'])} TeX tables; comparison figures saved under outputs/figures/t0602.")
+        return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(ThesisArtifactExporter.cli())

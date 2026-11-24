@@ -1,36 +1,61 @@
 \chapter{Dữ liệu FER2013 và kiến trúc hệ thống PyTorch}
-\section{Dữ liệu và phân bố lớp}
-FER2013 gồm 35.887 ảnh xám kích thước gốc $48\times48$, nhãn 0--6 lần lượt là Angry, Disgust, Fear, Happy, Sad, Surprise, Neutral. Theo EDA/bằng chứng dự án, lớp Happy có 8.989 ảnh và Disgust có 547 ảnh; độ lệch lớp khiến accuracy đơn lẻ chưa đủ mô tả hiệu năng.
 
-\section{Phân chia và chống rò rỉ dữ liệu}
-\begin{longtable}{lrr}
-\toprule Split & Vai trò & Số ảnh \\
+\section{Nguồn dữ liệu và phân bố bảy lớp}
+FER2013 gồm 35.887 ảnh xám 48×48, có bảy nhãn Angry, Disgust, Fear, Happy, Sad, Surprise và Neutral \citep{goodfellow2013fer}. Báo cáo T0105 ghi nhận Happy có 8.989 ảnh (25,05%), trong khi Disgust có 547 ảnh (1,52%), chênh khoảng 16,4 lần. Vì thế, accuracy cần được xem cùng Macro-F1; tuy nhiên số lượng ít không tự cho biết mức recall của Disgust.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{eda_distribution.png}
+\caption{Phân bố bảy lớp và ba split FER2013; ảnh được khôi phục từ output notebook EDA T0105 đã thực thi.}
+\label{fig:eda-distribution}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.95\textwidth]{eda_sample_faces.png}
+\caption{Lưới 3×7 ảnh mẫu FER2013, ba ảnh mỗi lớp, từ output notebook EDA T0105 đã thực thi.}
+\label{fig:eda-samples}
+\end{figure}
+\todofigure{Lưới ảnh FER2013 sau augmentation none/basic/advanced; cần dữ liệu ảnh thô để sinh đúng biến đổi}
+
+Các ảnh EDA này là output đã lưu trong notebook, không phải ảnh được tái sinh từ CSV local hiện vắng mặt. Chúng minh họa phân bố và mẫu dữ liệu đã được xem xét trong T0105; không được dùng như các mẫu prediction hoặc bằng chứng Grad-CAM.
+
+\section{Phân chia dữ liệu và phòng tránh rò rỉ}
+\begin{longtable}{p{0.23\textwidth}p{0.47\textwidth}r}
+\toprule Split & Vai trò trong pipeline & Số ảnh \\
 \midrule
-\endfirsthead\toprule Split & Vai trò & Số ảnh \\
-\midrule\endhead
-Training & Tối ưu tham số; chỉ split được augmentation & 28.709 \\
-PublicTest & Validation/model selection; transform xác định & 3.589 \\
-PrivateTest & Đánh giá cuối; transform xác định & 3.589 \\
+\endfirsthead
+\toprule Split & Vai trò trong pipeline & Số ảnh \\
+\midrule
+\endhead
+Training & Cập nhật tham số; augmentation chỉ áp dụng ở nhánh này & 28.709 \\
+PublicTest & Validation/model selection; transform đánh giá xác định & 3.589 \\
+PrivateTest & Đánh giá cuối sau chọn checkpoint; transform xác định & 3.589 \\
 \bottomrule
 \end{longtable}
 
-\section{Kiến trúc phần mềm hướng đối tượng}
+Pipeline custom xử lý ảnh grayscale 48×48; pipeline SOTA đổi grayscale thành ba kênh, resize 48/128/224 theo YAML và chuẩn hóa ImageNet. Việc lặp một kênh thành ba không khôi phục màu. Dataloader tách train transform khỏi eval transform; không dùng PublicTest hay PrivateTest để fit mean/std hoặc áp dụng augmentation ngẫu nhiên. PublicTest trong Trainer là validation dùng chọn checkpoint, không phải holdout độc lập.
+
+\section{Kiến trúc phần mềm}
 \begin{center}
-\begin{tikzpicture}[node distance=1.8cm, every node/.style={draw,rounded corners,align=center,minimum width=2.7cm,minimum height=0.8cm}]
-\node (data) {FER2013 Dataset\\transforms};
-\node (train) [right of=data,xshift=2.0cm] {Trainer\\PyTorch};
-\node (models) [right of=train,xshift=2.0cm] {CNN / SOTA\\models};
-\node (eval) [below of=train] {Evaluation\\metrics / XAI};
-\node (mlflow) [below of=models] {MLflow\\24-column summary};
-\draw[->] (data)--(train); \draw[->] (train)--(models);
-\draw[->] (models)--(eval); \draw[->] (train)--(mlflow);
-\draw[->] (eval)--(mlflow);
+\begin{tikzpicture}[node distance=1.4cm, every node/.style={draw,rounded corners,align=center,minimum width=2.7cm,minimum height=0.85cm}]
+\node (data) {\code{src/data}\\Dataset và transforms};
+\node (train) [right of=data,xshift=1.8cm] {\code{src/train}\\Trainer, loss, seed};
+\node (model) [right of=train,xshift=1.8cm] {\code{src/models}\\CNN và backbones};
+\node (eval) [below of=train] {\code{src/evaluate}\\metrics, Grad-CAM, lỗi};
+\node (infer) [right of=eval,xshift=1.8cm] {\code{src/inference}\\model serving};
+\node (demo) [right of=infer,xshift=1.8cm] {\code{demo/app.py}\\giao diện};
+\draw[->] (data)--(train); \draw[->] (train)--(model);
+\draw[->] (model)--(eval); \draw[->] (eval)--(infer); \draw[->] (infer)--(demo);
+\draw[->] (train) -- ++(0,-0.7) -| node[pos=0.25,left,draw=none]{log summary} (eval);
 \end{tikzpicture}
 \end{center}
 
-\section{Theo dõi thí nghiệm}
-MLflow ghi cấu hình và metrics; CSV summary 24 cột phục vụ đối chiếu run. Summary không chứa epoch history hay toàn bộ Params/FLOPs; các số liệu này chỉ được điền nếu có artifact nguồn phù hợp. Việc chuẩn hóa theo batch có nền tảng từ Batch Normalization \citep{ioffe2015batchnorm}; regularization/optimizer phải được mô tả đúng theo từng YAML \citep{loschchilov2019adamw}.
+Mô hình kế thừa lớp cơ sở, trả logits `[B,7]`; Trainer điều phối seed, split, optimizer, loss và MLflow. Các module đánh giá nhận DataLoader đã tạo theo pipeline dự án, không tự thay đổi phép tiền xử lý. README mô tả giao diện Streamlit/Gradio, nhưng trong workspace hiện tại chỉ có source placeholder/demo và không có screenshot runtime; vì vậy chương này không khẳng định chức năng webcam đã được chạy kiểm chứng.
 
-\begin{calloutbox}
-Split cố định, eval transform không augmentation và truy vết cấu hình là các điều kiện nền để diễn giải công bằng kết quả.
+\section{Quản lý thí nghiệm và cấu hình tái lập}
+CSV summary MLflow có 24 cột, gồm Run ID, trạng thái, cấu hình chính, metric tổng kết và best epoch. Sau khi hợp nhất, tám CSV hiện có cho 28 Run ID duy nhất; summary không chứa metric theo từng epoch, confusion matrix, logits hoặc prediction từng mẫu. T0305 ghi benchmark CPU riêng trong experience; file CSV benchmark không có trong workspace hiện tại nên các chi phí chỉ có thể được dẫn lại từ báo cáo đó và phải gắn rõ nguồn.
+
+\begin{calloutbox}[Phát hiện chính]
+Split cố định, train-only augmentation và ghi rõ vai trò validation của PublicTest là các điều kiện để diễn giải kết quả không nhầm lẫn giữa chọn mô hình và đánh giá cuối.
 \end{calloutbox}

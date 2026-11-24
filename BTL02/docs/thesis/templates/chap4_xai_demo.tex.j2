@@ -1,17 +1,18 @@
 \chapter{Trực quan hóa, phân tích lỗi và ứng dụng demo}
 \section{RQ4: Bộ lọc tích chập và Grad-CAM}
-Trực quan hóa bộ lọc mô tả kernel đã học; Grad-CAM gắn với logit lớp cần giải thích. Nếu chưa có hình thực nghiệm, macro TODO báo rõ asset phải bổ sung, không tạo đường dẫn ảnh giả.
+Các kernel của tầng convolution đầu cho biết trọng số đáp ứng cục bộ; feature maps và Grad-CAM phụ thuộc vào trọng số checkpoint cụ thể. Theo công thức ở Chương 1, Grad-CAM lấy gradient của logit lớp theo activation ở tầng đích, tổng hợp theo kênh rồi nội suy về kích thước ảnh. Nếu có ảnh đã kiểm tra, nhóm sẽ xem vùng nóng có nằm gần các thành phần khuôn mặt liên quan hay không; không mặc định Happy phải luôn sáng ở khóe miệng hoặc Angry ở chân mày. Heatmap không phải bằng chứng nhân quả.
 \todofigure{Bộ lọc Conv đầu/cuối từ checkpoint được chọn}
-\todofigure{Grad-CAM phủ khuôn mặt cho các lớp cảm xúc}
+\todofigure{Grad-CAM phủ ảnh FER2013 thật cho các lớp đã dự đoán; checkpoint chưa có trong workspace}
 
 \section{True/Fail cases và cặp nhầm lẫn}
-Phân tích top-3 và cặp Fear/Sad/Angry chỉ khi prediction-level artifact có sẵn. Các nguyên nhân che khuất, góc/ánh sáng, nhãn nhiễu và mất cân bằng là giả thuyết cần kiểm tra thủ công, không suy ra chỉ từ confusion matrix.
-\todofigure{Lưới true/fail cases kèm top-3 probabilities}
+Các run T0501–T0503 đã kiểm thử logic tạo confusion matrix và top-3 trên dữ liệu tổng hợp, nhưng không có logits/dự đoán từng ảnh của FER2013 trong workspace. Do đó nhóm chưa thể xác nhận cặp Fear→Sad, Fear→Angry hoặc recall Disgust trên checkpoint thật. Che khuất, góc mặt/ánh sáng và nhãn mơ hồ là hướng kiểm tra khi có ảnh, không phải nguyên nhân đã chứng minh.
+\todofigure{Confusion matrix chuẩn hóa PublicTest/PrivateTest từ prediction thật}
+\todofigure{True/Fail cases có nhãn thật, nhãn dự đoán và top-3 probabilities; cần checkpoint và ảnh test}
 
 \section{Ứng dụng demo}
-Ứng dụng trong \code{demo/app.py} là giao diện tương tác; mô tả chức năng đã xác minh từ mã nguồn. Chưa có screenshot runtime thì để TODO.
+Kho hiện có đường dẫn `demo/app.py`, nhưng chưa có checkpoint và screenshot/runtime evidence trong workspace để xác nhận luồng upload, webcam hoặc Grad-CAM trực tiếp. Vì vậy phần giao diện chỉ được mô tả sau khi nhóm chạy ứng dụng với model đã nạp đúng weights.
 \todofigure{Ảnh chụp giao diện demo sau khi chạy với checkpoint đã xác minh}
 
-\begin{calloutbox}
+\begin{calloutbox}[Phát hiện và giới hạn RQ4]
 RQ4 cần kết hợp metrics, hình giải thích và rà soát mẫu sai; heatmap/top-3 không thay thế kiểm định định lượng hay chuyên gia gán nhãn.
 \end{calloutbox}

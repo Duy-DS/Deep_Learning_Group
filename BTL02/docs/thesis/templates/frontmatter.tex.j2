@@ -1,9 +1,9 @@
-\makecover{Nhận diện cảm xúc khuôn mặt trên FER2013}{BTL02 -- Facial Expression Recognition}{\VAR{instructor}}{\VAR{member_cover}}{2026}
-\makecover{BÁO CÁO TỔNG KẾT}{Nhận diện cảm xúc khuôn mặt trên FER2013}{\VAR{instructor}}{\VAR{member_cover}}{2026}
+\makecover{Nhận diện cảm xúc khuôn mặt trên tập FER2013 bằng mạng nơ-ron tích chập và học chuyển giao}{Bài tập lớn 02 -- Học phần Học sâu (Deep Learning)}{\VAR{instructor}}{\VAR{member_cover}}{2026}
+\makecover{BÁO CÁO TỔNG KẾT ĐỒ ÁN}{Nhận diện cảm xúc khuôn mặt trên tập FER2013 bằng mạng nơ-ron tích chập và học chuyển giao}{\VAR{instructor}}{\VAR{member_cover}}{2026}
 
 \pagenumbering{roman}
-\chapter*{Bảng phân công và tỷ lệ đóng góp}
-Tỷ lệ dưới đây là phân bổ theo bảng WBS/README hiện có; cần nhóm xác nhận trước bản nộp cuối.
+\chapter*{Bảng phân công nhiệm vụ và tỷ lệ đóng góp}
+Tỷ lệ dưới đây lấy theo bảng phân công/WBS hiện được ghi trong README của dự án; nhóm cần xác nhận lại trước bản nộp cuối.
 \begin{center}
 \begin{tabularx}{\textwidth}{cXr}
 \toprule
@@ -13,13 +13,14 @@ Thành viên & Phạm vi công việc theo WBS & Tỷ lệ \\
 \VAR{member.name} & \VAR{member.role} & \VAR{member.contribution}\% \\
 \BLOCK{ endfor }
 \midrule
-\textbf{Tổng} & \textbf{Phân bổ theo WBS} & \textbf{\VAR{contribution_total}\%} \\
+\textbf{Tổng} & \textbf{Phân bổ theo WBS hiện hành} & \textbf{\VAR{contribution_total}\%} \\
 \bottomrule
 \end{tabularx}
 \end{center}
 
 \chapter*{Lời cảm ơn}
-Nhóm xin chân thành cảm ơn giảng viên hướng dẫn và các thành viên đã đóng góp cho dự án. Nội dung cụ thể sẽ được nhóm rà soát trước khi nộp.
+Chúng em xin chân thành cảm ơn giảng viên hướng dẫn đã góp ý về phương pháp và định hướng triển khai đồ án. Nhóm cũng cảm ơn các thành viên đã phối hợp xây dựng pipeline, thực hiện thí nghiệm và rà soát kết quả. Những thiếu sót còn lại trong báo cáo thuộc trách nhiệm của nhóm thực hiện.
+
 \tableofcontents
 \listoffigures
 \listoftables
@@ -34,13 +35,13 @@ Ký hiệu/thuật ngữ & Giải thích \\
 \midrule
 \endhead
 CNN & Mạng nơ-ron tích chập (Convolutional Neural Network). \\
-FER2013 & Bộ dữ liệu nhận diện biểu cảm khuôn mặt gồm bảy lớp. \\
-RQ1--RQ4 & Bốn câu hỏi nghiên cứu được đặt trong phạm vi dự án. \\
+FER2013 & Bộ dữ liệu ảnh khuôn mặt gán nhãn bảy cảm xúc. \\
+RQ1--RQ4 & Bốn câu hỏi nghiên cứu của đồ án. \\
 \VAR{label_rows}
 \bottomrule
 \end{longtable}
 
 \chapter*{Tóm tắt}
-Đề tài khảo sát pipeline PyTorch nhận diện bảy cảm xúc khuôn mặt trên FER2013, từ CNN cơ sở và transfer learning đến ablation, trực quan hóa và phân tích lỗi. Dữ liệu được chia theo split chuẩn 28.709/3.589/3.589; augmentation chỉ áp dụng trong huấn luyện. Các số liệu kết quả phải được điền từ CSV 24 cột và báo cáo bằng chứng đã kiểm chứng; nội dung này không tự suy diễn chỉ số còn thiếu.
+Nhóm xây dựng pipeline PyTorch nhận diện bảy biểu cảm trên FER2013 và khảo sát CNN cơ sở, transfer learning cùng các ablation. Dữ liệu gốc có 35.887 ảnh, chia thành Training 28.709, PublicTest 3.589 và PrivateTest 3.589; augmentation chỉ được dùng ở tập huấn luyện. Trong CSV hiện có, EXP-03 LargeCNN đạt PrivateTest Accuracy 64.9485\% và Macro-F1 0.635647; trong các cấu hình pretrained 128×128 của T0304, EXP-04 VGG16 đạt PrivateTest Accuracy 71.0226\% và Macro-F1 0.707276. Các con số này là kết quả một seed và được diễn giải cùng giới hạn của dữ liệu summary. Chưa có checkpoint/ảnh prediction local để lập confusion matrix và Grad-CAM thực tế; các phần cần hình được đánh dấu để bổ sung.
 
-\noindent\textbf{Từ khóa:} FER2013, CNN, transfer learning, Grad-CAM, PyTorch.
+\noindent\textbf{Từ khóa:} FER2013, nhận diện cảm xúc, CNN, transfer learning, Grad-CAM, PyTorch.

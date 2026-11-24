@@ -92,6 +92,55 @@ class TestThesisArtifactExporter:
         escaped = ThesisArtifactExporter.escape_latex("a_b%&$#")
         assert r"a\_b\%\&\$\#" == escaped
 
+    def test_comparison_figures_are_grouped_by_research_question(self, tmp_path):
+        """Hình PNG chỉ dùng CSV run duy nhất và tag RQ có nghĩa tương ứng."""
+        ThesisPipelineFixture(tmp_path).create()
+        exporter = ThesisArtifactExporter(tmp_path / "outputs/logs", tmp_path / "generated",
+                                         tmp_path / "outputs/figures")
+        figures = exporter.export_comparison_figures()
+        assert set(figures) == {"t0602_rq1_metrics"}
+        assert figures["t0602_rq1_metrics"].is_file()
+
+    def test_vector_plot_uses_only_three_rq1_depth_runs(self, tmp_path):
+        """PGFPlots RQ1 không gộp các activation/optimizer ablation."""
+        ThesisPipelineFixture(tmp_path).create()
+        exporter = ThesisArtifactExporter(tmp_path / "outputs/logs", tmp_path / "generated")
+        plot = exporter.export_vector_plot().read_text(encoding="utf-8")
+        assert "\\n" not in plot
+        assert "SmallCNN" in plot
+        assert "MediumCNN" not in plot  # Fixture có hai cấu hình, không phải dữ liệu FER2013 đầy đủ.
+        assert "LargeCNN" in plot
+        assert "LargeCNN_relu" not in plot
+        assert "xticklabels=" in plot
+
+    def test_benchmark_rows_are_read_from_approved_experience_when_csv_absent(self, tmp_path):
+        """Chỉ fallback sang bảng benchmark Markdown khi CSV benchmark không có."""
+        fixture = ThesisPipelineFixture(tmp_path)
+        fixture.create(with_csv=False)
+        evidence = tmp_path / "docs/experiences"
+        evidence.mkdir(parents=True)
+        (evidence / "EXP_COST.md").write_text(
+            "| VGG16 | 128 | 1000 | 2000 | 1.5 | 1.6 | 2.5 | 4000000 | OK |\n",
+            encoding="utf-8",
+        )
+        exporter = ThesisArtifactExporter(tmp_path / "outputs/logs", tmp_path / "generated", evidence_dir=evidence)
+        table = exporter.export_compute_table().read_text(encoding="utf-8")
+        assert "VGG16" in table and "2.5" in table and "4000000" in table
+
+    def test_full_t0305_experience_table_rows_are_parsed(self, tmp_path):
+        """Parser chấp nhận đúng schema 9 cột có trạng thái CPU trong T0305."""
+        evidence = tmp_path / "docs/experiences"
+        evidence.mkdir(parents=True)
+        (evidence / "EXP04_EXP05_EXP06_COST.md").write_text(
+            "| VGG16 | 128 | 5,023,993,344 | 10,047,986,688 | 110.255 | 110.266 | 87.148 | 8.828 | Đo hoàn tất trên CPU |\n",
+            encoding="utf-8",
+        )
+        exporter = ThesisArtifactExporter(tmp_path / "logs", tmp_path / "generated", evidence_dir=evidence)
+        rows = exporter._benchmark_rows_from_experience()
+        assert len(rows) == 1
+        assert rows[0]["macs"] == "5023993344"
+        assert rows[0]["throughput_images_per_sec"] == "8.828"
+
 
 class TestOverleafBundleBuilder:
     """Kiểm tra render template, quality gate và nội dung ZIP."""
@@ -109,7 +158,17 @@ class TestOverleafBundleBuilder:
             assert "main.tex" in names
             assert not any("samples/" in name for name in names)
             assert not any("AGENTS_THESIS.md" in name for name in names)
+        assert result["quality_gate"]["syntax_errors"] == 0
         assert (tmp_path / "docs/thesis/samples/sample_1.tex").read_text(encoding="utf-8") == "READ ONLY FIXTURE"
+        rendered_main = (tmp_path / "docs/thesis/overleaf_bundle/main.tex").read_text(encoding="utf-8")
+        assert "\\\\documentclass" not in rendered_main
+        assert "\\documentclass" in rendered_main
+        rendered_tex = "\n".join(path.read_text(encoding="utf-8") for path in (tmp_path / "docs/thesis/overleaf_bundle").glob("*.tex"))
+        cited = {key.strip() for group in __import__("re").findall(r"\\cite[pt]?\{([^}]+)\}", rendered_tex)
+                 for key in group.split(",")}
+        bib = (tmp_path / "docs/thesis/overleaf_bundle/references.bib").read_text(encoding="utf-8")
+        defined = set(__import__("re").findall(r"@\w+\s*\{\s*([^,]+),", bib))
+        assert cited <= defined
 
     def test_quality_gate_replaces_missing_figure_and_checks_underscores(self, tmp_path):
         """Hình thiếu chuyển thành TODO; underscore văn bản và brace lỗi bị phát hiện."""
@@ -136,3 +195,16 @@ class TestOverleafBundleBuilder:
         builder.render_templates()
         with pytest.raises(RuntimeError, match="99%"):
             builder.quality_gate()
+
+    def test_rendered_report_carries_no_banned_ai_cliches(self, tmp_path):
+        """Kiểm tra văn phong chống sáo rỗng trên các chương đã render."""
+        ThesisPipelineFixture(tmp_path).create()
+        builder = OverleafBundleBuilder(tmp_path)
+        builder.build()
+        banned = (
+            "Trong kỷ nguyên số hóa", "Không thể phủ nhận rằng", "Một cách toàn diện và sâu sắc",
+            "Bức tranh toàn cảnh", "Không chỉ dừng lại ở đó", "đột phá ngoạn mục", "hoàn hảo tuyệt đối",
+        )
+        for path in builder.bundle_dir.glob("chap*.tex"):
+            content = path.read_text(encoding="utf-8")
+            assert not any(phrase in content for phrase in banned)

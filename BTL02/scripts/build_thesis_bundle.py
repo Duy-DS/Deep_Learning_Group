@@ -20,12 +20,36 @@ except ImportError as error:  # pragma: no cover - nhánh phụ thuộc môi tr�
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from src.evaluate.latex_exporter import ThesisArtifactExporter
 
+_TEX_LITERALS = {
+    r"\documentclass", r"\usepackage", r"\begin", r"\end", r"\input", r"\includegraphics",
+    r"\chapter", r"\section", r"\subsection", r"\caption", r"\label", r"\ref", r"\cite",
+    r"\centering", r"\textbf", r"\textit", r"\texttt", r"\noindent", r"\tableofcontents",
+    r"\listoffigures", r"\listoftables", r"\bibliography", r"\bibliographystyle", r"\appendix",
+    r"\pagenumbering", r"\setcounter", r"\graphicspath", r"\toprule", r"\midrule", r"\bottomrule",
+    r"\endhead", r"\endfirsthead", r"\endfoot", r"\endlastfoot", r"\multicolumn", r"\todofigure",
+    r"\calloutbox", r"\linewidth", r"\textwidth", r"\frac", r"\sum", r"\max", r"\operatorname",
+    r"\mathbb", r"\mathcal", r"\mathrm", r"\alpha", r"\gamma", r"\times", r"\in", r"\partial",
+    r"\left", r"\right", r"\log", r"\Phi", r"\begin{", r"\end{",
+}
+
+
+def _slashify_tex_literals(text: str) -> str:
+    """Chuẩn hóa chuỗi TeX bị escape hai lần trong nguồn Python/template.
+
+    Chỉ giảm cặp backslash trước danh sách lệnh TeX đã biết; giữ nguyên escape
+    văn bản như ``\\_`` và delimiter Jinja còn sót để Quality Gate có thể phát hiện.
+    """
+    for literal in sorted(_TEX_LITERALS, key=len, reverse=True):
+        text = text.replace("\\\\" + literal[1:], literal)
+    return text
+
 
 class OverleafBundleBuilder:
     """Render template, thu thập hình và kiểm tra gói Overleaf trước khi nén."""
 
     ALLOWED_UNDERSCORE_COMMANDS = {
         "code", "input", "includegraphics", "label", "ref", "pageref", "cite", "citet", "citep", "url",
+        "text", "mathrm", "operatorname", "texttt", "ensuremath", "emph", "mathit", "mathbf",
     }
     TEMPLATE_CONTEXT: Dict[str, object] = {
         "instructor": "[Bổ sung tên giảng viên]",
@@ -60,7 +84,10 @@ class OverleafBundleBuilder:
         self.generated_dir = self.thesis_dir / "generated"
         self.bundle_dir = self.thesis_dir / "overleaf_bundle"
         self.zip_path = self.thesis_dir / "BTL02_Overleaf_Bundle.zip"
-        self.exporter = ThesisArtifactExporter(self.project_root / "outputs" / "logs", self.generated_dir)
+        self.exporter = ThesisArtifactExporter(
+            self.project_root / "outputs" / "logs", self.generated_dir,
+            self.project_root / "outputs" / "figures", self.project_root / "docs" / "experiences",
+        )
         self.template_context = copy.deepcopy(self.TEMPLATE_CONTEXT)
 
     def _environment(self) -> Environment:
@@ -82,7 +109,7 @@ class OverleafBundleBuilder:
         rendered: List[Path] = []
         for template_path in sorted(self.template_dir.glob("*.tex.j2")):
             template = environment.get_template(template_path.name)
-            content = template.render(**self.template_context)
+            content = _slashify_tex_literals(template.render(**self.template_context))
             destination = self.bundle_dir / template_path.name[:-3]
             destination.write_text(content, encoding="utf-8")
             rendered.append(destination)
@@ -92,6 +119,9 @@ class OverleafBundleBuilder:
                 raise FileNotFoundError(f"Thiếu thesis asset: {source}")
             destination = self.bundle_dir / filename
             shutil.copy2(source, destination)
+            if filename.endswith(".sty"):
+                destination.write_text(_slashify_tex_literals(destination.read_text(encoding="utf-8")),
+                                        encoding="utf-8")
             rendered.append(destination)
         # Bảng/đồ thị generated được exporter sở hữu; bundle chỉ nhận bản sao.
         for relative_root in (Path("tables"), Path("plots")):
@@ -102,6 +132,8 @@ class OverleafBundleBuilder:
                 destination = self.bundle_dir / "generated" / relative_root / source.name
                 destination.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(source, destination)
+                destination.write_text(_slashify_tex_literals(destination.read_text(encoding="utf-8")),
+                                       encoding="utf-8")
                 rendered.append(destination)
         return rendered
 
@@ -169,49 +201,67 @@ class OverleafBundleBuilder:
 
     @classmethod
     def _bare_underscore_errors(cls, text: str) -> List[str]:
-        """Tìm underscore văn bản không escape, không thuộc math hoặc lệnh an toàn."""
+        """Phát hiện underscore văn xuôi trần; bỏ qua toán và đối số macro TeX."""
         source = cls._strip_comments(text)
         errors: List[str] = []
         math_mode = False
-        index = 0
-        line_number = 1
-        while index < len(source):
-            char = source[index]
-            if char == "\n":
-                line_number += 1
-                index += 1
-                continue
-            if char == "\\":
-                command_match = re.match(r"\\([A-Za-z]+)", source[index:])
-                if command_match:
-                    command = command_match.group(1)
-                    index += len(command_match.group(0))
-                    if command in cls.ALLOWED_UNDERSCORE_COMMANDS:
-                        while index < len(source) and source[index].isspace():
-                            index += 1
-                        if index < len(source) and source[index] == "{":
-                            depth = 1
-                            index += 1
-                            while index < len(source) and depth:
-                                if source[index] == "\\":
-                                    index += 2
-                                    continue
-                                if source[index] == "{":
-                                    depth += 1
-                                elif source[index] == "}":
-                                    depth -= 1
-                                if source[index] == "\n":
-                                    line_number += 1
-                                index += 1
-                            continue
+        math_environment = False
+        safe_commands = cls.ALLOWED_UNDERSCORE_COMMANDS | {
+            "text", "mathrm", "operatorname", "texttt", "ensuremath", "emph", "mathit", "mathbf",
+        }
+
+        def skip_braces(line: str, position: int) -> int:
+            """Bỏ qua đối số ngoặc nhọn cân bằng của macro."""
+            if position >= len(line) or line[position] != "{":
+                return position
+            depth = 1
+            position += 1
+            while position < len(line) and depth:
+                if line[position] == "\\":
+                    position += 2
                     continue
-                index += 2
+                if line[position] == "{":
+                    depth += 1
+                elif line[position] == "}":
+                    depth -= 1
+                position += 1
+            return position
+
+        for line_number, line in enumerate(source.splitlines(), start=1):
+            if re.search(r"\\begin\{(?:equation|align|gather|multline|tikzpicture|axis)\}", line):
+                math_environment = True
+            if math_environment:
+                if re.search(r"\\end\{(?:equation|align|gather|multline|tikzpicture|axis)\}", line):
+                    math_environment = False
                 continue
-            if char == "$":
-                math_mode = not math_mode
-            elif char == "_" and not math_mode:
-                errors.append(f"Underscore chưa escape tại dòng {line_number}.")
-            index += 1
+            if "$" in line or r"\(" in line or r"\[" in line:
+                continue
+            index = 0
+            while index < len(line):
+                if line[index] != "\\":
+                    if line[index] == "_":
+                        errors.append(f"Underscore chưa escape tại dòng {line_number}.")
+                    index += 1
+                    continue
+                if index + 1 < len(line) and line[index + 1] in "_%&#{}$":
+                    index += 2
+                    continue
+                command = re.match(r"\\([A-Za-z]+)", line[index:])
+                if not command:
+                    index += 2
+                    continue
+                name = command.group(1)
+                index += len(command.group(0))
+                if name not in safe_commands:
+                    continue
+                while index < len(line) and line[index].isspace():
+                    index += 1
+                if name == "includegraphics" and index < len(line) and line[index] == "[":
+                    close = line.find("]", index + 1)
+                    index = close + 1 if close >= 0 else index
+                    while index < len(line) and line[index].isspace():
+                        index += 1
+                index = skip_braces(line, index)
         return errors
 
     def _replace_missing_figures(self, tex_path: Path) -> None:

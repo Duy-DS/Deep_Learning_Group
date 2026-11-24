@@ -1,26 +1,33 @@
 % Tự động sinh bởi ThesisArtifactExporter; không chỉnh sửa thủ công.
-\begin{longtable}{p{0.0818\textwidth}p{0.0818\textwidth}p{0.0818\textwidth}p{0.0818\textwidth}p{0.0818\textwidth}p{0.0818\textwidth}p{0.0818\textwidth}p{0.0818\textwidth}p{0.0818\textwidth}p{0.0818\textwidth}p{0.0818\textwidth}}
+\begin{longtable}{p{0.1125\textwidth}p{0.1125\textwidth}p{0.1125\textwidth}p{0.1125\textwidth}p{0.1125\textwidth}p{0.1125\textwidth}p{0.1125\textwidth}p{0.1125\textwidth}}
 \scriptsize
 \toprule
-Run ID & Tên run & Kiến trúc & RQ & Seed & Kích thước ảnh & Best epoch & Train Acc & Public/Val Acc & Private Acc & Macro-F1 \\
+Run ID & Kiến trúc & RQ/nhóm & Ảnh & Best epoch & Public/Val Acc (\%) & Private Acc (\%) & Macro-F1 \\
 \midrule
 \endfirsthead
 \toprule
-Run ID & Tên run & Kiến trúc & RQ & Seed & Kích thước ảnh & Best epoch & Train Acc & Public/Val Acc & Private Acc & Macro-F1 \\
+Run ID & Kiến trúc & RQ/nhóm & Ảnh & Best epoch & Public/Val Acc (\%) & Private Acc (\%) & Macro-F1 \\
 \midrule
 \endhead
 \midrule
-\multicolumn{11}{r}{(Tiếp theo)} \\
+\multicolumn{8}{r}{(Tiếp theo)} \\
 \endfoot
 \bottomrule
 \endlastfoot
-35093d88d1a44e67b5117d8076f715ec & EXP-10\_EfficientNetB0\_pretrained\_128\_adamw\_aug-advanced & EfficientNetB0 & RQ3\_Ablation\_Augmentation & 42 & 128 & 20.0 & 82.32609982932182 & 69.26720534967957 & \textbf{70.18668152688772} & 0.6988056365692834 \\
-622a723ec334441898003282a5d8d725 & EXP-09\_EfficientNetB0\_pretrained\_128\_adamw\_aug-basic & EfficientNetB0 & RQ3\_Ablation\_Augmentation & 42 & 128 & 16.0 & 83.52084712111186 & 69.65728615213152 & 70.130955697966 & \textbf{0.7000742260964127} \\
-7498d3c0b68743a1805ca06826e5c1ea & EXP-09\_EfficientNetB0\_pretrained\_128\_adamw\_aug-none & EfficientNetB0 & RQ3\_Ablation\_Augmentation & 42 & 128 & 16.0 & 93.25298686822948 & 66.75954304820284 & 68.15268877124548 & 0.6656904960907795 \\
-2f3cd08e2bc145baa0636a9317af3c58 & EXP-11\_EfficientNetB0\_pretrained\_128\_adamw\_aug-basic\_loss-focal & EfficientNetB0 & RQ3\_Ablation\_ClassImbalance & 42 & 128 & 28.0 & 85.89989201992407 & 70.07522986904429 & 69.68514906659237 & 0.6953925264717427 \\
-a82a528fa1154003a203021ba8f71c45 & EXP-11\_EfficientNetB0\_pretrained\_128\_adamw\_aug-basic\_loss-weighted\_ce & EfficientNetB0 & RQ3\_Ablation\_ClassImbalance & 42 & 128 & 16.0 & 81.62945417813229 & 68.12482585678462 & 69.4343828364447 & 0.6847857707279034 \\
-382d2ca2a18f4a219c877c7c5d4354c6 & EXP-11\_EfficientNetB0\_pretrained\_128\_adamw\_aug-basic\_loss-cross\_entropy & EfficientNetB0 & RQ3\_Ablation\_ClassImbalance & 42 & 128 & 16.0 & 83.52084712111186 & 69.65728615213152 & 70.130955697966 & \textbf{0.7000742260964127} \\
-a312721f1e884bb7891f464f984e6551 & EXP-12\_EfficientNetB0\_pretrained\_128\_adamw\_aug-basic\_loss-cross\_entropy\_sched-warmupcosine & EfficientNetB0 & RQ3\_Ablation\_LRScheduler & 42 & 128 & 22.0 & 90.68236441534012 & 69.51797157982725 & 69.93591529674003 & 0.6891521882592769 \\
-7348e1b10b22408fb71dc61920b1ef5c & EXP-12\_EfficientNetB0\_pretrained\_128\_adamw\_aug-basic\_loss-cross\_entropy\_sched-cosineannealinglr & EfficientNetB0 & RQ3\_Ablation\_LRScheduler & 42 & 128 & 28.0 & 91.18743251245252 & 69.4901086653664 & 69.96377821120089 & 0.6945983571047741 \\
-f97118d157a04325842acaa091362a03 & EXP-12\_EfficientNetB0\_pretrained\_128\_adamw\_aug-basic\_loss-cross\_entropy\_sched-reducelronplateau & EfficientNetB0 & RQ3\_Ablation\_LRScheduler & 42 & 128 & 16.0 & 83.52084712111186 & 69.65728615213152 & 70.130955697966 & \textbf{0.7000742260964127} \\
+62bca24cfc7d4a73aafc482d61c48353 & LargeCNN & RQ1\_Ablation\_Activation & 48 & 19.0 & 61.24268598495403 & 60.016717748676506 & 0.5834271794225057 \\
+fc61d3c45a994e0db9b5283f86b563b2 & LargeCNN & RQ1\_Ablation\_Activation & 48 & 15.0 & 64.53050989133463 & 64.7812761214823 & 0.6305242457188546 \\
+51130a5f0fdb4f39adff237b9c7fae46 & LargeCNN & RQ1\_Ablation\_Activation & 48 & 17.0 & 64.44692114795207 & 63.945388687656724 & 0.6172343471478037 \\
+9d333ee8fa2d43d2a803620e3bd0b667 & LargeCNN & RQ1\_Ablation\_Activation & 48 & 32.0 & 63.83393702981331 & 64.94845360824742 & 0.6356466320657798 \\
+beb401ee33ff4fecbc2583baf8d645e6 & LargeCNN & Ablation\_Optimizer & 48 & 18.0 & 62.66369462245751 & 62.468654221231546 & 0.5937656662316467 \\
+ff50c078e9f04092bd3a0e4cea9f3bdc & LargeCNN & Ablation\_Optimizer & 48 & 26.0 & 64.08470325996099 & 64.69768737809974 & 0.6333258463608215 \\
+bcc134c94a0a4ad4840bd957292fab5b & LargeCNN & Ablation\_Optimizer & 48 & 18.0 & 63.63889662858735 & 63.16522708275285 & 0.6205365132884594 \\
+35093d88d1a44e67b5117d8076f715ec & EfficientNetB0 & RQ3\_Ablation\_Augmentation & 128 & 20.0 & 69.26720534967957 & \textbf{70.18668152688772} & 0.6988056365692834 \\
+622a723ec334441898003282a5d8d725 & EfficientNetB0 & RQ3\_Ablation\_Augmentation & 128 & 16.0 & 69.65728615213152 & 70.130955697966 & \textbf{0.7000742260964127} \\
+7498d3c0b68743a1805ca06826e5c1ea & EfficientNetB0 & RQ3\_Ablation\_Augmentation & 128 & 16.0 & 66.75954304820284 & 68.15268877124548 & 0.6656904960907795 \\
+2f3cd08e2bc145baa0636a9317af3c58 & EfficientNetB0 & RQ3\_Ablation\_ClassImbalance & 128 & 28.0 & 70.07522986904429 & 69.68514906659237 & 0.6953925264717427 \\
+a82a528fa1154003a203021ba8f71c45 & EfficientNetB0 & RQ3\_Ablation\_ClassImbalance & 128 & 16.0 & 68.12482585678462 & 69.4343828364447 & 0.6847857707279034 \\
+382d2ca2a18f4a219c877c7c5d4354c6 & EfficientNetB0 & RQ3\_Ablation\_ClassImbalance & 128 & 16.0 & 69.65728615213152 & 70.130955697966 & \textbf{0.7000742260964127} \\
+a312721f1e884bb7891f464f984e6551 & EfficientNetB0 & RQ3\_Ablation\_LRScheduler & 128 & 22.0 & 69.51797157982725 & 69.93591529674003 & 0.6891521882592769 \\
+7348e1b10b22408fb71dc61920b1ef5c & EfficientNetB0 & RQ3\_Ablation\_LRScheduler & 128 & 28.0 & 69.4901086653664 & 69.96377821120089 & 0.6945983571047741 \\
+f97118d157a04325842acaa091362a03 & EfficientNetB0 & RQ3\_Ablation\_LRScheduler & 128 & 16.0 & 69.65728615213152 & 70.130955697966 & \textbf{0.7000742260964127} \\
 \end{longtable}

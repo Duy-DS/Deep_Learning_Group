@@ -8,6 +8,6 @@
 \item \textbf{RQ4:} \VAR{rq4_finding}
 \end{itemize}
 \section*{Hạn chế}
-Kết luận chỉ mạnh bằng bằng chứng hiện hữu. Cần kiểm chứng đa seed, history theo epoch, metrics per-class và artifacts hình/checkpoint trên môi trường có dữ liệu.
+Các run tổng hợp chủ yếu có một seed; CSV summary không chứa epoch history, per-class report hay prediction từng ảnh. Workspace hiện tại không có FER2013 CSV, checkpoint và screenshot demo. Vì vậy nhóm chưa kết luận về confusion pair thực tế, vùng Grad-CAM hay độ nhạy riêng của Disgust từ những artifacts hiện có.
 \section*{Hướng phát triển}
-Hoàn thiện đánh giá độc lập, calibration, phân tích nhóm lỗi có kiểm tra ảnh, kiểm định thống kê và đóng gói demo tái lập.
+Nhóm cần bổ sung runs nhiều seed, lưu epoch metrics và prediction-level outputs để đánh giá confidence/calibration, confusion theo lớp và trường hợp lỗi. Khi dữ liệu, checkpoint và thiết bị chạy sẵn sàng, có thể khảo sát căn chỉnh facial landmarks, kiến trúc Vision Transformer hoặc distillation sang model nhẹ; đây là hướng đề xuất, chưa phải kết quả đã kiểm chứng trong đồ án hiện tại.
