@@ -38,16 +38,19 @@ Pipeline custom xử lý ảnh grayscale 48×48; pipeline SOTA đổi grayscale 
 
 \section{Kiến trúc phần mềm}
 \begin{center}
-\begin{tikzpicture}[node distance=1.4cm, every node/.style={draw,rounded corners,align=center,minimum width=2.7cm,minimum height=0.85cm}]
-\node (data) {\code{src/data}\\Dataset và transforms};
-\node (train) [right of=data,xshift=1.8cm] {\code{src/train}\\Trainer, loss, seed};
-\node (model) [right of=train,xshift=1.8cm] {\code{src/models}\\CNN và backbones};
-\node (eval) [below of=train] {\code{src/evaluate}\\metrics, Grad-CAM, lỗi};
-\node (infer) [right of=eval,xshift=1.8cm] {\code{src/inference}\\model serving};
-\node (demo) [right of=infer,xshift=1.8cm] {\code{demo/app.py}\\giao diện};
-\draw[->] (data)--(train); \draw[->] (train)--(model);
-\draw[->] (model)--(eval); \draw[->] (eval)--(infer); \draw[->] (infer)--(demo);
-\draw[->] (train) -- ++(0,-0.7) -| node[pos=0.25,left,draw=none]{log summary} (eval);
+\begin{tikzpicture}[every node/.style={draw,rounded corners,align=center,text width=3.4cm,minimum height=1.1cm,font=\small}]
+\node (data) at (0, 0) {\textbf{\code{src/data}}\\[0.2em]Dataset và transforms};
+\node (train) at (5.0, 0) {\textbf{\code{src/train}}\\[0.2em]Trainer, loss, seed};
+\node (model) at (10.0, 0) {\textbf{\code{src/models}}\\[0.2em]CNN và backbones};
+\node (eval) at (0, -2.4) {\textbf{\code{src/evaluate}}\\[0.2em]Metrics, Grad-CAM, lỗi};
+\node (infer) at (5.0, -2.4) {\textbf{\code{src/inference}}\\[0.2em]Model serving};
+\node (demo) at (10.0, -2.4) {\textbf{\code{demo/app.py}}\\[0.2em]Giao diện tương tác};
+\draw[->, thick] (data) -- (train);
+\draw[->, thick] (train) -- (model);
+\draw[->, thick] (model.south) -- ++(0,-0.4) -| (infer.north);
+\draw[->, thick] (train.south) -- ++(0,-0.4) -| node[pos=0.25,above,draw=none,font=\footnotesize]{log summary} (eval.north);
+\draw[->, thick] (eval) -- (infer);
+\draw[->, thick] (infer) -- (demo);
 \end{tikzpicture}
 \end{center}
 

@@ -73,6 +73,63 @@ def unsupported_latex_unicode(text: str) -> List[Tuple[int, str]]:
             if ord(character) >= 128 and character not in allowed]
 
 
+RQ_TAG_MAPPING = {
+    "RQ1": "RQ1",
+    "RQ1_Ablation_Activation": "RQ1 Ablation (Activation)",
+    "RQ2_SOTA_Pretrained_128": "RQ2 SOTA (Pretrained)",
+    "RQ2_InputSize_48_vs_128": "RQ2 (Size 48 vs 128)",
+    "RQ2_Scratch_vs_Pretrained": "RQ2 (Scratch vs Pretrained)",
+    "RQ3_Ablation_Augmentation": "RQ3 Ablation (Augmentation)",
+    "RQ3_Ablation_ClassImbalance": "RQ3 Ablation (Loss)",
+    "RQ3_Ablation_LRScheduler": "RQ3 Ablation (Scheduler)",
+    "Ablation_Optimizer": "RQ3 Ablation (Optimizer)",
+}
+
+SHORT_RUN_NAMES = {
+    "EXP-01_SmallCNN": "EXP-01 (SmallCNN)",
+    "EXP-02_MediumCNN": "EXP-02 (MediumCNN)",
+    "EXP-03_LargeCNN": "EXP-03 (LargeCNN)",
+    "EXP-04_VGG16_pretrained_128_adamw": "EXP-04 (VGG16)",
+    "EXP-05_ResNet50_pretrained_128_adamw": "EXP-05 (ResNet50)",
+    "EXP-06_EfficientNetB0_pretrained_128_adamw": "EXP-06 (EffNet-B0)",
+    "EXP-04B_VGG16_scratch_128_adamw": "EXP-04B (VGG16 Scratch)",
+    "EXP-04C_VGG16_pretrained_48_adamw": "EXP-04C (VGG16 48px)",
+    "EXP-05B_ResNet50_scratch_128_adamw": "EXP-05B (ResNet50 Scratch)",
+    "EXP-05C_ResNet50_pretrained_48_adamw": "EXP-05C (ResNet50 48px)",
+    "EXP-06B_EfficientNetB0_scratch_128_adamw": "EXP-06B (EffNet-B0 Scratch)",
+    "EXP-06C_EfficientNetB0_pretrained_48_adamw": "EXP-06C (EffNet-B0 48px)",
+    "EXP-07_LargeCNN_elu": "EXP-07 (ELU)",
+    "EXP-07_LargeCNN_gelu": "EXP-07 (GELU)",
+    "EXP-07_LargeCNN_leaky_relu": "EXP-07 (LeakyReLU)",
+    "EXP-07_LargeCNN_relu": "EXP-07 (ReLU)",
+    "EXP-08_LargeCNN_relu_adam": "EXP-08 (Adam)",
+    "EXP-08_LargeCNN_relu_adamw": "EXP-08 (AdamW)",
+    "EXP-08_LargeCNN_relu_sgd": "EXP-08 (SGD)",
+    "EXP-09_EfficientNetB0_pretrained_128_adamw_aug-none": "EXP-09 (Aug-None)",
+    "EXP-09_EfficientNetB0_pretrained_128_adamw_aug-basic": "EXP-09 (Aug-Basic)",
+    "EXP-10_EfficientNetB0_pretrained_128_adamw_aug-advanced": "EXP-10 (Aug-Adv)",
+    "EXP-11_EfficientNetB0_pretrained_128_adamw_aug-basic_loss-cross_entropy": "EXP-11 (Loss-CE)",
+    "EXP-11_EfficientNetB0_pretrained_128_adamw_aug-basic_loss-weighted_ce": "EXP-11 (Loss-WCE)",
+    "EXP-11_EfficientNetB0_pretrained_128_adamw_aug-basic_loss-focal": "EXP-11 (Loss-Focal)",
+    "EXP-12_EfficientNetB0_pretrained_128_adamw_aug-basic_loss-cross_entropy_sched-reducelronplateau": "EXP-12 (Plateau)",
+    "EXP-12_EfficientNetB0_pretrained_128_adamw_aug-basic_loss-cross_entropy_sched-cosineannealinglr": "EXP-12 (Cosine)",
+    "EXP-12_EfficientNetB0_pretrained_128_adamw_aug-basic_loss-cross_entropy_sched-warmupcosine": "EXP-12 (WarmupCosine)",
+}
+
+
+def shorten_run_name(name: str) -> str:
+    """Rút gọn tên run để trục X biểu đồ rõ ràng, không bị chèn ép."""
+    if name in SHORT_RUN_NAMES:
+        return SHORT_RUN_NAMES[name]
+    match = re.match(r"(EXP-[0-9A-Za-z]+)_(.*)", name)
+    if match:
+        prefix, rest = match.group(1), match.group(2)
+        tokens = rest.split("_")
+        tail = tokens[-1] if tokens else ""
+        return f"{prefix} ({tail})"
+    return name[:22] if len(name) > 22 else name
+
+
 class ThesisArtifactExporter:
     """Đọc CSV summary/benchmark và sinh bảng longtable, không bịa số liệu."""
 
@@ -152,6 +209,10 @@ class ThesisArtifactExporter:
             clean_id = str(value).strip()
             prefix = clean_id[:8]
             return r"\code{" + prefix + "}"
+        if key == "params.rq_tag":
+            tag = str(value).strip()
+            mapped = RQ_TAG_MAPPING.get(tag, tag.replace("_", " "))
+            return self.escape_latex(mapped)
         if key == "metrics.best_epoch":
             num = self._numeric(value)
             if num is not None:
@@ -193,7 +254,7 @@ class ThesisArtifactExporter:
                      rows: Sequence[Sequence[str]], warning: str,
                      caption: str = "", label: str = "",
                      col_spec: Optional[str] = None, note: str = "",
-                     tabcolsep: str = "3.5pt") -> Path:
+                     tabcolsep: str = "4pt") -> Path:
         """Ghi bảng longtable booktabs với header lặp, caption, label và placeholder an toàn."""
         destination.parent.mkdir(parents=True, exist_ok=True)
         num_cols = len(headers)
@@ -205,14 +266,12 @@ class ThesisArtifactExporter:
             "% Tự động sinh bởi ThesisArtifactExporter; không chỉnh sửa thủ công.",
             r"\begingroup",
             r"\setlength{\tabcolsep}{" + tabcolsep + r"}",
+            r"\setlength{\LTcapwidth}{\textwidth}",
             r"\begin{longtable}{" + col_spec + "}",
-            r"\scriptsize",
+            r"\footnotesize",
         ]
         if caption:
-            caption_line = r"\caption{" + self.escape_latex(caption) + "}"
-            if label:
-                caption_line += r"\label{" + label + "}"
-            caption_line += row_end
+            caption_line = r"\caption{" + caption + r"}\label{" + label + r"}" + row_end
             lines.append(caption_line)
         lines.extend([
             r"\toprule",
@@ -222,8 +281,7 @@ class ThesisArtifactExporter:
         ])
         if caption:
             lines.extend([
-                r"\multicolumn{" + str(num_cols) + r"}{c}{{\bfseries Bảng \thetable\ (tiếp theo): "
-                + self.escape_latex(caption) + r"}}" + row_end,
+                r"\multicolumn{" + str(num_cols) + r"}{c}{{\bfseries Bảng \thetable\ (tiếp theo)}}" + row_end,
                 r"\toprule",
                 " & ".join(self.escape_latex(item) for item in headers) + row_end,
                 r"\midrule",
@@ -281,7 +339,7 @@ class ThesisArtifactExporter:
                 "tab:rq1-depth",
             ),
             "rq2_transfer": (
-                r"Đối chiếu hiệu năng các mô hình học chuyển giao tiền huấn luyện ở kích thước 128 \ensuremath{\times} 128 (RQ2)",
+                r"Đối chiếu hiệu năng các mô hình học chuyển giao tiền huấn luyện ở kích thước $128 \times 128$ (RQ2)",
                 "tab:rq2-transfer",
             ),
             "rq3_ablation": (
@@ -290,14 +348,14 @@ class ThesisArtifactExporter:
             ),
         }
         summary_col_spec = (
-            r">{\centering\arraybackslash}p{0.09\textwidth}"
-            r">{\raggedright\arraybackslash}p{0.15\textwidth}"
-            r">{\raggedright\arraybackslash}p{0.16\textwidth}"
-            r">{\centering\arraybackslash}p{0.05\textwidth}"
-            r">{\centering\arraybackslash}p{0.07\textwidth}"
-            r">{\raggedleft\arraybackslash}p{0.10\textwidth}"
-            r">{\raggedleft\arraybackslash}p{0.10\textwidth}"
-            r">{\raggedleft\arraybackslash}p{0.10\textwidth}"
+            r">{\centering\arraybackslash}p{1.5cm}"
+            r">{\raggedright\arraybackslash}p{2.3cm}"
+            r">{\raggedright\arraybackslash}p{3.0cm}"
+            r">{\centering\arraybackslash}p{0.8cm}"
+            r">{\centering\arraybackslash}p{1.0cm}"
+            r">{\raggedleft\arraybackslash}p{1.8cm}"
+            r">{\raggedleft\arraybackslash}p{1.8cm}"
+            r">{\raggedleft\arraybackslash}p{1.6cm}"
         )
         summary_note = (
             "Ghi chú: Run ID hiển thị 8 ký tự tiền tố định danh từ MLflow; toàn bộ mã 32 ký tự lưu trong CSV log."
@@ -337,7 +395,7 @@ class ThesisArtifactExporter:
                 label=label,
                 col_spec=summary_col_spec,
                 note=summary_note,
-                tabcolsep="3.5pt",
+                tabcolsep="4pt",
             )
         return outputs
 
@@ -353,12 +411,12 @@ class ThesisArtifactExporter:
         labels = ("Kiến trúc", "Ảnh", "Params", "FLOPs", "Latency (ms)", "Ảnh/giây")
         rendered = [[self._format_compute_cell(key, row.get(key, "") or "--") for key in fields] for row in rows]
         compute_col_spec = (
-            r">{\raggedright\arraybackslash}p{0.18\textwidth}"
-            r">{\centering\arraybackslash}p{0.07\textwidth}"
-            r">{\raggedleft\arraybackslash}p{0.14\textwidth}"
-            r">{\raggedleft\arraybackslash}p{0.18\textwidth}"
-            r">{\raggedleft\arraybackslash}p{0.14\textwidth}"
-            r">{\raggedleft\arraybackslash}p{0.13\textwidth}"
+            r">{\raggedright\arraybackslash}p{2.6cm}"
+            r">{\centering\arraybackslash}p{1.2cm}"
+            r">{\raggedleft\arraybackslash}p{2.5cm}"
+            r">{\raggedleft\arraybackslash}p{2.8cm}"
+            r">{\raggedleft\arraybackslash}p{2.2cm}"
+            r">{\raggedleft\arraybackslash}p{2.0cm}"
         )
         return self._write_table(
             self.generated_dir / "tables" / "compute_cost.tex",
@@ -419,7 +477,7 @@ class ThesisArtifactExporter:
                 encoding="utf-8",
             )
             return destination
-        labels = [self.escape_latex(item[0].get("Name", "Run")) for item in valid]
+        labels = [self.escape_latex(shorten_run_name(item[0].get("Name", "Run"))) for item in valid]
         indices = list(range(1, len(valid) + 1))
         public_points = " ".join(
             f"({index},{float(item[0].get('metrics.best_val_acc', 0.0)):.6g})"
@@ -476,17 +534,17 @@ class ThesisArtifactExporter:
                      and self._numeric(row.get("metrics.macro_f1", "")) is not None]
             if not valid:
                 continue
-            labels = [row.get("Name", "Run") for row in valid]
+            labels = [shorten_run_name(row.get("Name", "Run")) for row in valid]
             public = [self._numeric(row["metrics.best_val_acc"]) for row in valid]
             private = [self._numeric(row["metrics.private_test_acc"]) for row in valid]
             macro = [self._numeric(row["metrics.macro_f1"]) * 100.0 for row in valid]
             x = np.arange(len(valid), dtype=float)
             width = 0.25
-            fig, axis = plt.subplots(figsize=(max(9, len(valid) * 0.72), 5.5), constrained_layout=True)
+            fig, axis = plt.subplots(figsize=(max(8.0, len(valid) * 0.65), 5.5), constrained_layout=True)
             axis.bar(x - width, public, width, label="PublicTest validation Accuracy (%)")
             axis.bar(x, private, width, label="PrivateTest Accuracy (%)")
             axis.bar(x + width, macro, width, label="Private Macro-F1 (%)")
-            axis.set_xticks(x, labels, rotation=55, ha="right", fontsize=8)
+            axis.set_xticks(x, labels, rotation=35, ha="right", fontsize=8.5)
             axis.set_ylabel("Phần trăm (%)")
             axis.set_title(f"Metrics thực nghiệm — {name.upper()} (CSV summary; một run/seed)")
             axis.grid(axis="y", alpha=0.25)

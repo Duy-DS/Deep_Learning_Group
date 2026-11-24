@@ -79,18 +79,22 @@
 \pgfplotsset{compat=1.18}
 \RequirePackage{listings}
 \RequirePackage{xcolor}
-\RequirePackage{hyperref}
-\RequirePackage{caption}
 \RequirePackage{enumitem}
 \RequirePackage{etoolbox}
 \RequirePackage{titlesec}
 \RequirePackage{titletoc}
+\RequirePackage{caption}
+\RequirePackage[hidelinks,unicode,psdextra]{hyperref}
 
 \onehalfspacing
 \setstretch{1.3}
 \AtBeginDocument{\fontsize{13pt}{16.9pt}\selectfont}
 \setlength{\parindent}{1.25cm}
 \setlength{\parskip}{0.25em}
+
+\ifPDFTeX
+  \hypersetup{bookmarks=false}
+\fi
 \hypersetup{colorlinks=true,linkcolor=blue!50!black,citecolor=green!40!black,urlcolor=blue!60!black}
 
 \titlecontents{chapter}[0pt]{\addvspace{5pt}\bfseries}

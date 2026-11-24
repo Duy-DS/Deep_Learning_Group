@@ -348,7 +348,7 @@ class OverleafBundleBuilder:
         excluded = {"samples", "AGENTS_THESIS.md"}
         return [path for path in sorted(self.bundle_dir.rglob("*")) if path.is_file()
                 and not any(part in excluded for part in path.relative_to(self.bundle_dir).parts)
-                and path.suffix.lower() not in {".aux", ".log", ".out", ".toc", ".bbl", ".blg"}]
+                and path.suffix.lower() not in {".aux", ".log", ".out", ".toc", ".bbl", ".blg", ".lof", ".lot", ".pdf", ".gz"}]
 
     def create_zip(self) -> Path:
         """Nén danh sách file đã nghiệm thu, không đưa mẫu tham khảo vào archive."""

@@ -18,7 +18,7 @@ Khoảng cách mô tả giữa Train Acc cuối run và Private Acc của checkp
 \label{fig:rq1-metrics}
 \end{figure}
 
-\begin{calloutbox}
+\begin{calloutbox}[Phát hiện chính]
 RQ1: Trong thử nghiệm cố định seed 42, MediumCNN cải thiện mạnh mẽ so với SmallCNN; LargeCNN chỉ tăng nhẹ so với MediumCNN trong khi khoảng cách Train--Private nới rộng đáng kể. Kết luận chịu giới hạn bởi một seed và sự thay đổi đồng thời giữa độ rộng mạng và các thành phần chuẩn hóa.
 \end{calloutbox}
 
@@ -40,11 +40,13 @@ Bảng \ref{tab:compute-cost} trích xuất từ tài liệu kinh nghiệm T0305
 \label{fig:rq2-metrics}
 \end{figure}
 
-\begin{calloutbox}
+\begin{calloutbox}[Phát hiện chính]
 RQ2: Các kết quả thực nghiệm ủng hộ việc sử dụng trọng số ImageNet tiền huấn luyện và kích thước đầu vào $128 \times 128$ so với các cặp huấn luyện từ đầu và kích thước $48 \times 48$. VGG16 đạt độ chính xác Private cao nhất trong nhóm pretrained-128; EfficientNet-B0 có chi phí tính toán thấp nhất trong benchmark CPU T0305.
 \end{calloutbox}
 
 \section{RQ3: Ablation trên các recipe đã chạy}
+Toàn bộ các kết quả khảo sát cắt bỏ thành phần huấn luyện được tổng hợp chi tiết tại Bảng \ref{tab:rq3-ablation}.
+
 \subsection{Activation và optimizer}
 Trong EXP-07, hàm kích hoạt ReLU đạt Private Accuracy 64,95\% và Macro-F1 0,6356; GELU có Public validation cao nhất (64,53\%) nhưng Private Accuracy đạt 64,78\%. Sự chênh lệch giữa các hàm kích hoạt là tương đối nhỏ trên một seed. Trong EXP-08, AdamW đạt Private Accuracy 64,70\% và Macro-F1 0,6333; SGD+Nesterov có khoảng cách Train--Private nhỏ nhất nhưng độ chính xác tổng thể thấp hơn. Tốc độ học và weight decay cũng thay đổi theo từng recipe nên đây không phải phép so sánh cô lập riêng lẻ thuật toán tối ưu.
 
@@ -63,7 +65,7 @@ Trong EXP-11, cấu hình hàm mất mát CrossEntropy tiêu chuẩn đạt Priv
 \label{fig:rq3-metrics}
 \end{figure}
 
-\begin{calloutbox}
+\begin{calloutbox}[Phát hiện chính]
 RQ3: Tăng cường dữ liệu cơ bản (\code{basic}) cải thiện rõ rệt hiệu năng so với không tăng cường; RandomErasing chỉ tăng nhẹ độ chính xác Private nhưng giảm nhẹ Macro-F1. CrossEntropy và ReduceLROnPlateau dẫn đầu trong các thử nghiệm hàm mất mát và bộ lập lịch đã ghi nhận.
 \end{calloutbox}
 

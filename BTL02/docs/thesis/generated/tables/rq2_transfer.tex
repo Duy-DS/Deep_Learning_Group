@@ -1,14 +1,15 @@
 % Tự động sinh bởi ThesisArtifactExporter; không chỉnh sửa thủ công.
 \begingroup
-\setlength{\tabcolsep}{3.5pt}
-\begin{longtable}{>{\centering\arraybackslash}p{0.09\textwidth}>{\raggedright\arraybackslash}p{0.15\textwidth}>{\raggedright\arraybackslash}p{0.16\textwidth}>{\centering\arraybackslash}p{0.05\textwidth}>{\centering\arraybackslash}p{0.07\textwidth}>{\raggedleft\arraybackslash}p{0.10\textwidth}>{\raggedleft\arraybackslash}p{0.10\textwidth}>{\raggedleft\arraybackslash}p{0.10\textwidth}}
-\scriptsize
-\caption{Đối chiếu hiệu năng các mô hình học chuyển giao tiền huấn luyện ở kích thước 128 \textbackslash{}ensuremath\{\textbackslash{}times\} 128 (RQ2)}\label{tab:rq2-transfer} \\
+\setlength{\tabcolsep}{4pt}
+\setlength{\LTcapwidth}{\textwidth}
+\begin{longtable}{>{\centering\arraybackslash}p{1.5cm}>{\raggedright\arraybackslash}p{2.3cm}>{\raggedright\arraybackslash}p{3.0cm}>{\centering\arraybackslash}p{0.8cm}>{\centering\arraybackslash}p{1.0cm}>{\raggedleft\arraybackslash}p{1.8cm}>{\raggedleft\arraybackslash}p{1.8cm}>{\raggedleft\arraybackslash}p{1.6cm}}
+\footnotesize
+\caption{Đối chiếu hiệu năng các mô hình học chuyển giao tiền huấn luyện ở kích thước $128 \times 128$ (RQ2)}\label{tab:rq2-transfer} \\
 \toprule
 Run ID & Kiến trúc & RQ/nhóm & Ảnh & Best epoch & Public/Val Acc (\%) & Private Acc (\%) & Macro-F1 \\
 \midrule
 \endfirsthead
-\multicolumn{8}{c}{{\bfseries Bảng \thetable\ (tiếp theo): Đối chiếu hiệu năng các mô hình học chuyển giao tiền huấn luyện ở kích thước 128 \textbackslash{}ensuremath\{\textbackslash{}times\} 128 (RQ2)}} \\
+\multicolumn{8}{c}{{\bfseries Bảng \thetable\ (tiếp theo)}} \\
 \toprule
 Run ID & Kiến trúc & RQ/nhóm & Ảnh & Best epoch & Public/Val Acc (\%) & Private Acc (\%) & Macro-F1 \\
 \midrule
@@ -19,8 +20,8 @@ Run ID & Kiến trúc & RQ/nhóm & Ảnh & Best epoch & Public/Val Acc (\%) & Pr
 \bottomrule
 \multicolumn{8}{p{0.92\textwidth}}{\footnotesize\itshape Ghi chú: Run ID hiển thị 8 ký tự tiền tố định danh từ MLflow; toàn bộ mã 32 ký tự lưu trong CSV log.} \\
 \endlastfoot
-\code{626b7aba} & EfficientNetB0 & RQ2\_SOTA\_Pretrained\_128 & 128 & 14 & 67.90 & 69.82 & 0.6975 \\
-\code{6d9a2327} & ResNet50 & RQ2\_SOTA\_Pretrained\_128 & 128 & 19 & 70.47 & 70.77 & 0.6935 \\
-\code{e4b7d06c} & VGG16 & RQ2\_SOTA\_Pretrained\_128 & 128 & 19 & 69.77 & \textbf{71.02} & \textbf{0.7073} \\
+\code{626b7aba} & EfficientNetB0 & RQ2 SOTA (Pretrained) & 128 & 14 & 67.90 & 69.82 & 0.6975 \\
+\code{6d9a2327} & ResNet50 & RQ2 SOTA (Pretrained) & 128 & 19 & 70.47 & 70.77 & 0.6935 \\
+\code{e4b7d06c} & VGG16 & RQ2 SOTA (Pretrained) & 128 & 19 & 69.77 & \textbf{71.02} & \textbf{0.7073} \\
 \end{longtable}
 \endgroup

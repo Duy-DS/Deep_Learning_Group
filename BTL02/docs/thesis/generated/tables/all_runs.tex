@@ -1,14 +1,15 @@
 % Tự động sinh bởi ThesisArtifactExporter; không chỉnh sửa thủ công.
 \begingroup
-\setlength{\tabcolsep}{3.5pt}
-\begin{longtable}{>{\centering\arraybackslash}p{0.09\textwidth}>{\raggedright\arraybackslash}p{0.15\textwidth}>{\raggedright\arraybackslash}p{0.16\textwidth}>{\centering\arraybackslash}p{0.05\textwidth}>{\centering\arraybackslash}p{0.07\textwidth}>{\raggedleft\arraybackslash}p{0.10\textwidth}>{\raggedleft\arraybackslash}p{0.10\textwidth}>{\raggedleft\arraybackslash}p{0.10\textwidth}}
-\scriptsize
+\setlength{\tabcolsep}{4pt}
+\setlength{\LTcapwidth}{\textwidth}
+\begin{longtable}{>{\centering\arraybackslash}p{1.5cm}>{\raggedright\arraybackslash}p{2.3cm}>{\raggedright\arraybackslash}p{3.0cm}>{\centering\arraybackslash}p{0.8cm}>{\centering\arraybackslash}p{1.0cm}>{\raggedleft\arraybackslash}p{1.8cm}>{\raggedleft\arraybackslash}p{1.8cm}>{\raggedleft\arraybackslash}p{1.6cm}}
+\footnotesize
 \caption{Tổng hợp toàn bộ 28 cấu hình thực nghiệm trên bộ dữ liệu FER2013}\label{tab:all-runs} \\
 \toprule
 Run ID & Kiến trúc & RQ/nhóm & Ảnh & Best epoch & Public/Val Acc (\%) & Private Acc (\%) & Macro-F1 \\
 \midrule
 \endfirsthead
-\multicolumn{8}{c}{{\bfseries Bảng \thetable\ (tiếp theo): Tổng hợp toàn bộ 28 cấu hình thực nghiệm trên bộ dữ liệu FER2013}} \\
+\multicolumn{8}{c}{{\bfseries Bảng \thetable\ (tiếp theo)}} \\
 \toprule
 Run ID & Kiến trúc & RQ/nhóm & Ảnh & Best epoch & Public/Val Acc (\%) & Private Acc (\%) & Macro-F1 \\
 \midrule
@@ -22,30 +23,30 @@ Run ID & Kiến trúc & RQ/nhóm & Ảnh & Best epoch & Public/Val Acc (\%) & Pr
 \code{95f11a8c} & LargeCNN & RQ1 & 48 & 32 & 63.83 & 64.95 & 0.6356 \\
 \code{2a57e857} & MediumCNN & RQ1 & 48 & 22 & 63.81 & 63.56 & 0.6254 \\
 \code{8e46ec64} & SmallCNN & RQ1 & 48 & 24 & 53.41 & 51.55 & 0.4718 \\
-\code{62bca24c} & LargeCNN & RQ1\_Ablation\_Activation & 48 & 19 & 61.24 & 60.02 & 0.5834 \\
-\code{fc61d3c4} & LargeCNN & RQ1\_Ablation\_Activation & 48 & 15 & 64.53 & 64.78 & 0.6305 \\
-\code{51130a5f} & LargeCNN & RQ1\_Ablation\_Activation & 48 & 17 & 64.45 & 63.95 & 0.6172 \\
-\code{9d333ee8} & LargeCNN & RQ1\_Ablation\_Activation & 48 & 32 & 63.83 & 64.95 & 0.6356 \\
-\code{beb401ee} & LargeCNN & Ablation\_Optimizer & 48 & 18 & 62.66 & 62.47 & 0.5938 \\
-\code{ff50c078} & LargeCNN & Ablation\_Optimizer & 48 & 26 & 64.08 & 64.70 & 0.6333 \\
-\code{bcc134c9} & LargeCNN & Ablation\_Optimizer & 48 & 18 & 63.64 & 63.17 & 0.6205 \\
-\code{08581b47} & ResNet50 & RQ2\_InputSize\_48\_vs\_128 & 48 & 27 & 67.96 & 68.38 & 0.6669 \\
-\code{306cbb42} & EfficientNetB0 & RQ2\_InputSize\_48\_vs\_128 & 48 & 30 & 64.89 & 65.51 & 0.6324 \\
-\code{3536896b} & VGG16 & RQ2\_InputSize\_48\_vs\_128 & 48 & 13 & 67.93 & 69.66 & 0.6807 \\
-\code{626b7aba} & EfficientNetB0 & RQ2\_SOTA\_Pretrained\_128 & 128 & 14 & 67.90 & 69.82 & 0.6975 \\
-\code{75fe2279} & ResNet50 & RQ2\_Scratch\_vs\_Pretrained & 128 & 30 & 67.09 & 67.71 & 0.6633 \\
-\code{f5479079} & VGG16 & RQ2\_Scratch\_vs\_Pretrained & 128 & 21 & 68.21 & 69.41 & 0.6768 \\
-\code{fad20310} & EfficientNetB0 & RQ2\_Scratch\_vs\_Pretrained & 128 & 28 & 64.67 & 64.53 & 0.6212 \\
-\code{6d9a2327} & ResNet50 & RQ2\_SOTA\_Pretrained\_128 & 128 & 19 & 70.47 & 70.77 & 0.6935 \\
-\code{e4b7d06c} & VGG16 & RQ2\_SOTA\_Pretrained\_128 & 128 & 19 & 69.77 & \textbf{71.02} & \textbf{0.7073} \\
-\code{35093d88} & EfficientNetB0 & RQ3\_Ablation\_Augmentation & 128 & 20 & 69.27 & 70.19 & 0.6988 \\
-\code{622a723e} & EfficientNetB0 & RQ3\_Ablation\_Augmentation & 128 & 16 & 69.66 & 70.13 & 0.7001 \\
-\code{7498d3c0} & EfficientNetB0 & RQ3\_Ablation\_Augmentation & 128 & 16 & 66.76 & 68.15 & 0.6657 \\
-\code{2f3cd08e} & EfficientNetB0 & RQ3\_Ablation\_ClassImbalance & 128 & 28 & 70.08 & 69.69 & 0.6954 \\
-\code{a82a528f} & EfficientNetB0 & RQ3\_Ablation\_ClassImbalance & 128 & 16 & 68.12 & 69.43 & 0.6848 \\
-\code{382d2ca2} & EfficientNetB0 & RQ3\_Ablation\_ClassImbalance & 128 & 16 & 69.66 & 70.13 & 0.7001 \\
-\code{a312721f} & EfficientNetB0 & RQ3\_Ablation\_LRScheduler & 128 & 22 & 69.52 & 69.94 & 0.6892 \\
-\code{7348e1b1} & EfficientNetB0 & RQ3\_Ablation\_LRScheduler & 128 & 28 & 69.49 & 69.96 & 0.6946 \\
-\code{f97118d1} & EfficientNetB0 & RQ3\_Ablation\_LRScheduler & 128 & 16 & 69.66 & 70.13 & 0.7001 \\
+\code{62bca24c} & LargeCNN & RQ1 Ablation (Activation) & 48 & 19 & 61.24 & 60.02 & 0.5834 \\
+\code{fc61d3c4} & LargeCNN & RQ1 Ablation (Activation) & 48 & 15 & 64.53 & 64.78 & 0.6305 \\
+\code{51130a5f} & LargeCNN & RQ1 Ablation (Activation) & 48 & 17 & 64.45 & 63.95 & 0.6172 \\
+\code{9d333ee8} & LargeCNN & RQ1 Ablation (Activation) & 48 & 32 & 63.83 & 64.95 & 0.6356 \\
+\code{beb401ee} & LargeCNN & RQ3 Ablation (Optimizer) & 48 & 18 & 62.66 & 62.47 & 0.5938 \\
+\code{ff50c078} & LargeCNN & RQ3 Ablation (Optimizer) & 48 & 26 & 64.08 & 64.70 & 0.6333 \\
+\code{bcc134c9} & LargeCNN & RQ3 Ablation (Optimizer) & 48 & 18 & 63.64 & 63.17 & 0.6205 \\
+\code{08581b47} & ResNet50 & RQ2 (Size 48 vs 128) & 48 & 27 & 67.96 & 68.38 & 0.6669 \\
+\code{306cbb42} & EfficientNetB0 & RQ2 (Size 48 vs 128) & 48 & 30 & 64.89 & 65.51 & 0.6324 \\
+\code{3536896b} & VGG16 & RQ2 (Size 48 vs 128) & 48 & 13 & 67.93 & 69.66 & 0.6807 \\
+\code{626b7aba} & EfficientNetB0 & RQ2 SOTA (Pretrained) & 128 & 14 & 67.90 & 69.82 & 0.6975 \\
+\code{75fe2279} & ResNet50 & RQ2 (Scratch vs Pretrained) & 128 & 30 & 67.09 & 67.71 & 0.6633 \\
+\code{f5479079} & VGG16 & RQ2 (Scratch vs Pretrained) & 128 & 21 & 68.21 & 69.41 & 0.6768 \\
+\code{fad20310} & EfficientNetB0 & RQ2 (Scratch vs Pretrained) & 128 & 28 & 64.67 & 64.53 & 0.6212 \\
+\code{6d9a2327} & ResNet50 & RQ2 SOTA (Pretrained) & 128 & 19 & 70.47 & 70.77 & 0.6935 \\
+\code{e4b7d06c} & VGG16 & RQ2 SOTA (Pretrained) & 128 & 19 & 69.77 & \textbf{71.02} & \textbf{0.7073} \\
+\code{35093d88} & EfficientNetB0 & RQ3 Ablation (Augmentation) & 128 & 20 & 69.27 & 70.19 & 0.6988 \\
+\code{622a723e} & EfficientNetB0 & RQ3 Ablation (Augmentation) & 128 & 16 & 69.66 & 70.13 & 0.7001 \\
+\code{7498d3c0} & EfficientNetB0 & RQ3 Ablation (Augmentation) & 128 & 16 & 66.76 & 68.15 & 0.6657 \\
+\code{2f3cd08e} & EfficientNetB0 & RQ3 Ablation (Loss) & 128 & 28 & 70.08 & 69.69 & 0.6954 \\
+\code{a82a528f} & EfficientNetB0 & RQ3 Ablation (Loss) & 128 & 16 & 68.12 & 69.43 & 0.6848 \\
+\code{382d2ca2} & EfficientNetB0 & RQ3 Ablation (Loss) & 128 & 16 & 69.66 & 70.13 & 0.7001 \\
+\code{a312721f} & EfficientNetB0 & RQ3 Ablation (Scheduler) & 128 & 22 & 69.52 & 69.94 & 0.6892 \\
+\code{7348e1b1} & EfficientNetB0 & RQ3 Ablation (Scheduler) & 128 & 28 & 69.49 & 69.96 & 0.6946 \\
+\code{f97118d1} & EfficientNetB0 & RQ3 Ablation (Scheduler) & 128 & 16 & 69.66 & 70.13 & 0.7001 \\
 \end{longtable}
 \endgroup

@@ -30,3 +30,4 @@
     `Quality Gate: {'tex_files': 14, 'syntax_errors': 0, 'missing_figures': 0, 'contribution_total': 100.0}`
   - Bộ kiểm thử tự động: `16 passed in 6.00s` (`pytest BTL02/tests/test_latex_report.py -v`).
   - Gói `BTL02/docs/thesis/BTL02_Overleaf_Bundle.zip` đã sẵn sàng tải lên Overleaf / TeXstudio biên dịch không còn lỗi.
+
