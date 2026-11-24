@@ -1,0 +1,44 @@
+\chapter{Thiết kế hệ thống và chuyển đổi PyTorch}
+\section{Kiến trúc hướng đối tượng}
+Mô tả \texttt{BaseMigratedModel}, kiểm tra NCHW, đếm tham số và feature hooks; \texttt{BaseTrainer}, callbacks, logger, checkpoint, YAML và CLI theo mã nguồn snapshot.
+
+\section{Tái lập và nhật ký}
+Giải thích seed, generator/DataLoader, cấu hình và sự khác biệt giữa logger được kiểm thử độc lập với logger bị chặn trong luồng T0212.
+
+\section{Sơ đồ pipeline và trách nhiệm thành phần}
+Sơ đồ dưới đây là khung tổng quát; trước khi đưa thành sơ đồ nghiệm thu cần đối chiếu từng cạnh với runner/config snapshot. Thành phần có trong code nhưng không chạy được phải gắn trạng thái thay vì dùng ký hiệu như thể đã hoạt động end-to-end.
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[node distance=8mm and 9mm, every node/.style={draw,rounded corners,align=center,text width=30mm,minimum height=10mm,font=\small}]
+\node (legacy) {Keras legacy\\baseline/provenance};
+\node[right=of legacy] (data) {Dataset/config\\preprocessing};
+\node[right=of data] (model) {PyTorch model\\parameter audit};
+\node[below=of model] (trainer) {Trainer/callbacks\\logger/checkpoint};
+\node[left=of trainer] (cli) {CLI/smoke/tests\\T0212 snapshot};
+\draw[-{Stealth}] (legacy) -- (data);
+\draw[-{Stealth}] (data) -- (model);
+\draw[-{Stealth}] (model) -- (trainer);
+\draw[-{Stealth}] (trainer) -- (cli);
+\end{tikzpicture}
+\caption{Pipeline khái quát được dùng làm khung mô tả; logger T0212 còn BLOCKED và các smoke dùng synthetic fixtures.}
+\label{fig:btl03-pipeline-template}
+\end{figure}
+
+\section{Ma trận năm nhóm, mười cấu hình}
+\begin{longtable}{p{0.10\textwidth}p{0.30\textwidth}p{0.22\textwidth}p{0.28\textwidth}}
+\toprule Nhóm & Cấu hình/bài toán & Thành phần PyTorch & Điểm chuyển đổi, bằng chứng và giới hạn \\
+\midrule
+1 & FuncApxmMLP; MNISTMLP & \texttt{src/models/mlp.py} & T0201 sweep; T0202 MNIST full run \\
+2 & MNISTCNN; HumanGenderCNN; EmotionCNN & \texttt{src/models/cnn\_models.py} & NCHW; WIKI rot90; FER preprocessing \\
+3 & MNISTCNNLSTM & \texttt{src/models/cnn\_lstm.py} & Gộp/tách chiều thời gian \\
+4 & Gender callbacks; Emotion callbacks & trainer/callbacks và runners & Hai cấu hình utilities dùng lại kiến trúc nhóm 2 \\
+5 & SegNet; FCNObjectDetector & \texttt{src/models/segnet.py}, \texttt{obj\_detection.py} & Pixel logits; score-map và metric caveat \\
+\bottomrule
+\end{longtable}
+
+\section{CLI và kiểm thử}
+Ghi đúng giao diện CLI từ \texttt{src/train.py}; phân biệt unit test, smoke một epoch synthetic và full training. Ví dụ đổi layout:
+\begin{lstlisting}[style=python,caption={Đổi layout NHWC sang NCHW}]
+x_nchw = x_nhwc.permute(0, 3, 1, 2).contiguous()
+\end{lstlisting}
+Hình~\ref{fig:btl03-pipeline-template} không thay thế sơ đồ runner cụ thể; khi cập nhật cần gắn evidence ID hoặc sửa caption nếu các cạnh thay đổi.

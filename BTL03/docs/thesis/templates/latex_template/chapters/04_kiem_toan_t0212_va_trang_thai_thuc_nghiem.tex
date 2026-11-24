@@ -1,0 +1,73 @@
+\chapter{Kiểm toán T0212 và tình trạng thực nghiệm}
+\section{Nguồn, snapshot và phương pháp}
+Ghi commit snapshot, report T0212, CSV baseline, báo cáo task và quy tắc provenance. Report nội bộ được dẫn tại \cite{btl03_t0212_internal}.
+
+\section{Thiết kế kiểm toán và protocol}
+Mỗi kết quả phải chỉ rõ loại bằng chứng: model/code test, parameter count, synthetic smoke, legacy notebook metric hay PyTorch full-data run. Bảng acceptance cần ghi trạng thái, test/split, runtime, Run_ID và giới hạn; test count không thay thế metric khoa học.
+
+\section{Kiểm toán PR và trạng thái cổng chất lượng}
+Chỉ ghi kết quả audit có trong report; nêu trạng thái blocked và lý do. Không diễn giải audit nhánh thành xác nhận chất lượng mô hình.
+
+\section{Đối chiếu số tham số}
+\begin{longtable}{p{0.27\textwidth}r r r p{0.22\textwidth}}
+\toprule Cấu hình & Keras & PyTorch & Lệch & Ghi chú \\
+\midrule
+FuncApxmMLP (B=16) & 65* & 65 & 0 & *Công thức $4B+1$; summary số không lưu \\
+MNISTMLP & 669,706 & 669,706 & 0 & \\
+MNISTCNN & 1,817,610 & 1,817,610 & 0 & \\
+HumanGenderCNN & 4,063,570 & 4,063,570 & 0 & \\
+EmotionCNN & 19,028,287 & 19,028,287 & 0 & \\
+MNISTCNNLSTM & 1,747,073 & T0206: 1,746,049; T0207: 1,747,073 & Chưa chốt & Khác report 1,024 params; audit semantics/source \\
+HumanGenderCNN + callbacks & 4,063,570 & 4,063,570 & 0 & Kiến trúc Gender dùng lại \\
+EmotionCNN + callbacks & 19,028,287 & 19,028,287 & 0 & Kiến trúc Emotion dùng lại \\
+SegNet & 29,458,211 & 29,458,211 & 0 & Quy ước theo T0212 \\
+FCNObjectDetector & 83,367 & 83,367 & 0 & \\
+\bottomrule
+\end{longtable}
+Các số trên là parameter-count audit, không chứng minh parity đầu ra/độ chính xác. CNN-LSTM là ngoại lệ cần audit: baseline Keras và T0207 corrected ghi 1,747,073, còn T0206 ghi PyTorch 1,746,049. T0212 tổng hợp parity nhưng synthetic smoke không tự xác minh Keras parity; đối chiếu source snapshot và counting semantics trước khi chốt. SegNet cần đọc thêm total/trainable/non-trainable và quy ước BatchNorm tại báo cáo task.
+
+\section{Smoke-test và test suite}
+\begin{itemize}
+\item Report T0212: 10/10 synthetic one-epoch train/validation cases PASS; đây là smoke, không phải metric khoa học.
+\item Logger 10/10 BLOCKED do protobuf/TensorBoard; full suite các shard: 78 passed, 4 failed trên 82 test.
+\item Master CSV không đổi trong smoke; runtime CPU-only, CUDA không có.
+\end{itemize}
+
+\section{Trạng thái công việc tại snapshot}
+\begin{longtable}{p{0.16\textwidth}p{0.27\textwidth}p{0.25\textwidth}p{0.23\textwidth}}
+\toprule Hạng mục & Trạng thái thực tế & Bằng chứng & Tiếp theo \\
+\midrule
+T0201 & 36 cấu hình sweep; có CSV & report T0201, 36 dòng sweep & Không tuyên bố Keras metric parity: legacy numeric MSE thiếu \\
+T0202 & MNIST MLP chạy 30 epoch & report T0202 và master/epoch CSV & Giữ caveat protocol validation khác nhau \\
+T0203--T0205 & Code/parity; full-data runs chưa hoàn tất & reports và T0212 & Cung cấp data, chạy protocol đã chốt \\
+T0206--T0207 & Dataset/model tests; full run chưa hoàn tất, parameter count mâu thuẫn giữa hai report & reports và T0212 & Audit source/counting semantics; chạy MNIST đầy đủ, đánh giá đúng split \\
+T0208--T0209 & Callback code/tests; training bị blocker & reports và T0212 & Khắc phục môi trường logger \\
+T0210--T0211 & Code/shape/parity; data training chưa xác nhận & reports và T0212 & Dùng data thật, báo metric đúng nghĩa \\
+T0212 & Logger/full suite BLOCKED; 4 lỗi suite & report T0212 & Sửa compatibility rồi chạy lại \\
+WP03 & \textbf{[CHƯA THỰC HIỆN - DỰ KIẾN Ở GIAI ĐOẠN TIẾP THEO]} full training, ablation, trực quan hóa/phân tích chưa có bằng chứng hoàn tất & Workbook quản lý T0301--T0306: Todo; report T0212 & Chạy từng task, lưu config/log/artifact/report \\
+WP04 & \textbf{[CHƯA THỰC HIỆN - DỰ KIẾN Ở GIAI ĐOẠN TIẾP THEO]} demo/đóng gói cuối chưa nghiệm thu & Workbook quản lý T0401--T0406: Todo & Demo, tài liệu, audit và nộp theo charter \\
+\bottomrule
+\end{longtable}
+
+\section{Full-training metrics}
+Snapshot không có bảng PyTorch full-training cho mười cấu hình. Không đưa metric Keras vào cột PyTorch. Chỉ bổ sung khi có run, split, seed, config, runtime, CSV/checkpoint và protocol xác nhận.
+
+\section{Kết quả, thảo luận và tính hợp lệ}
+Kết luận trong chương này chỉ áp dụng cho snapshot T0212. Parameter-count audit đánh giá số tham số, smoke đánh giá một epoch synthetic, còn T0201/T0202 là run riêng có phạm vi/protocol riêng. Logger bị chặn và bốn test lỗi cần được trình bày trước mọi diễn giải chất lượng.
+
+\begin{table}[htbp]
+\centering
+\caption{Ma trận evidence và giới hạn suy luận tại snapshot T0212.}
+\label{tab:t0212-evidence-matrix}
+\begin{tabularx}{\textwidth}{p{0.22\textwidth}p{0.30\textwidth}Y}
+\toprule
+Loại evidence & Quan sát có nguồn & Không cho phép kết luận \\
+\midrule
+Parameter audit & 10 cấu hình được tổng hợp; CNN-LSTM có mâu thuẫn T0206/T0207 cần đối chiếu & Accuracy, output parity, gradient parity \\
+Synthetic smoke & 10/10 one-epoch train/validation cases PASS & Full training, generalization hoặc metric trên dữ liệu thật \\
+Logger/full suite & Logger BLOCKED; 78 pass, 4 fail theo shard & Không được mô tả T0212 là overall PASS \\
+T0201/T0202 runs & 36 sweep configs và một MNIST MLP run 30 epoch theo task report & Không đại diện cho tất cả mười cấu hình hoặc protocol đồng nhất \\
+\bottomrule
+\end{tabularx}
+\evidence{\texttt{docs/reports/T0201\_261122\_2112.md}, \texttt{T0202\_261122\_2112.md}, \texttt{T0212\_261123\_2130.md}; chi tiết trong manifest nội bộ.}
+\end{table}

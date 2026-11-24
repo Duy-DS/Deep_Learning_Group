@@ -1,0 +1,1749 @@
+\documentclass[12pt,a4paper,openany,oneside]{book}
+\usepackage{research-format}
+\hypersetup{pdftitle={Ứng dụng thuật toán phân cụm trong tối ưu hóa danh mục đầu tư cổ phiếu VN30},pdfauthor={Nhóm 4 - Lớp DDU1231}}
+\begin{document}
+\begin{titlepage}
+\thispagestyle{empty}
+\fontsize{13pt}{18pt}\selectfont
+\begin{center}
+{\bfseries\Large ỦY BAN NHÂN DÂN TP. HỒ CHÍ MINH\\TRƯỜNG ĐẠI HỌC SÀI GÒN\par}
+\vspace*{2cm}
+{\bfseries\huge TIỂU LUẬN MÔN HỌC\par}
+\vspace{0.5cm}
+{\bfseries PHƯƠNG PHÁP NGHIÊN CỨU KHOA HỌC CHO KHDL\\Mã MH: 858025\par}
+\vspace{2cm}
+\begin{minipage}{0.95\linewidth}
+\centering\bfseries\fontsize{18pt}{24pt}\selectfont
+ỨNG DỤNG THUẬT TOÁN PHÂN CỤM\\
+TRONG TỐI ƯU HÓA DANH MỤC ĐẦU TƯ\\
+CỔ PHIẾU VN30\par
+\end{minipage}\par
+\vspace{2cm}
+\begin{minipage}{0.9\linewidth}
+\textbf{DANH SÁCH NHÓM 4}\hfill\textbf{Lớp: DDU1231}\par
+\vspace{0.3cm}
+\begin{tabular}{@{}l@{\hspace{0.5cm}}l@{\hspace{1.2cm}}l@{}}
+\textbf{STT} & \textbf{Họ và tên} & \textbf{MSSV} \\[0.15cm]
+1 & Nguyễn Công Trí & 3123580056 \\[0.15cm]
+2 & Trần Chí Vỹ & 3123580065 \\[0.15cm]
+3 & Nguyễn Thành Đạt & 3123580009 \\[0.15cm]
+4 & Nguyễn Tấn Duy & 3123580008 \\[0.15cm]
+5 & Đinh Thái Toàn & 3123580054
+\end{tabular}
+\vspace{0.5cm}\par
+\textbf{GIẢNG VIÊN GIẢNG DẠY:} ThS. Trương Hoàng Huy
+\end{minipage}
+\vfill
+{\bfseries Thành phố Hồ Chí Minh\\2026\par}
+\end{center}
+\end{titlepage}
+
+\frontmatter
+\tableofcontents
+
+\unnumberedchapter{KÝ HIỆU VIẾT TẮT, THUẬT NGỮ VÀ NHÃN DANH MỤC}\label{Toc227188403}
+\section{Ký hiệu và chữ viết tắt}\label{Toc227188404}
+\begingroup
+\ResearchTableSetup{4}
+\begin{longtable}{L{0.06}L{0.20}L{0.33}L{0.41}}
+\caption*{Ký hiệu và chữ viết tắt}\\
+\toprule
+\textbf{STT} & \textbf{Ký hiệu / chữ viết tắt} & \textbf{Thuật ngữ tiếng Anh} & \textbf{Thuật ngữ tiếng Việt} \\
+\midrule
+\endfirsthead
+\caption*{Ký hiệu và chữ viết tắt (tiếp)}\\
+\toprule
+\textbf{STT} & \textbf{Ký hiệu / chữ viết tắt} & \textbf{Thuật ngữ tiếng Anh} & \textbf{Thuật ngữ tiếng Việt} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{4}{r}{\footnotesize\itshape Tiếp ở trang sau}\\
+\endfoot
+\bottomrule
+\endlastfoot
+1 & VN30 & Vietnam 30 Index & Chỉ số VN30 \\
+\addlinespace[3pt]
+2 & HOSE & Ho Chi Minh Stock Exchange & Sở Giao dịch Chứng khoán Thành phố Hồ Chí Minh \\
+\addlinespace[3pt]
+3 & GMV & Global Minimum Variance & Danh mục có phương sai nhỏ nhất toàn cục \\
+\addlinespace[3pt]
+4 & \(Rf\), \(r\_f\) & Risk-free rate & Lãi suất phi rủi ro \\
+\addlinespace[3pt]
+5 & \(K\) & Number of clusters & Số cụm \\
+\addlinespace[3pt]
+6 & \(w\) & Portfolio weight vector & Vector tỷ trọng danh mục \\
+\addlinespace[3pt]
+7 & \(\mu\) & Expected return vector & Vector tỷ suất sinh lợi kỳ vọng \\
+\addlinespace[3pt]
+8 & \(\Sigma\) & Covariance matrix & Ma trận hiệp phương sai \\
+\addlinespace[3pt]
+9 & \(\rho\) & Correlation coefficient & Hệ số tương quan \\
+\addlinespace[3pt]
+10 & \(\sigma\) & Standard deviation & Độ lệch chuẩn \\
+\end{longtable}
+\endgroup
+\section{Thuật ngữ tiếng Anh - tiếng Việt}\label{Toc227188405}
+\begingroup
+\ResearchTableSetup{4}
+\begin{longtable}{L{0.06}L{0.23}L{0.24}L{0.47}}
+\caption*{Thuật ngữ tiếng Anh - tiếng Việt}\\
+\toprule
+\textbf{STT} & \textbf{Thuật ngữ tiếng Anh} & \textbf{Thuật ngữ tiếng Việt} & \textbf{Ghi chú sử dụng} \\
+\midrule
+\endfirsthead
+\caption*{Thuật ngữ tiếng Anh - tiếng Việt (tiếp)}\\
+\toprule
+\textbf{STT} & \textbf{Thuật ngữ tiếng Anh} & \textbf{Thuật ngữ tiếng Việt} & \textbf{Ghi chú sử dụng} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{4}{r}{\footnotesize\itshape Tiếp ở trang sau}\\
+\endfoot
+\bottomrule
+\endlastfoot
+1 & Markowitz & mô hình Markowitz & Khung tối ưu hóa danh mục trung tâm của đề tài, dựa trên lợi suất kỳ vọng và ma trận hiệp phương sai. \\
+\addlinespace[3pt]
+2 & hierarchical clustering & phân cụm phân cấp & Là phương pháp phân cụm chính được sử dụng trong đề tài. \\
+\addlinespace[3pt]
+3 & Ward linkage & liên kết Ward & Dùng để xác định tiêu chuẩn gộp cụm trong phân cụm phân cấp. \\
+\addlinespace[3pt]
+4 & backtest & kiểm định trên dữ liệu lịch sử & Dùng khi đánh giá hiệu quả danh mục trên dữ liệu quá khứ. \\
+\addlinespace[3pt]
+5 & in-sample & trong mẫu & Chỉ giai đoạn dữ liệu dùng để ước lượng hoặc tối ưu. \\
+\addlinespace[3pt]
+6 & out-of-sample & ngoài mẫu & Chỉ giai đoạn dữ liệu dùng để kiểm định sau bước ước lượng. \\
+\addlinespace[3pt]
+7 & Sharpe ratio & hệ số Sharpe & Chỉ tiêu đo lợi suất điều chỉnh theo rủi ro. \\
+\addlinespace[3pt]
+8 & Max Drawdown & mức sụt giảm vốn cực đại & Phản ánh mức suy giảm lớn nhất từ đỉnh đến đáy. \\
+\addlinespace[3pt]
+9 & cluster caps & trần tỷ trọng theo cụm & Ràng buộc giới hạn tổng tỷ trọng được phép dồn vào từng cụm cổ phiếu. \\
+\addlinespace[3pt]
+10 & long-only & không bán khống & Chỉ cho phép tỷ trọng không âm đối với mọi tài sản trong danh mục. \\
+\addlinespace[3pt]
+11 & full-investment & đầu tư toàn bộ vốn & Ràng buộc tổng tỷ trọng bằng 1, tức toàn bộ vốn được phân bổ vào danh mục. \\
+\addlinespace[3pt]
+12 & target return & mức sinh lợi mục tiêu & Ngưỡng lợi suất danh mục phải đạt trong nhánh Aggressive. \\
+\addlinespace[3pt]
+13 & feasibility & tính khả thi của nghiệm & Dùng để chỉ việc nghiệm có thỏa đầy đủ các ràng buộc đầu tư và kiểm tra hậu nghiệm hay không. \\
+\addlinespace[3pt]
+14 & rebalancing & tái cân bằng danh mục & Chỉ việc cập nhật lại tỷ trọng danh mục tại từng kỳ rolling. \\
+\end{longtable}
+\endgroup
+\section{Nhãn danh mục và cấu hình đánh giá}\label{Toc227188406}
+\begingroup
+\ResearchTableSetup{4}
+\begin{longtable}{L{0.06}L{0.23}L{0.41}L{0.30}}
+\caption*{Nhãn danh mục và cấu hình đánh giá}\\
+\toprule
+\textbf{STT} & \textbf{Nhãn trong báo cáo} & \textbf{Diễn giải ngắn} & \textbf{Vai trò sử dụng} \\
+\midrule
+\endfirsthead
+\caption*{Nhãn danh mục và cấu hình đánh giá (tiếp)}\\
+\toprule
+\textbf{STT} & \textbf{Nhãn trong báo cáo} & \textbf{Diễn giải ngắn} & \textbf{Vai trò sử dụng} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{4}{r}{\footnotesize\itshape Tiếp ở trang sau}\\
+\endfoot
+\bottomrule
+\endlastfoot
+1 & Equal-Weight & Danh mục phân bổ đều tỷ trọng giữa các cổ phiếu trong universe nghiên cứu. & Đóng vai trò danh mục chuẩn đối chiếu xuyên suốt các tầng đánh giá. \\
+\addlinespace[3pt]
+2 & GMV Defensive & Nghiệm tối ưu đại diện cho định hướng phòng thủ trong khung Markowitz có ràng buộc theo cụm. & Danh mục tĩnh đại diện cho mục tiêu kiểm soát rủi ro. \\
+\addlinespace[3pt]
+3 & Aggressive & Nghiệm tối ưu đại diện cho định hướng theo đuổi mức sinh lợi cao hơn trong cùng khung ràng buộc. & Danh mục tĩnh đối ứng với GMV Defensive ở lớp tối ưu trong mẫu. \\
+\addlinespace[3pt]
+4 & Rolling Defensive & Phiên bản rolling ngoài mẫu của nhánh phòng thủ, được ước lượng lại theo từng cửa sổ dữ liệu. & Danh mục so sánh chính ở tầng backtest rolling ngoài mẫu. \\
+\addlinespace[3pt]
+5 & Aggressive rolling - Thuần & Nhánh ghi nhận kết quả rolling aggressive chỉ trên các kỳ mà nghiệm khả thi ngay tại thời điểm giải bài toán. & Lớp chẩn đoán nghiêm ngặt hơn của nhánh aggressive ngoài mẫu. \\
+\addlinespace[3pt]
+6 & Aggressive rolling - Lai & Nhánh ghi nhận kết quả rolling aggressive trên các kỳ mà phương án aggressive vẫn còn khả thi sau bước kiểm tra và điều chỉnh. & Lớp chẩn đoán bổ sung, không được đọc như một danh mục chuẩn đối chiếu chính. \\
+\end{longtable}
+\endgroup
+
+\listoffigures
+\label{Toc227188407}
+\listoftables
+\label{Toc227188408}
+
+\unnumberedchapter{TÓM TẮT ĐỀ TÀI}\label{Toc227188409}
+Tiểu luận trình bày nghiên cứu của nhóm về việc kết hợp phân cụm với mô hình Markowitz để xây dựng danh mục cổ phiếu VN30. Dữ liệu giá lịch sử từ 02/01/2020 đến 28/11/2025 được làm sạch thành bảng cân bằng theo ngày giao dịch với 29 mã. Từ lợi suất, tương quan và hiệp phương sai, nhóm áp dụng phân cụm phân cấp Ward để nhận diện 4 cụm, rồi đưa thông tin nhóm vào các ràng buộc kiểm soát tỷ trọng. GMV Defensive và Aggressive được đánh giá qua kết quả tĩnh trong mẫu và backtest rolling ngoài mẫu, với Equal-Weight làm mốc đối chiếu. Kết quả cho thấy thông tin cụm hỗ trợ tổ chức phân bổ và kiểm soát rủi ro, thể hiện rõ ở định hướng phòng thủ; yêu cầu sinh lợi cao hơn đi cùng độ nhạy và giới hạn về tính khả thi. Phân cụm trong quy trình này không dự báo trực tiếp lợi suất, và các kết quả được diễn giải trong phạm vi dữ liệu, giả định cùng thiết kế đánh giá đã sử dụng.
+
+\mainmatter
+\unnumberedchapter{PHẦN MỞ ĐẦU}\label{Toc227188410}
+\section{Lý do chọn đề tài}\label{Toc227188411}
+Xây dựng danh mục cổ phiếu là bài toán phân bổ vốn trong điều kiện lợi nhuận tương lai chưa chắc chắn. Nhà đầu tư phải đồng thời cân nhắc khả năng sinh lợi và mức tổn thất có thể chấp nhận. Với vai trò của chứng khoán trong huy động và phân bổ vốn, việc sử dụng phương pháp định lượng để giải quyết bài toán này có ý nghĩa cả về lý thuyết lẫn thực hành.
+
+Mô hình Markowitz cung cấp cơ sở lựa chọn tỷ trọng tài sản dựa trên lợi nhuận kỳ vọng và rủi ro. Tuy nhiên, một danh mục gồm nhiều mã chưa chắc đã đa dạng hóa tốt nếu các mã đó thường biến động cùng chiều. Bên cạnh số lượng tài sản, cấu trúc tương quan vì thế là vấn đề cần xem xét khi đánh giá mức độ tập trung của danh mục.
+
+Đối với nhóm VN30, quy mô vốn hóa và thanh khoản cao không làm mất đi sự khác biệt giữa các cổ phiếu về sinh lợi, biến động và mức độ tương đồng. Việc nhận diện những nhóm có hành vi gần nhau có thể bổ sung thông tin cho quyết định phân bổ vốn. Đây là lý do tiểu luận xem xét phân cụm cùng với tối ưu hóa Markowitz thay vì chỉ xét từng cổ phiếu riêng lẻ.
+
+Từ bài toán trên, nhóm lựa chọn đề tài “Ứng dụng thuật toán phân cụm để xây dựng và tối ưu hoá danh mục đầu tư chứng khoán”. Tiểu luận tập trung vào cách kết hợp phân cụm với Markowitz trên tập cổ phiếu VN30, qua đó làm rõ khả năng hỗ trợ đa dạng hóa theo cấu trúc và kiểm soát mức độ tập trung khi xây dựng danh mục.
+
+\section{Lịch sử nghiên cứu vấn đề}\label{Toc227188412}
+\subsection{Tình hình nghiên cứu trên thế giới}
+Từ nền tảng Markowitz (1952), các nghiên cứu danh mục từng bước mở rộng việc phân tích rủi ro - lợi nhuận sang quan hệ giữa các tài sản. Khi dữ liệu tài chính phong phú hơn, việc ước lượng ma trận hiệp phương sai được bổ sung bằng các phương pháp nhận diện nhóm cổ phiếu có hành vi tương đồng. Hướng tiếp cận này đặt cấu trúc phụ thuộc giữa tài sản vào quá trình xem xét đa dạng hóa.
+
+Tola (2008) nhấn mạnh khả năng sử dụng phân cụm để giảm ảnh hưởng của sai số thống kê trên ma trận tương quan. Nanda và cộng sự (2010) thử nghiệm K-means, SOM và FCM tại thị trường Bombay, với kết quả đáng chú ý của K-means khi đối chiếu chỉ số thị trường. Nejad (2014) tiếp tục kết hợp phân cụm với các thuật toán tiến hóa như Ant Colony và PSO nhằm tăng đa dạng hóa và giảm rủi ro danh mục.
+
+Các hướng ứng dụng sau đó khai thác thêm thông tin ngoài chuỗi lợi suất. Issakainen (2023) kết hợp phân cụm với P/E, P/CF và P/B để xây dựng chiến lược đầu tư giá trị tự động tại Phần Lan. JuHyok U và cộng sự (2024) sử dụng mô hình lai K-means và PSO với dữ liệu giá cùng báo cáo tài chính. Những công trình này cho thấy phân cụm có thể cung cấp thông tin bổ sung cho nhiều cách thiết kế danh mục.
+
+\subsection{Tình hình nghiên cứu tại Việt Nam}
+Ở Việt Nam, các nghiên cứu ban đầu chủ yếu vận dụng mô hình tài chính truyền thống. Võ Thị Thúy Anh (2012) và Trần Văn Trí (2015) khai thác Markowitz và CAPM để phân tích cơ sở định lượng của lựa chọn danh mục. Các công trình của Lê Vũ Hằng Nga và Huỳnh Thị Thùy Dương mô phỏng đường biên hiệu quả trên tập cổ phiếu còn hạn chế, thiên về kiểm chứng và minh họa khuôn khổ lý thuyết.
+
+Hướng kết hợp phân cụm với tối ưu hóa danh mục được thể hiện trong nghiên cứu của Bùi Quốc Hoàn (2022). Công trình sử dụng phân cụm chuỗi thời gian với khoảng cách Pearson cùng mô hình Markowitz để xây dựng danh mục tối ưu trên HOSE. Cách tiếp cận này bổ sung việc nhận diện cấu trúc tương đồng giữa cổ phiếu vào quy trình phân bổ vốn.
+
+So với các hướng nghiên cứu quốc tế đã nêu, việc khai thác phân cụm cho từng nhóm cổ phiếu cụ thể tại Việt Nam vẫn còn dư địa. Tiểu luận lựa chọn VN30 làm phạm vi khảo sát để xem xét rõ hơn mối liên hệ giữa cấu trúc cụm, ràng buộc phân bổ và kết quả tối ưu hóa danh mục.
+
+\section{Mục đích và nhiệm vụ của nghiên cứu}\label{Toc227188413}
+\subsection{Mục đích nghiên cứu}
+Tiểu luận xem xét khả năng bổ sung thông tin phân cụm vào mô hình Markowitz để xây dựng danh mục cổ phiếu VN30. Câu hỏi trọng tâm là liệu việc nhận diện các nhóm có biến động tương đồng có thể hỗ trợ đa dạng hóa, hạn chế tập trung rủi ro và giúp phân bổ tỷ trọng hợp lý hơn hay không.
+
+\subsection{Nhiệm vụ nghiên cứu}
+Các nhiệm vụ được triển khai theo trình tự sau:
+
+\begin{itemize}
+\item Hệ thống hóa cơ sở lý luận về đầu tư, danh mục đầu tư, rủi ro, tỷ suất sinh lợi, đa dạng hóa, mô hình Markowitz và phân cụm trong phân tích dữ liệu tài chính.
+
+\item Thu thập, làm sạch và chuẩn hóa dữ liệu giá lịch sử của các cổ phiếu thuộc phạm vi nghiên cứu.
+
+\item Xây dựng chuỗi lợi suất và các đại lượng thống kê cần thiết như ma trận tương quan, ma trận hiệp phương sai và ma trận khoảng cách làm đầu vào cho phân tích.
+
+\item Áp dụng phương pháp phân cụm phân cấp để nhận diện các nhóm cổ phiếu có cấu trúc biến động tương đồng trong tập cổ phiếu nghiên cứu.
+
+\item Tích hợp kết quả phân cụm vào mô hình Markowitz nhằm hỗ trợ đa dạng hóa và kiểm soát mức độ tập trung theo nhóm cổ phiếu, từ đó xây dựng các danh mục đầu tư đại diện.
+
+\item Đánh giá kết quả thông qua so sánh tĩnh trong mẫu và rolling ngoài mẫu với danh mục chuẩn, từ đó rút ra nhận xét về ý nghĩa của cách tiếp cận đề xuất.
+\end{itemize}
+
+\section{Đối tượng và phạm vi nghiên cứu}\label{Toc227188414}
+\subsection{Đối tượng nghiên cứu}
+Đối tượng nghiên cứu là quy trình kết hợp phân cụm với Markowitz để xây dựng và đánh giá danh mục cổ phiếu. Nhóm tập trung vào bước chuyển thông tin về các cụm tương đồng thành ràng buộc phân bổ tỷ trọng, qua đó kiểm soát sự tập trung của danh mục.
+
+\subsection{Phạm vi nghiên cứu}
+Phạm vi không gian gồm các cổ phiếu thuộc VN30 niêm yết trên Sở Giao dịch Chứng khoán Thành phố Hồ Chí Minh (HOSE). Nhóm cổ phiếu này có vốn hóa lớn và thanh khoản cao, phù hợp với phạm vi khảo sát đã lựa chọn.
+
+Dữ liệu giá lịch sử được khảo sát từ ngày 02/01/2020 đến ngày 28/11/2025. Khoảng thời gian này bao gồm nhiều trạng thái thị trường, là cơ sở để phân tích tương quan, hình thành các cụm và đánh giá danh mục trong phạm vi nghiên cứu.
+
+Nội dung tiểu luận bao gồm thu thập và tiền xử lý dữ liệu, tính lợi suất và các đại lượng thống kê, phân cụm cổ phiếu, tích hợp ràng buộc vào Markowitz, rồi so sánh danh mục với mốc chuẩn ở cả tầng tĩnh trong mẫu và rolling ngoài mẫu. Phạm vi này không bao gồm dự báo giá hay xác lập một cấu hình đầu tư tối ưu cho mọi giai đoạn. Chi phí giao dịch, thuế, bán khống và các mô hình định giá mở rộng cũng chưa được xem xét chuyên sâu.
+
+\section{Phương pháp nghiên cứu}\label{Toc227188415}
+Nhóm sử dụng phương pháp định lượng, kết hợp xử lý dữ liệu tài chính, thống kê, phân cụm và tối ưu hóa danh mục.
+
+Dữ liệu giá trước hết được thu thập, chuẩn hóa và làm sạch để thống nhất đầu vào. Từ chuỗi giá, nhóm tính lợi suất và xây dựng các ma trận tương quan, hiệp phương sai, khoảng cách nhằm mô tả biến động và quan hệ giữa các cổ phiếu.
+
+Phân cụm phân cấp với liên kết Ward được áp dụng để nhận diện các nhóm có đặc điểm thống kê gần nhau. Thông tin này được chuyển thành ràng buộc trong mô hình Markowitz, phục vụ đa dạng hóa và kiểm soát tỷ trọng tập trung.
+
+Đánh giá tĩnh trong mẫu mô tả đặc điểm rủi ro - lợi nhuận của các danh mục đại diện. Backtest rolling ngoài mẫu xem xét các đặc điểm đó khi tham số và cấu trúc đầu vào được cập nhật theo thời gian. Ở mỗi tầng, nhóm đối chiếu với danh mục chuẩn để diễn giải kết quả trong đúng điều kiện đánh giá.
+
+\section{Cấu trúc của đề tài}\label{Toc227188416}
+Ngoài mở đầu, kết luận và tài liệu tham khảo, tiểu luận gồm các chương sau:
+
+Chương~\ref{Toc227188417}. Cơ sở lý thuyết
+
+Giới thiệu các khái niệm về đầu tư danh mục, lợi suất, rủi ro và đa dạng hóa; trình bày mô hình Markowitz và cơ sở sử dụng phân cụm trong dữ liệu tài chính.
+
+Chương~\ref{Toc227188426}. Dữ liệu và tiền xử lý dữ liệu
+
+Mô tả nguồn dữ liệu, phạm vi khảo sát và các bước xử lý để tạo bộ dữ liệu cân bằng, nhất quán cho phân tích.
+
+Chương~\ref{Toc227188433}. Phân cụm cổ phiếu và xây dựng cấu trúc dữ liệu đầu vào cho tối ưu hóa danh mục
+
+Trình bày cấu trúc tương quan, phân cụm phân cấp với liên kết Ward, lựa chọn số cụm và đặc điểm từng nhóm; chuẩn bị đầu vào cho tối ưu hóa.
+
+Chương~\ref{Toc227188439}. Xây dựng và tối ưu hóa danh mục đầu tư
+
+Giải thích cách đưa thông tin cụm vào Markowitz để xây dựng các danh mục theo mục tiêu khác nhau và xác lập thiết kế đánh giá tĩnh trong mẫu, rolling ngoài mẫu.
+
+Chương~\ref{Toc227188446}. Thực nghiệm, kết quả và thảo luận
+
+Đối chiếu các danh mục với mốc chuẩn, phân tích cơ cấu và chỉ tiêu rủi ro - lợi nhuận, đồng thời thảo luận ý nghĩa của kết quả thực nghiệm.
+
+Phần kết luận
+
+Tổng hợp kết quả, nêu giới hạn và các hướng có thể phát triển tiếp từ nghiên cứu của nhóm.
+
+Mã nguồn, dữ liệu và các tệp phục vụ tái lập nghiên cứu của đề tài được công khai tại kho lưu trữ công khai: \url{https://github.com/nguyen-cong-tri/vn30-clustered-portfolio-optimization}. Kho lưu trữ này cung cấp các notebook phân tích, dữ liệu đầu vào và các artifact chính phục vụ kiểm tra lại quy trình thực nghiệm của nghiên cứu.
+
+\numberedchapters
+\chapter{CƠ SỞ LÝ THUYẾT}\label{Toc227188417}
+Cơ sở lý thuyết được trình bày chủ yếu theo giáo trình Đầu tư Tài chính của Bodie, Kane và Marcus \cite{ref05}. Các nội dung về đa dạng hóa, Markowitz, phân cụm và đánh giá danh mục được đối chiếu với những tài liệu liên quan \cite{ref01}, \cite{ref02}, \cite{ref03}, \cite{ref04}, \cite{ref10}, \cite{ref11}.
+
+\section{Khái niệm về đầu tư và danh mục đầu tư}\label{Toc227188418}
+Đầu tư là việc sử dụng nguồn lực hiện tại để kỳ vọng nhận được lợi ích trong tương lai. Trong tài chính, nguồn vốn có thể được phân bổ vào cổ phiếu, trái phiếu, chứng chỉ quỹ hoặc công cụ tiền tệ. Do kết quả chưa được biết tại thời điểm ra quyết định, mục tiêu sinh lợi luôn đi cùng yêu cầu quản trị rủi ro.
+
+Danh mục đầu tư là tập hợp tài sản được nắm giữ theo một cơ cấu phân bổ vốn. Khi đánh giá danh mục, cần xem xét hành vi của các tài sản trong sự kết hợp với nhau, thay vì chỉ cộng các triển vọng riêng lẻ. Cơ cấu được lựa chọn phải tạo ra đặc tính lợi nhuận và rủi ro phù hợp với mục tiêu của nhà đầu tư.
+
+Hai quyết định cần phân biệt là phân bổ tài sản (asset allocation) và lựa chọn chứng khoán (security selection). Phân bổ tài sản xác định lượng vốn dành cho từng nhóm hoặc vị thế, thể hiện định hướng rủi ro - lợi nhuận của danh mục. Lựa chọn chứng khoán xác định tài sản cụ thể được đưa vào từng nhóm. Cả hai quyết định cùng ảnh hưởng đến chất lượng danh mục nhưng giải quyết những câu hỏi khác nhau.
+
+Giá cổ phiếu phản ánh cả điều kiện riêng của doanh nghiệp lẫn diễn biến chung của thị trường. Vì vậy, nhận diện cổ phiếu tiềm năng mới chỉ là một phần của quyết định đầu tư. Phần còn lại là kết hợp chúng sao cho lợi nhuận kỳ vọng phù hợp với mức rủi ro chấp nhận được.
+
+\section{Rủi ro, tỷ suất sinh lợi và mối quan hệ giữa chúng}\label{Toc227188419}
+Tỷ suất sinh lợi mô tả mức thay đổi giá trị tài sản trong một khoảng thời gian, còn rủi ro thể hiện sự bất định quanh kết quả kỳ vọng. Hai đại lượng phải được đọc cùng nhau: mức sinh lợi cao thường đi kèm biến động lớn hơn trong quá trình nắm giữ.
+
+Tỷ suất sinh lợi đơn giản của tài sản tại thời điểm \(t\) được xác định bởi:
+
+\begin{equation}\label{eq:theory-01}
+{R}_{t}=\frac{{P}_{t}-{P}_{t-1}}{{P}_{t-1}}
+\end{equation}
+
+Trong đó, \({P}_{t}\) là giá tài sản tại thời điểm \(t\), \({P}_{t-1}\) là giá tại thời điểm liền trước, và \({R}_{t}\) là tỷ suất sinh lợi đơn giản trong một kỳ. Công thức này cho biết giá trị tài sản đã tăng hoặc giảm bao nhiêu phần trăm so với mức giá ban đầu, nên thường được dùng để diễn giải trực tiếp mức lãi hoặc lỗ của nhà đầu tư trong một kỳ quan sát.
+
+Trong nhiều nghiên cứu định lượng, tỷ suất sinh lợi logarit được sử dụng do thuận tiện cho việc cộng gộp theo thời gian và xử lý thống kê:
+
+\begin{equation}\label{eq:theory-02}
+{r}_{t}=\operatorname{ln}\left(\frac{{P}_{t}}{{P}_{t-1}}\right)
+\end{equation}
+
+Ở đây, \({r}_{t}\) là tỷ suất sinh lợi logarit của tài sản tại thời điểm \(t\), còn \(\operatorname{ln}\left(\cdot\right)\) là logarit tự nhiên. Đại lượng này phản ánh mức thay đổi tương đối của giá tài sản trên thang logarit, giúp việc mô hình hóa chuỗi lợi suất trở nên nhất quán hơn khi phân tích dữ liệu nhiều kỳ.
+
+Trong thực nghiệm, tỷ suất sinh lợi kỳ vọng của tài sản thường được ước lượng bằng trung bình của chuỗi lợi suất lịch sử:
+
+\begin{equation}\label{eq:theory-03}
+E\left({R}_{i}\right)=\frac{1}{n}\sum_{t=1}^{n}{{R}_{i,t}}
+\end{equation}
+
+Trong đó, \(E\left({R}_{i}\right)\) là tỷ suất sinh lợi kỳ vọng của tài sản \(i\), \(\left({R}_{i,t}\right)\) là lợi suất của tài sản \(i\) tại kỳ \(t\), và \(n\) là số quan sát trong mẫu. Đại lượng này đại diện cho mức sinh lợi trung bình mà nhà đầu tư có thể kỳ vọng từ tài sản nếu xem dữ liệu quá khứ là một cơ sở tham chiếu cho tương lai gần.
+
+Rủi ro của tài sản thường được đo bằng độ lệch chuẩn của lợi suất:
+
+\begin{equation}\label{eq:theory-04}
+{\sigma}_{i}=\sqrt{\frac{1}{n-1}\sum_{t=1}^{n}{{\left({R}_{i,t}-\bar{{R}_{i}}\right)}^{2}}}
+\end{equation}
+
+Trong đó, \({\sigma}_{i}\) là độ lệch chuẩn của lợi suất tài sản \(i\), \({R}_{i,t}\) là lợi suất quan sát tại kỳ \(t\), \(\bar{{R}_{i}}\) là lợi suất trung bình của tài sản \(i\) trong mẫu, và \(n\) là số quan sát. Độ lệch chuẩn càng lớn thì lợi suất thực tế càng phân tán mạnh quanh giá trị trung bình, đồng nghĩa với mức độ bất định của khoản đầu tư càng cao.
+
+Khi đánh giá phần thưởng nhận được cho việc chấp nhận rủi ro, nhà đầu tư thường quan tâm đến phần bù rủi ro:
+
+\begin{equation}\label{eq:theory-05}
+R{P}_{i}=E\left({R}_{i}\right)-{r}_{f}
+\end{equation}
+
+Trong đó, \(R{P}_{i}\) là phần bù rủi ro của tài sản \(i\), \(E\left({R}_{i}\right)\) là tỷ suất sinh lợi kỳ vọng của tài sản đó, và \({r}_{f}\) là lãi suất phi rủi ro. Đại lượng này cho biết mức sinh lợi vượt trội mà tài sản phải tạo ra so với một khoản đầu tư gần như không có rủi ro, từ đó phản ánh mức đền bù mà nhà đầu tư nhận được khi chấp nhận nắm giữ tài sản rủi ro.
+
+Lợi suất kỳ vọng và độ lệch chuẩn mô tả hai mặt sinh lợi và biến động của khoản đầu tư. Phần bù rủi ro bổ sung góc nhìn về mức đền bù so với tài sản phi rủi ro. Đây là các đại lượng đầu vào để phân tích cổ phiếu và lựa chọn cơ cấu vốn cho danh mục.
+
+\section{Đa dạng hóa và rủi ro danh mục đầu tư}\label{Toc227188420}
+Nội dung đa dạng hóa được đối chiếu với nghiên cứu về độ đo rủi ro đa trị \cite{ref02} và tài liệu xây dựng, quản lý danh mục trong bối cảnh Việt Nam \cite{ref04}.
+
+Đa dạng hóa dựa trên việc kết hợp các tài sản có diễn biến không hoàn toàn giống nhau để giảm rủi ro chung. Khi chúng phản ứng khác nhau trước thông tin thị trường, tổn thất ở một tài sản có thể được bù đắp một phần bởi sự ổn định hoặc tăng giá của tài sản khác. Vì thế, hiệu quả đa dạng hóa phụ thuộc vào cách kết hợp chứ không chỉ vào số lượng tài sản.
+
+Rủi ro phi hệ thống (unsystematic risk) xuất phát từ đặc thù doanh nghiệp hoặc ngành, như quản trị, kết quả kinh doanh, cạnh tranh và các sự kiện nội tại. Do các tác động này không đồng đều giữa tài sản, đa dạng hóa có thể giảm đáng kể phần rủi ro đó. Rủi ro hệ thống (systematic risk) gắn với lãi suất, lạm phát, chu kỳ kinh tế và cú sốc vĩ mô. Ngay cả danh mục rộng cũng khó loại bỏ hoàn toàn tác động chung này.
+
+Tương quan giữa tài sản quyết định mức độ bù trừ biến động trong danh mục. Nếu các mã thường tăng giảm cùng chiều với cường độ lớn, lợi ích phân tán rủi ro sẽ hạn chế. Mức đồng biến thấp hoặc quan hệ ngược chiều tạo điều kiện giảm biến động chung. Do đó, phân tích rủi ro cần xét cả từng cổ phiếu và quan hệ hiệp phương sai, tương quan giữa chúng.
+
+Tỷ suất sinh lợi kỳ vọng của danh mục được xác định như trung bình có trọng số của tỷ suất sinh lợi kỳ vọng từng tài sản:
+
+\begin{equation}\label{eq:theory-06}
+E\left({R}_{p}\right)=\sum_{i=1}^{n}{{w}_{i}E\left({R}_{i}\right)}
+\end{equation}
+
+Trong đó, \(E\left({R}_{p}\right)\) là tỷ suất sinh lợi kỳ vọng của danh mục, \({w}_{i}\) là tỷ trọng vốn phân bổ vào tài sản \(i\), và \(E\left({R}_{i}\right)\) là tỷ suất sinh lợi kỳ vọng của tài sản đó. Công thức này cho thấy lợi suất kỳ vọng của danh mục phụ thuộc tuyến tính vào cơ cấu phân bổ vốn, nên nhà đầu tư có thể điều chỉnh mức sinh lợi kỳ vọng bằng cách thay đổi tỷ trọng giữa các tài sản.
+
+Rủi ro danh mục còn phụ thuộc vào quan hệ đồng biến động, nên không thể tính bằng trung bình đơn giản của rủi ro từng tài sản:
+
+\begin{equation}\label{eq:theory-07}
+{\sigma}_{p}^{2}=\sum_{i=1}^{n}{\sum_{j=1}^{n}{{w}_{i}{w}_{j}}\operatorname{Cov}\left({R}_{i},{R}_{j}\right)}
+\end{equation}
+
+Trong đó, \({\sigma}_{p}^{2}\) là phương sai của danh mục, \({w}_{i}\) và \({w}_{j}\) là tỷ trọng của hai tài sản \(i\) và \(j\), còn \(\operatorname{Cov}\left({R}_{i},{R}_{j}\right)\) là hiệp phương sai giữa lợi suất của chúng. Công thức này hàm ý rằng rủi ro danh mục được quyết định đồng thời bởi mức độ rủi ro của từng tài sản riêng lẻ và mức độ chúng cùng biến động với nhau.
+
+Trong trường hợp danh mục chỉ gồm hai tài sản, biểu thức trên có thể viết rõ hơn dưới dạng:
+
+\begin{equation}\label{eq:theory-08}
+{\sigma}_{p}^{2}={w}_{1}^{2}{\sigma}_{1}^{2}+{w}_{2}^{2}{\sigma}_{2}^{2}+2{w}_{1}{w}_{2}{\rho}_{12}{\sigma}_{1}{\sigma}_{2}
+\end{equation}
+
+Ở đây, \({w}_{1}\) và \({w}_{2}\) là tỷ trọng của hai tài sản, \({\sigma}_{1}\) và \({\sigma}_{2}\) là độ lệch chuẩn lợi suất của từng tài sản, còn \({\rho}_{12}\) là hệ số tương quan giữa chúng. Thành phần cuối cùng cho thấy nếu tương quan thấp hoặc âm thì phương sai danh mục có thể giảm đáng kể, ngay cả khi từng tài sản riêng lẻ vẫn có mức biến động tương đối cao.
+
+Các biểu thức trên cho thấy cấu trúc hiệp phương sai và tương quan có vai trò trực tiếp trong đa dạng hóa. Muốn giảm rủi ro chung, cần xem các tài sản có bổ sung cho nhau hay không, thay vì chỉ tăng số mã nắm giữ. Đây là cơ sở để phân tích quan hệ giữa cổ phiếu trước khi tối ưu tỷ trọng.
+
+\section{Lý thuyết danh mục đầu tư hiện đại của Markowitz}\label{Toc227188421}
+Mô hình Markowitz được trình bày cùng các tài liệu ứng dụng và tổng quan về tối ưu hóa danh mục \cite{ref03}, \cite{ref10}, \cite{ref11}.
+
+Lý thuyết danh mục hiện đại của Harry Markowitz đánh giá tài sản trong mối liên hệ với toàn bộ danh mục. Lợi suất kỳ vọng và rủi ro khi đó phụ thuộc đồng thời vào tỷ trọng vốn và quan hệ đồng biến giữa các tài sản. Mục tiêu là tìm tổ hợp đạt mức sinh lợi mong muốn với rủi ro thấp nhất, hoặc đạt sinh lợi cao nhất trong mức rủi ro cho phép.
+
+Trong khung Markowitz, lợi suất kỳ vọng của danh mục là trung bình có trọng số của lợi suất kỳ vọng các tài sản:
+
+\begin{equation}\label{eq:theory-09}
+E\left({R}_{p}\right)=\sum_{i=1}^{n}{{w}_{i}E\left({R}_{i}\right)}
+\end{equation}
+
+Trong đó, \(E\left({R}_{p}\right)\) là tỷ suất sinh lợi kỳ vọng của danh mục, \({w}_{i}\) là tỷ trọng đầu tư vào tài sản \(i\), còn \(E\left({R}_{i}\right)\) là tỷ suất sinh lợi kỳ vọng của tài sản đó. Biểu thức này cho thấy nhà đầu tư có thể điều chỉnh lợi suất kỳ vọng của danh mục thông qua việc thay đổi cơ cấu tỷ trọng giữa các tài sản.
+
+Rủi ro của danh mục trong mô hình Markowitz được biểu diễn thông qua phương sai:
+
+\begin{equation}\label{eq:theory-10}
+{\sigma}_{p}^{2}=\sum_{i=1}^{n}{\sum_{j=1}^{n}{{w}_{i}{w}_{j}}\operatorname{Cov}\left({R}_{i},{R}_{j}\right)}
+\end{equation}
+
+Trong đó, \({\sigma}_{p}^{2}\) là phương sai của danh mục, \({w}_{i}\) và \({w}_{j}\) là tỷ trọng của các tài sản \(i\) và \(j\), còn \(\operatorname{Cov}\left({R}_{i},{R}_{j}\right)\) là hiệp phương sai giữa lợi suất của hai tài sản đó. Công thức này nhấn mạnh rằng rủi ro danh mục không chỉ phụ thuộc vào mức biến động riêng lẻ của từng tài sản, mà còn phụ thuộc mạnh vào cấu trúc đồng biến giữa chúng.
+
+Từ hai đại lượng trên, Markowitz xây dựng bài toán tối ưu hóa danh mục dưới dạng tìm vector tỷ trọng \(w\) thỏa mãn một mục tiêu nhất định. Một dạng cơ bản của bài toán là cực tiểu hóa phương sai danh mục:
+
+\begin{equation}\label{eq:theory-11}
+\min_{w}\,w^{\top}\Sigma w
+\end{equation}
+
+với các điều kiện ràng buộc cơ bản:
+
+\begin{equation}\label{eq:theory-12}
+\sum_{i=1}^{n}{{w}_{i}}=1,\quad {w}_{i}\geq0
+\end{equation}
+
+Trong đó, \(w\) là vector tỷ trọng danh mục và \(\Sigma\) là ma trận hiệp phương sai của tập tài sản. Điều kiện \(\sum_{i=1}^{n}{{w}_{i}}=1\) bảo đảm toàn bộ vốn được phân bổ hết vào danh mục, còn điều kiện \({w}_{i}\geq0\) thể hiện trường hợp không bán khống. Từ nhiều nghiệm tối ưu tương ứng với các mức sinh lợi kỳ vọng khác nhau, ta thu được đường biên hiệu quả, tức tập hợp các danh mục cho mức sinh lợi kỳ vọng cao nhất tại mỗi mức rủi ro hoặc mức rủi ro thấp nhất tại mỗi mức sinh lợi kỳ vọng.
+
+Markowitz đưa nguyên tắc đa dạng hóa vào một bài toán phân bổ vốn có thể giải bằng phương pháp định lượng. Trong tiểu luận, mô hình này là nền tảng xây dựng danh mục VN30. Thông tin tương quan và cụm cổ phiếu được đưa vào các chương sau để bổ sung ràng buộc kiểm soát rủi ro tập trung.
+
+\section{Ma trận tương quan, hiệp phương sai và vai trò trong quản trị danh mục}\label{Toc227188422}
+Độ lệch chuẩn mô tả biến động riêng của tài sản, trong khi hiệp phương sai và tương quan mô tả mức độ các tài sản biến động cùng nhau. Thông tin về quan hệ này giúp đánh giá khả năng bù trừ rủi ro khi kết hợp tài sản thành danh mục.
+
+Hiệp phương sai giữa hai tài sản \(i\) và \(j\) được xác định bởi:
+
+\begin{equation}\label{eq:theory-13}
+\operatorname{Cov}\left({R}_{i},{R}_{j}\right)=E\left[\left({R}_{i}-E\left({R}_{i}\right)\right)\left({R}_{j}-E\left({R}_{j}\right)\right)\right]
+\end{equation}
+
+Trong đó, \({R}_{i}\) và \({R}_{j}\) là lợi suất của hai tài sản, còn \(E\left({R}_{i}\right)\) và \(E\left({R}_{j}\right)\) là giá trị kỳ vọng của các lợi suất tương ứng. Nếu hiệp phương sai dương, hai tài sản có xu hướng biến động cùng chiều; nếu hiệp phương sai âm, chúng có xu hướng bù trừ cho nhau; còn nếu hiệp phương sai gần bằng không, mức độ liên hệ tuyến tính giữa chúng là yếu.
+
+Hiệp phương sai phụ thuộc vào đơn vị đo và mức biến động riêng. Hệ số tương quan chuẩn hóa quan hệ này theo công thức:
+
+\begin{equation}\label{eq:theory-14}
+{\rho}_{ij}=\frac{\operatorname{Cov}\left({R}_{i},{R}_{j}\right)}{{\sigma}_{i}{\sigma}_{j}}
+\end{equation}
+Trong đó, \({\rho}_{ij}\) là hệ số tương quan giữa hai tài sản \(i\) và \(j\), còn \({\sigma}_{i}\) và \({\sigma}_{j}\) là độ lệch chuẩn lợi suất của chúng. Giá trị của \({\rho}_{ij}\) nằm trong khoảng từ \(-1\) đến \(1\). Khi \({\rho}_{ij}\) tiến gần \(1\), hai tài sản có xu hướng biến động rất giống nhau; khi \({\rho}_{ij}\) tiến gần \(-1\), chúng có xu hướng biến động ngược chiều; còn khi \({\rho}_{ij}\) gần \(0\), quan hệ tuyến tính giữa chúng khá yếu.
+
+Khi mở rộng từ hai tài sản sang toàn bộ tập tài sản, các hiệp phương sai được sắp xếp thành ma trận hiệp phương sai \(\Sigma\), còn các hệ số tương quan được sắp xếp thành ma trận tương quan. Ma trận hiệp phương sai đóng vai trò đầu vào trực tiếp của bài toán Markowitz vì nó quyết định phương sai danh mục thông qua biểu thức \({w}^{\top}\Sigma w\). Trong khi đó, ma trận tương quan đặc biệt hữu ích trong việc đọc cấu trúc đồng biến của thị trường và so sánh mức độ gần nhau giữa các tài sản trên cùng một thang đo chuẩn hóa.
+
+Hai ma trận giúp xem xét sự tương tác giữa các tài sản khi cùng xuất hiện trong danh mục. Với bài toán của nhóm, ma trận tương quan còn là cơ sở nhận diện các cổ phiếu có hành vi gần nhau, từ đó xây dựng cấu trúc phân cụm phục vụ đa dạng hóa.
+
+\section{Thuật toán phân cụm và ý nghĩa trong dữ liệu tài chính}\label{Toc227188423}
+Cơ sở phân cụm và ứng dụng trong xây dựng danh mục được tham khảo từ các nghiên cứu \cite{ref01}, \cite{ref06}, \cite{ref07}, \cite{ref08}, \cite{ref09}.
+
+Phân cụm thuộc nhóm phương pháp học không giám sát, dùng để chia các quan sát thành những nhóm có độ tương đồng nội nhóm cao hơn so với giữa các nhóm. Trong tài chính, đối tượng có thể là cổ phiếu, ngành, giai đoạn thị trường hoặc chuỗi lợi suất. Khác với phân loại theo nhãn có sẵn, phân cụm hỗ trợ khám phá cấu trúc dữ liệu để diễn giải và ra quyết định.
+
+Đối với cổ phiếu, lợi suất, tương quan hoặc khoảng cách thống kê được dùng để nhận diện những nhóm vận động gần nhau. Cấu trúc này giúp chỉ ra trường hợp danh mục có nhiều mã nhưng phần lớn vốn vẫn tập trung vào các cổ phiếu cùng tăng giảm. Số lượng mã khi đó có thể tạo cảm giác đa dạng hơn mức phân tán rủi ro thực tế.
+
+Để gom nhóm từ thông tin tương quan, có thể chuyển các hệ số tương quan thành khoảng cách theo biểu thức:
+
+\begin{equation}\label{eq:theory-15}
+{d}_{ij}=\sqrt{2\left(1-{\rho}_{ij}\right)}
+\end{equation}
+
+Trong đó, \({d}_{ij}\) là khoảng cách giữa hai tài sản \(i\) và \(j\), còn \({\rho}_{ij}\) là hệ số tương quan giữa chúng. Công thức này cho thấy hai tài sản càng tương quan cao thì khoảng cách giữa chúng càng nhỏ, và vì vậy càng có xu hướng được xếp gần nhau trong quá trình phân cụm. Ý nghĩa của biểu thức này chủ yếu mang tính cầu nối từ cấu trúc tương quan sang cấu trúc nhóm, chứ không phải một mô hình dự báo giá.
+
+Trong tiểu luận, phân cụm được dùng để nhận diện nhóm tương đồng và thiết kế ràng buộc phân bổ vốn. Nhóm không sử dụng nó để dự báo giá, chọn cổ phiếu tốt nhất trong từng cụm hay phát sinh tín hiệu giao dịch độc lập. Vai trò được khảo sát là hỗ trợ kiểm soát mức độ tập trung của danh mục.
+
+Sự kết hợp có hai thành phần: Markowitz xác định tỷ trọng theo mục tiêu lợi suất và rủi ro; phân cụm cung cấp cấu trúc nhóm để thiết lập giới hạn phân bổ. Cách phân vai này giúp diễn giải rõ mục đích của từng kỹ thuật trong quy trình.
+
+\section{Các chỉ tiêu đánh giá hiệu quả danh mục đầu tư}\label{Toc227188424}
+Các chỉ tiêu hiệu quả được đối chiếu với nghiên cứu về Markowitz và Sharpe ratio \cite{ref10}, cùng tài liệu tổng quan tối ưu hóa danh mục \cite{ref11}.
+
+Đánh giá danh mục cần trả lời đồng thời các câu hỏi về mức sinh lợi, biến động và tổn thất trong quá trình nắm giữ. Tiểu luận sử dụng bốn chỉ tiêu: tỷ suất sinh lợi năm hóa, độ biến động năm hóa, hệ số Sharpe và mức sụt giảm vốn cực đại. Chúng tạo cơ sở so sánh các cấu hình đầu tư trên những khía cạnh bổ sung cho nhau.
+
+Tỷ suất sinh lợi năm hóa trong nghiên cứu này được xác định là tỷ suất sinh lợi trung bình năm hóa (Annualized Mean Return) thay vì tỷ suất sinh lợi kép hàng năm (CAGR). Nếu \(\bar{{R}_{daily}}\) là lợi suất trung bình ngày, tỷ suất sinh lợi năm hóa có thể được ước lượng theo công thức:
+
+\begin{equation}\label{eq:theory-16}
+{R}_{annual}=\bar{{R}_{daily}}\times252
+\end{equation}
+
+Trong đó, \({R}_{annual}\) là tỷ suất sinh lợi năm hóa, \(\bar{{R}_{daily}}\) là lợi suất trung bình ngày của tài sản hoặc danh mục, còn \(252\) là số phiên giao dịch thường được quy ước cho một năm trên thị trường chứng khoán. Chỉ tiêu này cho phép đưa kết quả lợi suất về cùng một đơn vị dễ diễn giải và so sánh.
+
+Song song với lợi suất, độ biến động năm hóa được dùng để phản ánh mức độ dao động của lợi suất khi quy đổi về quy mô năm:
+
+\begin{equation}\label{eq:theory-17}
+{\sigma}_{annual}={\sigma}_{daily}\sqrt{252}
+\end{equation}
+
+Trong đó, \({\sigma}_{annual}\) là độ biến động năm hóa, còn \({\sigma}_{daily}\) là độ lệch chuẩn lợi suất ngày. Chỉ tiêu này cho biết nếu một danh mục có biến động ngày nhất định, thì mức biến động tương ứng trên quy mô năm sẽ xấp xỉ bao nhiêu, từ đó hỗ trợ đánh giá rủi ro trên cùng thang đo với lợi suất năm hóa.
+
+Hệ số Sharpe là một chỉ tiêu tổng hợp, cho biết danh mục tạo ra bao nhiêu đơn vị lợi suất vượt trội trên mỗi đơn vị rủi ro:
+
+\begin{equation}\label{eq:theory-18}
+Sharpe=\frac{E\left({R}_{p}\right)-{r}_{f}}{{\sigma}_{p}}
+\end{equation}
+
+Trong đó, \(E\left({R}_{p}\right)\) là tỷ suất sinh lợi kỳ vọng của danh mục, \({r}_{f}\) là lãi suất phi rủi ro, còn \({\sigma}_{p}\) là độ lệch chuẩn lợi suất danh mục. Sharpe ratio càng cao thì danh mục càng hiệu quả theo nghĩa tạo ra nhiều lợi suất điều chỉnh theo rủi ro hơn. Đây là một trong những chỉ tiêu được sử dụng rộng rãi nhất khi so sánh hiệu quả tương đối giữa các chiến lược đầu tư.
+
+Mức sụt giảm vốn cực đại (Max Drawdown) mô tả tổn thất tích lũy trong giai đoạn nắm giữ. Gọi \({V}_{t}\) là giá trị danh mục tại thời điểm \(t\), còn \(\operatorname{{max_{\tau\leq t}}}{V}_{\tau}\) là đỉnh vốn gần nhất trước hoặc tại thời điểm đó. Mức sụt giảm tại thời điểm \(t\) được xác định như sau:
+
+\begin{equation}\label{eq:theory-19}
+D{D}_{t}=\frac{\operatorname{{max_{\tau\leq t}}}{V}_{\tau}-{V}_{t}}{\operatorname{{max_{\tau\leq t}}}{V}_{\tau}}
+\end{equation}
+
+Từ đó, mức sụt giảm vốn cực đại được xác định là:
+
+\begin{equation}\label{eq:theory-20}
+Max Drawdown=\operatorname{{max_{t}}}D{D}_{t}
+\end{equation}
+
+Trong đó, \(D{D}_{t}\) là mức suy giảm của danh mục tại thời điểm \(t\) so với đỉnh vốn trước đó. Chỉ tiêu này đặc biệt có ý nghĩa vì nó phản ánh trải nghiệm rủi ro theo chuỗi thời gian, thay vì chỉ nhìn rủi ro qua độ lệch chuẩn. Trong thực tế, một danh mục có thể có lợi suất trung bình hấp dẫn nhưng vẫn khó chấp nhận nếu từng trải qua các giai đoạn sụt giảm vốn quá sâu.
+
+Bốn chỉ tiêu lần lượt phản ánh sinh lợi, biến động, hiệu quả điều chỉnh theo rủi ro và tổn thất cực đại theo thời gian. Trong phần thực nghiệm, nhóm sử dụng chúng để đối chiếu danh mục tối ưu với danh mục chuẩn và làm rõ sự đánh đổi của từng cấu hình.
+
+\section{Vai trò của cơ sở lý thuyết trong đề tài}\label{Toc227188425}
+Chương~\ref{Toc227188417} xác lập các khái niệm dùng trong toàn bộ tiểu luận: lợi suất, rủi ro, đa dạng hóa và quan hệ giữa tài sản. Markowitz chuyển những đại lượng đó thành bài toán tối ưu tỷ trọng; phân cụm bổ sung cách tổ chức tài sản theo mức tương đồng. Các chỉ tiêu hiệu quả là cơ sở kiểm tra kết quả của quy trình.
+
+Các bước triển khai tiếp theo gồm chuẩn bị dữ liệu ở Chương~\ref{Toc227188426}, phân tích tương quan và phân cụm ở Chương~\ref{Toc227188433}, thiết lập mô hình danh mục ở Chương~\ref{Toc227188439}, rồi đánh giá thực nghiệm ở Chương~\ref{Toc227188446}. Trình tự này nối cơ sở tài chính với xử lý dữ liệu và kiểm tra kết quả, đồng thời giữ rõ vai trò bổ trợ của phân cụm trong khung Markowitz.
+
+\chapter{DỮ LIỆU VÀ TIỀN XỬ LÝ DỮ LIỆU}\label{Toc227188426}
+Dữ liệu giá lịch sử VN30 được thu thập bằng thư viện vnstock và xử lý bằng Python. Nhóm tổ chức, làm sạch và chuẩn hóa dữ liệu theo yêu cầu đầu vào của phân tích danh mục, đồng thời đối chiếu với các tài liệu về xây dựng và quản lý danh mục tại Việt Nam \cite{ref01}, \cite{ref04}.
+
+\section{Nguồn dữ liệu và phạm vi nghiên cứu}\label{Toc227188427}
+Mẫu nghiên cứu gồm các cổ phiếu thuộc rổ VN30 niêm yết trên HOSE, đại diện cho nhóm vốn hóa lớn và thanh khoản cao trong phạm vi khảo sát. Dữ liệu được ghi nhận theo ngày giao dịch từ 2020-01-02 đến 2025-11-28. Tập tài sản ban đầu có 30 mã, là điểm xuất phát cho quy trình lựa chọn mẫu và tiền xử lý.
+
+Dữ liệu ban đầu cần được kiểm tra trước khi đưa vào tính toán. Quy trình tiền xử lý thống nhất cấu trúc bảng, kiểm soát chất lượng từng quan sát và bảo đảm các chuỗi cổ phiếu có thể được phân tích trên cùng một nền dữ liệu.
+
+\begingroup
+\ResearchTableSetup{2}
+\begin{longtable}{L{0.31}L{0.69}}
+\caption{Nguồn dữ liệu và phạm vi mẫu nghiên cứu}\label{Toc227159891}\\
+\toprule
+\textbf{Thành phần} & \textbf{Giá trị / mô tả} \\
+\midrule
+\endfirsthead
+\caption[]{Nguồn dữ liệu và phạm vi mẫu nghiên cứu (tiếp)}\\
+\toprule
+\textbf{Thành phần} & \textbf{Giá trị / mô tả} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{2}{r}{\footnotesize\itshape Tiếp ở trang sau}\\
+\endfoot
+\bottomrule
+\endlastfoot
+Nguồn dữ liệu & Dữ liệu giá lịch sử các cổ phiếu thuộc rổ VN30 \\
+\addlinespace[3pt]
+Không gian nghiên cứu & Các cổ phiếu trong rổ VN30 trên HOSE \\
+\addlinespace[3pt]
+Khoảng thời gian dữ liệu gốc & 2020-01-02 đến 2025-11-28 \\
+\addlinespace[3pt]
+Số mã cổ phiếu ban đầu & 30 mã \\
+\addlinespace[3pt]
+Tần suất dữ liệu & Dữ liệu giao dịch theo ngày \\
+\addlinespace[3pt]
+Trường dữ liệu gốc & date, open, high, low, close, volume, symbol \\
+\end{longtable}
+\endgroup
+\section{Mô tả sơ bộ dữ liệu đầu vào}\label{Toc227188428}
+Bảng dữ liệu gốc có dạng panel theo cặp date - symbol: một dòng ghi nhận một mã tại một ngày giao dịch. Trong giai đoạn 2020-01-02 đến 2025-11-28, dữ liệu gồm 43,932 dòng của 30 mã VN30. Cấu trúc này cho phép theo dõi đồng thời các chuỗi giá trước khi làm sạch và cân bằng mẫu.
+
+Phân tích khám phá sơ bộ bắt đầu bằng các chuỗi giá đóng cửa được chuẩn hóa về cùng mốc ban đầu. Hình~\ref{Toc227159875} thể hiện sự khác biệt về tăng trưởng và các nhịp điều chỉnh giữa cổ phiếu. Trong Chương~\ref{Toc227188426}, hình được dùng để mô tả độ dị biệt của dữ liệu và nhu cầu xử lý nhất quán, không nhằm diễn giải hay dự báo xu hướng thị trường.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics{images/image2.png}
+\caption{Diễn biến tăng trưởng giá chuẩn hóa của các cổ phiếu trong dữ liệu gốc}\label{Toc227159875}
+\end{figure}
+
+Độ bao phủ theo mã là khía cạnh kiểm tra tiếp theo. Hình~\ref{Toc227159876} cho thấy phần lớn cổ phiếu có độ bao phủ cao nhưng độ dài chuỗi chưa đồng đều. Dữ liệu gốc vì thế chưa tạo thành panel cân bằng. Mục~\ref{Toc227188430} trình bày cách cố định tập cổ phiếu và xử lý những ngày thiếu mã để khắc phục vấn đề này.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics{images/image3.png}
+\caption{Mức độ bao phủ dữ liệu theo từng mã cổ phiếu trong tập quan sát ban đầu}\label{Toc227159876}
+\end{figure}
+
+\section{Cấu trúc dữ liệu đầu vào}\label{Toc227188429}
+Mỗi dòng dữ liệu được xác định bởi ngày giao dịch, mã cổ phiếu và các biến OHLCV. Các trường chính được liệt kê ở Bảng~\ref{Toc227159892}. Trường mã cổ phiếu mang tên symbol trong dữ liệu đầu vào; các bước sau sử dụng tên ticker để thống nhất ký hiệu giữa các bảng.
+
+\begingroup
+\ResearchTableSetup{3}
+\begin{longtable}{L{0.18}L{0.34}L{0.48}}
+\caption{Cấu trúc dữ liệu đầu vào}\label{Toc227159892}\\
+\toprule
+\textbf{Trường dữ liệu} & \textbf{Kiểu dữ liệu} & \textbf{Ý nghĩa} \\
+\midrule
+\endfirsthead
+\caption[]{Cấu trúc dữ liệu đầu vào (tiếp)}\\
+\toprule
+\textbf{Trường dữ liệu} & \textbf{Kiểu dữ liệu} & \textbf{Ý nghĩa} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{3}{r}{\footnotesize\itshape Tiếp ở trang sau}\\
+\endfoot
+\bottomrule
+\endlastfoot
+date & Chuỗi ngày tháng trong file gốc; được chuyển thành datetime ở bước tiền xử lý\quad{} & Ngày giao dịch của quan sát \\
+\addlinespace[3pt]
+symbol (ticker ở các bước sau) & Chuỗi ký tự (object) & Mã cổ phiếu trong dữ liệu gốc; các bảng tiếp theo sử dụng tên trường ticker để thống nhất ký hiệu \\
+\addlinespace[3pt]
+open & Số thực (float64) & Giá mở cửa \\
+\addlinespace[3pt]
+high & Số thực (float64) & Giá cao nhất trong phiên \\
+\addlinespace[3pt]
+low & Số thực (float64) & Giá thấp nhất trong phiên \\
+\addlinespace[3pt]
+close & Số thực (float64) & Giá đóng cửa \\
+\addlinespace[3pt]
+volume & Số nguyên (int64) & Khối lượng giao dịch \\
+\end{longtable}
+\endgroup
+\section{Quy trình tiền xử lý dữ liệu}\label{Toc227188430}
+Tiền xử lý có hai mục tiêu: loại các quan sát không hợp lệ và tạo bảng dữ liệu cân bằng theo thời gian. Nhóm kiểm tra chất lượng từng dòng cùng với độ đầy đủ của các mã tại mỗi ngày giao dịch. Cách tổ chức này giúp các bước phân tích sau sử dụng một tập dữ liệu nhất quán.
+
+Nhóm trước hết cố định lại tập tài sản. SSB bị loại vì lịch sử giao dịch ngắn hơn đáng kể do thời điểm IPO muộn, làm số mã giảm từ 30 xuống 29. Kiểm tra trùng lặp theo dòng và theo cặp ngày giao dịch - mã cổ phiếu không phát hiện trường hợp cần loại. Kiểm tra tính hợp lệ của giá mở cửa, cao nhất, thấp nhất và đóng cửa loại 2 dòng lỗi. Bước kiểm tra giá trị thiếu không làm giảm thêm số quan sát.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics{images/image4.png}
+\caption{Số lượng cổ phiếu quan sát được theo từng ngày giao dịch trong dữ liệu gốc}\label{Toc227159877}
+\end{figure}
+
+Dữ liệu có 1 quan sát với khối lượng bằng 0, nhưng quan sát đó không còn trong bảng cuối sau quá trình sàng lọc tổng thể. Các điểm bất thường được gắn cờ để theo dõi chất lượng, không bị xóa chỉ vì là ngoại lệ. Cụ thể, nhóm đánh dấu 417 điểm ngoại lệ theo biên độ giá và 417 điểm theo khối lượng giao dịch.
+
+Đầu ra của quá trình là dữ liệu sạch gồm 29 mã được quan sát đồng đều theo ngày giao dịch. Việc vừa kiểm soát lỗi vừa cân bằng bảng giúp hạn chế sai lệch khi chuyển sang tính lợi suất và các đại lượng định lượng khác.
+
+\begingroup
+\ResearchTableSetup{3}
+\begin{longtable}{L{0.26}L{0.28}L{0.46}}
+\caption{Các bước tiền xử lý dữ liệu}\label{Toc227159893}\\
+\toprule
+\textbf{Bước xử lý} & \textbf{Kết quả / số lượng ảnh hưởng} & \textbf{Mục đích} \\
+\midrule
+\endfirsthead
+\caption[]{Các bước tiền xử lý dữ liệu (tiếp)}\\
+\toprule
+\textbf{Bước xử lý} & \textbf{Kết quả / số lượng ảnh hưởng} & \textbf{Mục đích} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{3}{r}{\footnotesize\itshape Tiếp ở trang sau}\\
+\endfoot
+\bottomrule
+\endlastfoot
+Loại SSB khỏi tập nghiên cứu & 30 mã xuống còn 29 mã & Loại mã có lịch sử ngắn đáng kể do IPO muộn, giúp bảo đảm tính nhất quán của mẫu nghiên cứu \\
+\addlinespace[3pt]
+Kiểm tra trùng lặp & 0 dòng bị loại & Bảo đảm mỗi quan sát theo cặp ngày giao dịch - mã cổ phiếu là duy nhất \\
+\addlinespace[3pt]
+Loại dòng giá không hợp lệ & 2 dòng bị loại & Loại các quan sát có lỗi dữ liệu ở các trường giá cơ bản \\
+\addlinespace[3pt]
+Xử lý giá trị thiếu & 0 dòng bị loại & Bảo đảm các cột lõi không có giá trị khuyết trước khi xây dựng tập dữ liệu sạch \\
+\addlinespace[3pt]
+Loại ngày giao dịch thiếu mã & 40 ngày giao dịch và 1114 dòng bị loại & Tạo bảng dữ liệu cân bằng gồm đầy đủ 29 mã ở mỗi ngày giao dịch \\
+\addlinespace[3pt]
+Kiểm tra quan sát có khối lượng bằng 0 & Ghi nhận 1 quan sát; 0 quan sát được giữ lại trong dữ liệu cuối cùng & Giữ chính sách kiểm tra chặt chẽ với các quan sát thanh khoản bất thường \\
+\addlinespace[3pt]
+Gắn cờ ngoại lệ & 417 ngoại lệ theo biên độ giá và 417 ngoại lệ theo khối lượng; không loại bỏ & Bảo lưu thông tin bất thường trong giai đoạn tiền xử lý thay vì loại bỏ cơ học \\
+\end{longtable}
+\endgroup
+\section{Kết quả sau tiền xử lý và bộ dữ liệu sạch}\label{Toc227188431}
+Quy mô dữ liệu thay đổi qua ba mốc. Bảng gốc có 43,932 dòng của 30 mã. Sau khi loại SSB để thống nhất mẫu, còn 42,760 dòng của 29 mã trên 1,476 ngày giao dịch. Tiếp tục loại giá không hợp lệ và toàn bộ ngày không đủ mã tạo ra bảng cuối gồm 41,644 dòng, 29 mã và 1,436 ngày giao dịch.
+
+Kết thúc Chương~\ref{Toc227188426}, mỗi ngày trong bảng sạch đều có đủ 29 mã. Đây là kết quả tiền xử lý ở mức dữ liệu giá cân bằng; các phép biến đổi thống kê chưa được thực hiện trong chương này.
+
+\begingroup
+\ResearchTableSetup{5}
+\begin{longtable}{L{0.24}L{0.12}L{0.12}L{0.14}L{0.38}}
+\caption{So sánh dữ liệu trước và sau tiền xử lý}\label{Toc227159894}\\
+\toprule
+\textbf{Giai đoạn dữ liệu} & \textbf{Số dòng} & \textbf{Số mã cổ phiếu} & \textbf{Số ngày giao dịch} & \textbf{Ghi chú} \\
+\midrule
+\endfirsthead
+\caption[]{So sánh dữ liệu trước và sau tiền xử lý (tiếp)}\\
+\toprule
+\textbf{Giai đoạn dữ liệu} & \textbf{Số dòng} & \textbf{Số mã cổ phiếu} & \textbf{Số ngày giao dịch} & \textbf{Ghi chú} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{5}{r}{\footnotesize\itshape Tiếp ở trang sau}\\
+\endfoot
+\bottomrule
+\endlastfoot
+Dữ liệu gốc & 43,932 & 30 & - & Dữ liệu ban đầu trước khi lọc tập nghiên cứu và làm sạch \\
+\addlinespace[3pt]
+Sau lọc tập nghiên cứu & 42,760 & 29 & 1,476 & Đã loại SSB khỏi tập nghiên cứu \\
+\addlinespace[3pt]
+Dữ liệu sạch cuối cùng & 41,644 & 29 & 1,436 & Bảng dữ liệu cân bằng dùng cho các bước tiếp theo \\
+\end{longtable}
+\endgroup
+\section{Vai trò của bộ dữ liệu sạch trong nghiên cứu}\label{Toc227188432}
+Tệp \path{data/processed/clean_ohlcv.csv} lưu đầu ra của Chương~\ref{Toc227188426}. Chương~\ref{Toc227188433} sẽ sử dụng tệp này để tính lợi suất và các ma trận thống kê. Ranh giới đó giúp phân biệt rõ nhiệm vụ tạo clean panel của Chương~\ref{Toc227188426} với bước phân tích tiếp theo.
+
+\chapter{PHÂN CỤM CỔ PHIẾU VÀ XÂY DỰNG CẤU TRÚC DỮ LIỆU ĐẦU VÀO CHO TỐI ƯU HÓA DANH MỤC}\label{Toc227188433}
+Phương pháp khai thác tương quan và nhận diện nhóm cổ phiếu trong chương được tham khảo từ các nghiên cứu ứng dụng phân cụm cho tối ưu hóa danh mục và quản trị đầu tư \cite{ref01}, \cite{ref06}, \cite{ref07}, \cite{ref08}, \cite{ref09}.
+
+\section{Xây dựng ma trận lợi suất cổ phiếu}\label{Toc227188434}
+Sau khi làm sạch giá, nhóm chuyển sang lợi suất để đo mức biến động tương đối theo thời gian. Giá tuyệt đối của các cổ phiếu khác nhau về thang đo, trong khi lợi suất cho phép so sánh trên cùng cơ sở. Ma trận lợi suất cũng là đầu vào để tính tương quan, hiệp phương sai và khoảng cách giữa tài sản.
+
+Ma trận lợi suất được tổ chức với mỗi cột là một cổ phiếu và mỗi dòng là một thời điểm quan sát. Toàn bộ tập cổ phiếu sau tiền xử lý được đặt trong cùng cấu trúc, giúp các phép đo quan hệ và bước phân cụm sử dụng thống nhất lịch sử quan sát.
+
+\begingroup
+\ResearchTableSetup{2}
+\begin{longtable}{L{0.34}L{0.66}}
+\caption{Cấu trúc dữ liệu lợi suất dùng cho phân tích}\label{Toc227159895}\\
+\toprule
+\textbf{Thành phần} & \textbf{Giá trị / mô tả} \\
+\midrule
+\endfirsthead
+\caption[]{Cấu trúc dữ liệu lợi suất dùng cho phân tích (tiếp)}\\
+\toprule
+\textbf{Thành phần} & \textbf{Giá trị / mô tả} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{2}{r}{\footnotesize\itshape Tiếp ở trang sau}\\
+\endfoot
+\bottomrule
+\endlastfoot
+Số lượng cổ phiếu sau tiền xử lý & 29 mã cổ phiếu \\
+\addlinespace[3pt]
+Số lượng quan sát theo thời gian & 1435 quan sát \\
+\addlinespace[3pt]
+Khoảng thời gian dữ liệu & 2020-01-03 đến 2025-11-28 \\
+\addlinespace[3pt]
+Biến đầu vào chính & Lợi suất logarit theo ngày của từng cổ phiếu \\
+\addlinespace[3pt]
+Dạng tổ chức dữ liệu & Ma trận T x N, với T = 1435 và N = 29 \\
+\end{longtable}
+\endgroup
+Từ ma trận lợi suất, nhóm có thể đo mức tương đồng giữa cổ phiếu thay vì chỉ xem từng chuỗi riêng lẻ. Các ma trận thống kê ở bước tiếp theo sẽ mô tả quan hệ đồng biến của toàn bộ tập tài sản và chuẩn bị dữ liệu cho phân cụm.
+
+\section{Xây dựng ma trận tương quan, hiệp phương sai và ma trận khoảng cách}\label{Toc227188435}
+Ba ma trận được tính từ lợi suất có vai trò khác nhau. Ma trận tương quan mô tả mức đồng biến đã chuẩn hóa; ma trận hiệp phương sai giữ thông tin về cường độ đồng biến trên thang đo lợi suất. Ma trận khoảng cách chuyển quan hệ tương quan thành đầu vào gần - xa cho thuật toán phân cụm.
+
+Việc giữ cả ba ma trận giúp nối các bước phân tích: đọc quan hệ giữa cổ phiếu qua tương quan, gom nhóm bằng khoảng cách và tính rủi ro danh mục bằng hiệp phương sai. Mỗi ma trận phục vụ một công đoạn nên không thể thay thế đơn giản cho nhau.
+
+\begingroup
+\ResearchTableSetup{3}
+\begin{longtable}{L{0.19}L{0.33}L{0.48}}
+\caption{Các đại lượng thống kê và vai trò của chúng trong phân cụm}\label{Toc227159896}\\
+\toprule
+\textbf{Đại lượng} & \textbf{File nguồn} & \textbf{Vai trò trong nghiên cứu} \\
+\midrule
+\endfirsthead
+\caption[]{Các đại lượng thống kê và vai trò của chúng trong phân cụm (tiếp)}\\
+\toprule
+\textbf{Đại lượng} & \textbf{File nguồn} & \textbf{Vai trò trong nghiên cứu} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{3}{r}{\footnotesize\itshape Tiếp ở trang sau}\\
+\endfoot
+\bottomrule
+\endlastfoot
+Return matrix & \path{data/processed/return_matrix_clean.csv} & Là cấu trúc dữ liệu nền phản ánh lịch sử lợi suất của toàn bộ tập cổ phiếu nghiên cứu và là điểm khởi đầu cho toàn bộ bước phân tích tương quan - phân cụm. \\
+\addlinespace[3pt]
+Correlation matrix & \path{data/processed/corr_matrix.csv} & Dùng để đọc cấu trúc tương đồng giữa các cổ phiếu trên cùng một thang đo chuẩn hóa và là nền tảng trực tiếp để nhận diện các nhóm tài sản có hành vi gần nhau. \\
+\addlinespace[3pt]
+Covariance matrix & \path{data/processed/cov_matrix.csv} & Giữ thông tin đồng biến trên thang đo thực của lợi suất và được bảo lưu như một lớp dữ liệu quan trọng cho bước tối ưu hóa danh mục ở chương tiếp theo. \\
+\addlinespace[3pt]
+Distance matrix & \path{data/processed/distance_matrix.csv} & Chuyển quan hệ tương đồng thành thước đo gần - xa giữa các cổ phiếu, qua đó cung cấp đầu vào trực tiếp cho bước gom cụm bằng phương pháp phân cụm phân cấp. \\
+\end{longtable}
+\endgroup
+Sau bước này, dữ liệu lợi suất đã được chuyển thành các thước đo quan hệ giữa tài sản. Thuật toán phân cụm có thể sử dụng chúng để tổ chức cổ phiếu thành nhóm có đặc điểm biến động gần nhau.
+
+\section{Phân cụm cổ phiếu bằng phương pháp phân cấp}\label{sec:hierarchical-clustering}
+Nhóm áp dụng phân cụm phân cấp trên ma trận khoảng cách để nhận diện cấu trúc cổ phiếu. Phương pháp thể hiện quá trình gom nhóm dưới dạng cây, cho phép quan sát cả thứ tự liên kết lẫn kết quả ở từng mức cắt. Nhờ đó, quan hệ gần - xa giữa các tài sản được thể hiện rõ hơn so với việc chỉ xem nhãn cụm cuối cùng.
+
+Tiêu chuẩn liên kết được chọn là Ward linkage, ưu tiên phép gộp làm tăng phương sai nội cụm ít nhất tại mỗi bước. Lựa chọn này hướng tới các nhóm có tính gắn kết, thuận tiện cho việc diễn giải. Với tập VN30, phân cụm phân cấp theo Ward giúp quan sát các cổ phiếu như những nhóm có cấu trúc biến động tương đồng.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics{images/image5.png}
+\caption{Dendrogram phân cụm phân cấp của các cổ phiếu VN30, thể hiện cấu trúc gom nhóm theo mức độ gần nhau thống kê giữa các mã cổ phiếu}\label{Toc227159878}
+\end{figure}
+
+\section{Lựa chọn số cụm và cấu trúc phân cụm phù hợp}\label{Toc227188436}
+Số cụm cần đủ để phản ánh khác biệt giữa cổ phiếu nhưng không chia dữ liệu thành quá nhiều nhóm nhỏ. Nhóm cân nhắc đồng thời chất lượng phân tách, mức cân bằng quy mô và khả năng dùng kết quả cho ràng buộc danh mục. Vì vậy, lựa chọn K dựa trên cả chỉ tiêu định lượng lẫn yêu cầu của bước tối ưu hóa.
+
+Nhóm chọn K = 4 cho cấu trúc dữ liệu đang khảo sát. Khi so với K = 3, cấu hình K = 4 có silhouette cao hơn rõ rệt và vẫn giữ quy mô cụm tương đối cân bằng. Phương án K = 8 chỉ tăng nhẹ silhouette nhưng tạo nhiều cụm rất nhỏ và cụm đơn lẻ, gây khó khăn cho diễn giải và sử dụng tiếp. Lựa chọn K = 4 vì thế thể hiện sự cân nhắc giữa phân tách và tính khả dụng, không hàm ý đây là cấu hình duy nhất có thể chấp nhận.
+
+\begingroup
+\ResearchTableSetup{4}
+\begin{longtable}{L{0.07}L{0.35}L{0.35}L{0.23}}
+\caption{Kết quả lựa chọn số cụm}\label{Toc227159897}\\
+\toprule
+\textbf{Số cụm} & \textbf{Đặc điểm định lượng nổi bật} & \textbf{Đánh giá về khả năng sử dụng ở bước tiếp theo} & \textbf{Kết luận} \\
+\midrule
+\endfirsthead
+\caption[]{Kết quả lựa chọn số cụm (tiếp)}\\
+\toprule
+\textbf{Số cụm} & \textbf{Đặc điểm định lượng nổi bật} & \textbf{Đánh giá về khả năng sử dụng ở bước tiếp theo} & \textbf{Kết luận} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{4}{r}{\footnotesize\itshape Tiếp ở trang sau}\\
+\endfoot
+\bottomrule
+\endlastfoot
+3 & Silhouette đạt 0,0701; không có cụm quá nhỏ; cấu trúc khá cân bằng với cụm nhỏ nhất gồm 7 mã. & Có thể sử dụng ở bước tiếp theo, nhưng mức phân tách còn tương đối thô và chưa phản ánh hết khác biệt giữa các nhóm cổ phiếu. & Là phương án chấp nhận được nhưng chưa phải lựa chọn ưu tiên. \\
+\addlinespace[3pt]
+4 & Silhouette đạt 0,0861; không có cụm đơn lẻ; cụm nhỏ nhất gồm 3 mã; quy mô cụm lớn nhất chiếm khoảng 41,38\% số mã và vẫn nằm trong mức có thể chấp nhận về tính cân bằng. & Vừa đủ chi tiết để phản ánh cấu trúc thị trường, vừa giữ được tính ổn định và khả năng sử dụng cho bước xây dựng đầu vào tối ưu hóa danh mục. & Được lựa chọn làm cấu trúc phân cụm chính của nghiên cứu. \\
+\addlinespace[3pt]
+8 & Silhouette đạt 0,0864; cao hơn K = 4 rất nhẹ nhưng có 5 cụm dưới 3 mã và 3 cụm đơn lẻ. & Cấu trúc quá vụn, dễ gây khó khăn cho diễn giải và làm giảm tính ổn định khi đưa vào bước sử dụng tiếp theo. & Không được chọn dù có chỉ số silhouette cao hơn nhẹ. \\
+\end{longtable}
+\endgroup
+\begin{figure}[htbp]
+\centering
+\includegraphics{images/image6.png}
+\caption{Quy mô của từng cụm cổ phiếu trong cấu trúc phân cụm được lựa chọn, cho thấy phân bố số lượng mã giữa các cụm sau bước gom nhóm}\label{Toc227159879}
+\end{figure}
+
+Với K = 4, quy mô các cụm lần lượt là 12, 10, 3 và 4 cổ phiếu. Phân bố không đều nhưng chưa phân mảnh thành nhiều nhóm quá nhỏ. Đặc điểm này phù hợp với mục đích sử dụng cụm làm cấu trúc đầu vào cho tối ưu hóa, thay vì chỉ tìm số nhóm có thể tách được.
+
+\section{Diễn giải đặc điểm của các cụm cổ phiếu}\label{Toc227188437}
+Đặc điểm từng cụm được xem xét qua tương quan nội cụm, lợi suất trung bình và biến động trung bình. Bước này nhằm mô tả sự khác biệt giữa nhóm, không xếp hạng cụm tốt hay xấu cho đầu tư. Kết quả mô tả giúp diễn giải dữ liệu trước khi áp dụng mô hình phân bổ vốn.
+
+\begingroup
+\ResearchTableSetup{5}
+\begin{longtable}{C{0.08}C{0.13}C{0.25}C{0.27}C{0.27}}
+\caption{Đặc điểm tóm tắt của các cụm cổ phiếu}\label{Toc227159898}\\
+\toprule
+\textbf{Cụm} & \textbf{Số lượng mã} & \textbf{Tương quan nội cụm trung bình} & \textbf{Lợi suất trung bình ngày} & \textbf{Độ biến động trung bình ngày} \\
+\midrule
+\endfirsthead
+\caption[]{Đặc điểm tóm tắt của các cụm cổ phiếu (tiếp)}\\
+\toprule
+\textbf{Cụm} & \textbf{Số lượng mã} & \textbf{Tương quan nội cụm trung bình} & \textbf{Lợi suất trung bình ngày} & \textbf{Độ biến động trung bình ngày} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{5}{r}{\footnotesize\itshape Tiếp ở trang sau}\\
+\endfoot
+\bottomrule
+\endlastfoot
+1 & 12 & 0,6100 & 0,001005 & 0,022870 \\
+\addlinespace[3pt]
+2 & 10 & 0,4506 & 0,000684 & 0,023590 \\
+\addlinespace[3pt]
+3 & 3 & 0,5852 & 0,00033 & 0,022848 \\
+\addlinespace[3pt]
+4 & 4 & 0,3625 & -0,000010 & 0,017035 \\
+\end{longtable}
+\endgroup
+\begin{figure}[htbp]
+\centering
+\includegraphics{images/image7.png}
+\caption{Tương quan nội cụm trung bình của các cụm cổ phiếu, cho thấy mức độ gắn kết nội tại của từng nhóm sau bước phân cụm}\label{Toc227159880}
+\end{figure}
+
+Tương quan nội cụm của Cụm 1 và Cụm 3 tương đối cao, cho thấy các mã trong mỗi nhóm có hành vi gần nhau hơn. Cụm 4 có tương quan nội cụm trung bình thấp hơn rõ rệt, tức quan hệ đồng biến giữa các thành viên lỏng hơn. Cụm 2 nằm ở mức trung gian.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics{images/image8.png}
+\caption{Lợi suất trung bình ngày và độ biến động trung bình ngày theo từng cụm cổ phiếu, giúp so sánh đặc điểm thống kê cơ bản giữa các nhóm tài sản}\label{Toc227159881}
+\end{figure}
+
+Các nhóm còn khác nhau về sinh lợi và biến động. Cụm 1 có lợi suất trung bình ngày cao nhất, cùng độ biến động tương đối cao. Cụm 2 có lợi suất thấp hơn Cụm 1 nhưng biến động trung bình cao nhất. Cụm 3 ít mã, tương quan nội cụm khá cao và lợi suất ở mức vừa phải. Cụm 4 có biến động trung bình thấp nhất, trong khi lợi suất ngày gần bằng không và hơi âm. Như vậy, kết quả gom nhóm cũng thể hiện sự phân hóa rủi ro - lợi suất trong mẫu.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics{images/image9.png}
+\caption{Ma trận tương quan của các cổ phiếu sau khi sắp xếp lại theo cấu trúc cụm, minh họa trực quan các khối tài sản có mức độ đồng biến tương đối cao}\label{Toc227159882}
+\end{figure}
+
+Heatmap tương quan được sắp theo cụm giúp đối chiếu các nhận xét trên với quan hệ giữa từng cặp cổ phiếu. Các nhãn cụm nhờ đó gắn với một cấu trúc dữ liệu có thể diễn giải, làm cơ sở đưa thông tin nhóm vào bài toán danh mục ở chương sau.
+
+\section{Xây dựng cấu trúc dữ liệu đầu vào cho tối ưu hóa danh mục}\label{Toc227188438}
+Kết quả phân cụm được tổ chức tiếp thành đầu vào cho mô hình phân bổ vốn. Bước này kết nối nhãn nhóm với các đại lượng thống kê cần thiết, để thông tin tương đồng giữa cổ phiếu được sử dụng trực tiếp trong tối ưu hóa.
+
+\begingroup
+\ResearchTableSetup{3}
+\begin{longtable}{L{0.18}L{0.34}L{0.48}}
+\caption{Cấu trúc dữ liệu bàn giao cho Chương~\ref{Toc227188439}}\label{Toc227159899}\\
+\toprule
+\textbf{Thành phần dữ liệu} & \textbf{Nguồn / nơi lưu} & \textbf{Vai trò trong bước tối ưu hóa} \\
+\midrule
+\endfirsthead
+\caption[]{Cấu trúc dữ liệu bàn giao cho Chương~\ref{Toc227188439} (tiếp)}\\
+\toprule
+\textbf{Thành phần dữ liệu} & \textbf{Nguồn / nơi lưu} & \textbf{Vai trò trong bước tối ưu hóa} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{3}{r}{\footnotesize\itshape Tiếp ở trang sau}\\
+\endfoot
+\bottomrule
+\endlastfoot
+cluster\_id & \path{data/processed/ticker_clusters_enriched.csv} & Xác định mỗi cổ phiếu thuộc cụm nào để tạo lớp thông tin cấu trúc cho bước tối ưu hóa ở chương tiếp theo. \\
+\addlinespace[3pt]
+mean\_ret & \path{data/processed/ticker_clusters_enriched.csv} & Đại diện cho lợi suất lịch sử bình quân của từng cổ phiếu, phục vụ bước xây dựng đầu vào lợi suất kỳ vọng trong mô hình tối ưu. \\
+\addlinespace[3pt]
+std\_ret & \path{data/processed/ticker_clusters_enriched.csv} & Cung cấp thông tin bổ trợ về mức biến động riêng của từng cổ phiếu, phục vụ diễn giải đặc điểm tài sản và hỗ trợ phần trình bày kết quả ở bước tiếp theo. \\
+\addlinespace[3pt]
+cov\_matrix & \path{data/processed/cov_matrix.csv} & Là đầu vào trọng tâm để mô tả cấu trúc đồng biến giữa các cổ phiếu trong bài toán tối ưu hóa danh mục. \\
+\addlinespace[3pt]
+corr\_matrix & \path{data/processed/corr_matrix.csv} & Giữ vai trò tham chiếu cho việc đọc cấu trúc tương đồng của tập tài sản và hỗ trợ diễn giải các quyết định ở bước tiếp theo. \\
+\end{longtable}
+\endgroup
+Trường cluster\_id nối kết quả Chương~\ref{Toc227188433} với mô hình ở Chương~\ref{Toc227188439}, cho biết mỗi cổ phiếu thuộc nhóm nào. Các trường mean\_ret, std\_ret và cov\_matrix cung cấp đặc điểm sinh lợi, biến động và quan hệ rủi ro cần cho tính toán. Nhãn cụm và tham số thống kê vì vậy được sử dụng trong cùng một cấu trúc đầu vào.
+
+Đầu ra Chương~\ref{Toc227188433} gồm cấu trúc nhóm và bộ dữ liệu đầu vào đã thống nhất. Chương~\ref{Toc227188439} sử dụng các thành phần này để thiết lập ràng buộc Markowitz và xây dựng những danh mục đại diện.
+
+\chapter{XÂY DỰNG VÀ TỐI ƯU HÓA DANH MỤC ĐẦU TƯ}\label{Toc227188439}
+Khung tối ưu hóa dựa trên lý thuyết danh mục hiện đại của Markowitz và các tài liệu ứng dụng mô hình danh mục tối ưu \cite{ref03}, \cite{ref05}, \cite{ref10}, \cite{ref11}.
+
+\section{Khung mô hình nghiên cứu}\label{Toc227188440}
+Quy trình mô hình hóa nối dữ liệu lịch sử với quyết định tỷ trọng. Giá sạch được chuyển thành lợi suất để tính tương quan và hiệp phương sai; phân cụm sử dụng cấu trúc tương quan để nhận diện các nhóm biến động gần nhau. Nhãn cụm sau đó được chuyển thành ràng buộc trong Markowitz, không dùng làm dự báo lợi suất hay tiêu chí loại tài sản.
+
+Từ cùng dữ liệu và nguyên tắc giới hạn theo cụm, nhóm xây dựng GMV Defensive và Aggressive làm hai danh mục đại diện. Các danh mục được xem xét ở tầng tĩnh trong mẫu và rolling ngoài mẫu. Thiết kế này vừa mô tả cơ cấu rủi ro - lợi nhuận sau tối ưu, vừa kiểm tra đặc tính danh mục khi đầu vào thay đổi theo thời gian.
+
+\section{Xây dựng các đại lượng đầu vào cho mô hình}\label{Toc227188441}
+Đầu vào tối ưu được hình thành từ ma trận lợi suất và các ma trận tương quan, hiệp phương sai. Kết quả phân cụm gán cluster\_id cho từng cổ phiếu. Bảng thông tin bổ sung lợi suất trung bình và độ lệch chuẩn của từng mã, phục vụ cả tính toán tỷ trọng lẫn diễn giải nghiệm.
+
+\begingroup
+\ResearchTableSetup{3}
+\begin{longtable}{L{0.23}L{0.30}L{0.47}}
+\caption{Các đại lượng và cấu phần dữ liệu phục vụ mô hình tối ưu hóa danh mục}\label{Toc227159900}\\
+\toprule
+\textbf{Đại lượng/cấu phần dữ liệu} & \textbf{Nguồn hình thành} & \textbf{Vai trò trong mô hình} \\
+\midrule
+\endfirsthead
+\caption[]{Các đại lượng và cấu phần dữ liệu phục vụ mô hình tối ưu hóa danh mục (tiếp)}\\
+\toprule
+\textbf{Đại lượng/cấu phần dữ liệu} & \textbf{Nguồn hình thành} & \textbf{Vai trò trong mô hình} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{3}{r}{\footnotesize\itshape Tiếp ở trang sau}\\
+\endfoot
+\bottomrule
+\endlastfoot
+Ma trận lợi suất & Xây dựng từ chuỗi giá lịch sử sau tiền xử lý & Là đầu vào nền để tính các đại lượng thống kê phục vụ cho phân tích tương quan, hiệp phương sai và đánh giá hành vi lợi suất \\
+\addlinespace[3pt]
+Ma trận tương quan & Tính từ ma trận lợi suất của tập cổ phiếu nghiên cứu & Phản ánh mức độ vận động cùng chiều giữa các cổ phiếu, là cơ sở xây dựng ma trận khoảng cách cho bước phân cụm \\
+\addlinespace[3pt]
+Ma trận hiệp phương sai & Tính từ ma trận lợi suất của tập cổ phiếu nghiên cứu & Đại diện cho cấu trúc rủi ro chung của tập cổ phiếu và là đầu vào trực tiếp của bài toán Markowitz \\
+\addlinespace[3pt]
+Ma trận khoảng cách & Chuyển đổi từ ma trận tương quan theo quy ước khoảng cách dùng cho phân cụm & Là đầu vào của thuật toán phân cụm phân cấp nhằm nhận diện cấu trúc nhóm cổ phiếu \\
+\addlinespace[3pt]
+cluster\_id & Bảng dữ liệu cổ phiếu sau khi bổ sung thông tin cụm & Cho biết mỗi cổ phiếu thuộc cụm nào để áp ràng buộc tỷ trọng theo cụm trong bước tối ưu hóa \\
+\addlinespace[3pt]
+mean\_ret & Bảng dữ liệu cổ phiếu sau khi bổ sung thông tin cụm & Được dùng như đại diện lợi suất lịch sử bình quân của từng cổ phiếu trong các bài toán tối ưu hiện tại \\
+\addlinespace[3pt]
+std\_ret & Bảng dữ liệu cổ phiếu sau khi bổ sung thông tin cụm & Đóng vai trò thông tin mô tả hỗ trợ phản ánh đặc điểm biến động của từng cổ phiếu và diễn giải kết quả \\
+\end{longtable}
+\endgroup
+\section{Tích hợp kết quả phân cụm vào bài toán tối ưu}\label{Toc227188442}
+Thông tin cụm đi vào Markowitz thông qua giới hạn tổng tỷ trọng, không qua tín hiệu dự báo. Sau khi gán cluster\_id, bộ tối ưu áp điều kiện \(\sum{weights in cluster c}\leq cap\_c\) cho từng cụm. Ràng buộc này điều chỉnh miền nghiệm khả thi, còn mục tiêu tối ưu và tập tài sản sau tiền xử lý được giữ nguyên.
+
+Việc tích hợp có hai lộ trình. Nhánh tĩnh sử dụng cấu trúc cụm cố định từ bước phân tích trước đó. Nhánh rolling dựng lại 4 cụm từ dữ liệu của từng cửa sổ huấn luyện, chuẩn hóa nhãn rồi áp cùng dạng trần cụm cho kỳ tái cân bằng tương ứng. Vì vậy, cấu trúc cụm ngoài mẫu không được lấy cố định từ mô hình tĩnh.
+
+Toàn bộ cổ phiếu sau tiền xử lý vẫn được tối ưu đồng thời. Phân cụm không chọn mã đại diện hay loại bớt tài sản, mà giới hạn lượng vốn có thể tập trung vào một nhóm đồng biến. Nhờ đó, cấu trúc phụ thuộc quan sát được từ dữ liệu được phản ánh trong ràng buộc phân bổ.
+
+\begingroup
+\ResearchTableSetup{3}
+\begin{longtable}{L{0.22}L{0.40}L{0.38}}
+\caption{Vai trò của kết quả phân cụm trong mô hình tối ưu hóa danh mục}\label{Toc227159901}\\
+\toprule
+\textbf{Thành phần từ kết quả phân cụm} & \textbf{Cách được sử dụng trong bài toán tối ưu} & \textbf{Ý nghĩa đầu tư} \\
+\midrule
+\endfirsthead
+\caption[]{Vai trò của kết quả phân cụm trong mô hình tối ưu hóa danh mục (tiếp)}\\
+\toprule
+\textbf{Thành phần từ kết quả phân cụm} & \textbf{Cách được sử dụng trong bài toán tối ưu} & \textbf{Ý nghĩa đầu tư} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{3}{r}{\footnotesize\itshape Tiếp ở trang sau}\\
+\endfoot
+\bottomrule
+\endlastfoot
+cluster\_id & Xác định tập cổ phiếu thuộc từng cụm để tính tổng trọng số theo cụm trong bài toán Markowitz & Chuyển kết quả phân cụm thành chỉ số ràng buộc trực tiếp trong tối ưu hóa \\
+\addlinespace[3pt]
+Trần cụm cap\_c & Áp điều kiện tổng trọng số trong cụm c không vượt quá cap\_c & Hạn chế dồn vốn vào nhóm cổ phiếu đồng biến \\
+\addlinespace[3pt]
+Nhánh tối ưu tĩnh & Dùng cấu trúc cụm cố định đã được chốt ở bước chuẩn bị dữ liệu cho bài toán trong mẫu & Giữ đầu vào cấu trúc ổn định để đọc kết quả tĩnh \\
+\addlinespace[3pt]
+Nhánh rolling & Tái dựng cấu trúc 4 cụm từ từng cửa sổ huấn luyện trước mỗi lần tái cân bằng & Bảo đảm đánh giá ngoài mẫu không tái sử dụng cấu trúc cụm của toàn bộ mẫu \\
+\end{longtable}
+\endgroup
+Hình~\ref{Toc227159882} đã mô tả cấu trúc cụm và các khối tương quan nội cụm. Chương này sử dụng kết quả đó để thiết kế trần tỷ trọng trong Markowitz, thay vì lặp lại heatmap.
+
+\section{Xây dựng danh mục GMV Defensive}\label{Toc227188443}
+GMV Defensive đại diện cho mục tiêu phòng thủ trong mô hình tĩnh. Bộ tối ưu tìm danh mục có phương sai nhỏ nhất trên tập cổ phiếu sau tiền xử lý, đồng thời phân bổ hết vốn và tuân thủ giới hạn theo cụm. Mục tiêu trực tiếp là giảm biến động, không phải tìm mức sinh lợi cao nhất.
+
+Mô hình sử dụng Sigma từ ma trận hiệp phương sai. Các điều kiện gồm đầu tư toàn bộ vốn (\(\sum{w}=1\)), không bán khống (\({w}_{i}\geq0\)) và giới hạn tổng tỷ trọng từng cụm. Với GMV Defensive, trần của cụm 1 là 50\%, cụm 2 là 40\%, cụm 3 là 20\% và cụm 4 là 50\%. Kết quả phân cụm được tích hợp vào các điều kiện này để kiểm soát lượng vốn dồn vào nhóm cổ phiếu đồng biến.
+
+\begingroup
+\ResearchTableSetup{2}
+\begin{longtable}{L{0.32}L{0.68}}
+\caption{Thiết lập mô hình cho danh mục GMV Defensive}\label{Toc227159902}\\
+\toprule
+\textbf{Thành phần mô hình} & \textbf{Thiết lập trong nghiên cứu} \\
+\midrule
+\endfirsthead
+\caption[]{Thiết lập mô hình cho danh mục GMV Defensive (tiếp)}\\
+\toprule
+\textbf{Thành phần mô hình} & \textbf{Thiết lập trong nghiên cứu} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{2}{r}{\footnotesize\itshape Tiếp ở trang sau}\\
+\endfoot
+\bottomrule
+\endlastfoot
+Hàm mục tiêu & Cực tiểu hoá phương sai danh mục \({w}^{T}\Sigma w\) \\
+\addlinespace[3pt]
+Đầu vào lợi suất và hiệp phương sai & \(\mu\) là ước lượng lợi suất log ngày bình quân lịch sử, dùng như đại diện thực nghiệm cho lợi suất kỳ vọng; Sigma là ma trận hiệp phương sai dùng trực tiếp trong bài toán GMV \\
+\addlinespace[3pt]
+Ràng buộc ngân sách & \(\sum{w}=1\), tức toàn bộ vốn được phân bổ vào danh mục \\
+\addlinespace[3pt]
+Ràng buộc long-only & \({w}_{i}\,\geq\,0\) với mọi tài sản, không cho phép bán khống \\
+\addlinespace[3pt]
+Trần tỷ trọng theo cụm & \(\sum{{w}_{i}\text{ trong cụm }c}\leq cap\_c\), với các mức trần defensive: cụm 1 = 0,50; cụm 2 = 0,40; cụm 3 = 0,20; cụm 4 = 0,50 \\
+\addlinespace[3pt]
+Diễn giải vai trò & Danh mục tối ưu đại diện cho mục tiêu giảm thiểu rủi ro trong cùng khung Markowitz có tích hợp ràng buộc theo cụm; không được hiểu là danh mục “tốt nhất” cho mọi mục tiêu đầu tư \\
+\end{longtable}
+\endgroup
+GMV Defensive minh họa nghiệm phương sai nhỏ nhất trong miền khả thi đã xác định. Tính phòng thủ của mục tiêu không đồng nghĩa với hiệu quả vượt trội tuyệt đối trên mọi chỉ tiêu. Cơ cấu tỷ trọng được trình bày ở Chương~\ref{Toc227188446}; nghiệm có xu hướng phân bổ rộng hơn và thể hiện định hướng thận trọng trong khung ràng buộc đang dùng (Hình~\ref{Toc227159885}).
+
+\section{Xây dựng danh mục Aggressive}\label{Toc227188444}
+Aggressive đại diện cho yêu cầu sinh lợi cao hơn ở nhánh tĩnh, nhưng vẫn là bài toán phương sai tối thiểu. Cụ thể, mô hình cực tiểu hóa \({w}^{T}\Sigma w\) với ràng buộc bổ sung \({\mu}^{T}w\geq target\_return,\) cùng các điều kiện đầu tư hết vốn, không bán khống và giới hạn cụm. Đây không phải bài toán cực đại Sharpe hay tối đa hóa lợi suất không ràng buộc.
+
+Aggressive khác GMV Defensive ở cấu hình trần cụm và yêu cầu sinh lợi. Các giới hạn lần lượt là cụm 1 không quá 60\%, cụm 2 không quá 60\%, cụm 3 không quá 30\% và cụm 4 không quá 25\%, cho phép tập trung cao hơn ở một số nhóm. Mức target\_return được chọn từ đường biên chẩn đoán, cùng đơn vị lợi suất ngày với mu; mu là lợi suất log ngày bình quân lịch sử dùng để đại diện thực nghiệm cho lợi suất kỳ vọng. Nhóm quét lưới mục tiêu, kiểm tra từng nghiệm và chọn mức sinh lợi cao nhất còn khả thi. Nhánh Aggressive chỉ được giải khi nghiệm GMV trước đó vượt kiểm tra tính khả thi và đường biên trả về target\_return hợp lệ. Cơ chế này xác định một nghiệm có điều kiện, không xác lập danh mục tốt nhất trong mọi trường hợp.
+
+\begingroup
+\ResearchTableSetup{2}
+\begin{longtable}{L{0.32}L{0.68}}
+\caption{Thiết lập mô hình cho danh mục Aggressive}\label{Toc227159903}\\
+\toprule
+\textbf{Thành phần mô hình} & \textbf{Thiết lập trong nghiên cứu} \\
+\midrule
+\endfirsthead
+\caption[]{Thiết lập mô hình cho danh mục Aggressive (tiếp)}\\
+\toprule
+\textbf{Thành phần mô hình} & \textbf{Thiết lập trong nghiên cứu} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{2}{r}{\footnotesize\itshape Tiếp ở trang sau}\\
+\endfoot
+\bottomrule
+\endlastfoot
+Hàm mục tiêu & Cực tiểu hóa phương sai danh mục \({w}^{T}\Sigma w\) trong điều kiện phải đạt ngưỡng lợi suất mục tiêu \\
+\addlinespace[3pt]
+Ràng buộc lợi suất mục tiêu & \({\mu}^{T}w\geq target\_return\), tức danh mục chỉ được chấp nhận nếu đạt mức sinh lợi mục tiêu đã chọn \\
+\addlinespace[3pt]
+Ràng buộc long-only & \({w}_{i}\geq0\) với mọi tài sản, không cho phép bán khống \\
+\addlinespace[3pt]
+Ràng buộc ngân sách & \(\sum{w}=1\), tức toàn bộ vốn được đầu tư vào danh mục \\
+\addlinespace[3pt]
+Trần tỷ trọng theo cụm & Profile aggressive: cụm 1 = 0,60; cụm 2 = 0,60; cụm 3 = 0,30; cụm 4 = 0,25 \\
+\addlinespace[3pt]
+Logic chọn mức sinh lợi mục tiêu & target\_return là mức mục tiêu cao nhất còn khả thi trên đường biên chẩn đoán riêng, giữ cùng đơn vị lợi suất ngày với mu; nhánh tối ưu chỉ chạy khi nghiệm GMV trước đó đã qua kiểm tra tính khả thi và đường biên trả về giá trị hợp lệ \\
+\addlinespace[3pt]
+Diễn giải vai trò & Danh mục tối ưu đại diện cho mục tiêu tìm kiếm mức sinh lợi cao hơn trong cùng khung ràng buộc, chứ không phải danh mục vượt trội tuyệt đối cho mọi tiêu chí \\
+\end{longtable}
+\endgroup
+Hai danh mục tĩnh dùng chung đầu vào và nguyên tắc ràng buộc theo cụm, nhưng khác mục tiêu và mức trần. Chương~\ref{Toc227188439} trình bày cách thiết lập, còn Chương~\ref{Toc227188446} đánh giá kết quả; Aggressive ở đây chỉ đại diện cho yêu cầu sinh lợi cao hơn. Cần tách cấu hình này khỏi Aggressive rolling - Thuần và Aggressive rolling - Lai, vốn dùng mục tiêu sinh lợi năm 14\% quy đổi về ngày. Các cấu hình ngoài mẫu do đó không lặp nguyên trạng nghiệm tĩnh. Tỷ trọng dương của nghiệm tĩnh được trình bày ở Chương~\ref{Toc227188446}, cho thấy mức tập trung cao hơn vào một số vị thế chủ đạo so với GMV Defensive trong khung ràng buộc đang xét (Hình~\ref{Toc227159886}).
+
+\section{Thiết kế đánh giá danh mục}\label{Toc227188445}
+Đánh giá được chia thành hai tầng. Backtest tĩnh trong mẫu mô tả lợi nhuận, rủi ro và cơ cấu khi tỷ trọng được ước lượng trên toàn bộ dữ liệu nghiên cứu. Backtest rolling ngoài mẫu cập nhật đầu vào theo thời gian và ghi nhận kết quả trên dữ liệu chưa tham gia ước lượng, nhằm kiểm tra khả năng duy trì các đặc tính danh mục.
+
+Equal-Weight là danh mục chuẩn ở cả hai tầng. Mốc so sánh này sử dụng cùng tập cổ phiếu, tần suất dữ liệu và khoảng thời gian đánh giá. Nhờ có một cấu hình đơn giản, minh bạch, kết quả Markowitz được đặt trong quan hệ đối chiếu thay vì đánh giá riêng từng nghiệm.
+
+Trong rolling ngoài mẫu, mỗi kỳ sử dụng 500 phiên quá khứ để ước lượng mu\_t và Sigma\_t. Tỷ trọng sau tối ưu được giữ trong 20 phiên tiếp theo rồi mới tái cân bằng. Cửa sổ huấn luyện và giai đoạn kiểm định được tách theo thời gian. Nhóm theo dõi tỷ suất sinh lợi trung bình năm hóa, biến động năm hóa, Sharpe với Rf = 0 và mức sụt giảm vốn cực đại. Aggressive rolling - Thuần và Aggressive rolling - Lai cùng sử dụng mục tiêu sinh lợi năm 14\% quy đổi về ngày; ý nghĩa thực nghiệm của hai chuỗi được phân tích ở Chương~\ref{Toc227188446}.
+
+\begingroup
+\ResearchTableSetup{2}
+\begin{longtable}{L{0.32}L{0.68}}
+\caption{Tổng hợp thiết kế đánh giá danh mục trong nghiên cứu}\label{Toc227159904}\\
+\toprule
+\textbf{Hạng mục} & \textbf{Thiết lập đánh giá trong nghiên cứu} \\
+\midrule
+\endfirsthead
+\caption[]{Tổng hợp thiết kế đánh giá danh mục trong nghiên cứu (tiếp)}\\
+\toprule
+\textbf{Hạng mục} & \textbf{Thiết lập đánh giá trong nghiên cứu} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{2}{r}{\footnotesize\itshape Tiếp ở trang sau}\\
+\endfoot
+\bottomrule
+\endlastfoot
+Tầng đánh giá thứ nhất & Backtest tĩnh trong mẫu để mô tả đặc điểm của danh mục khi tỷ trọng được xác định trên toàn bộ mẫu nghiên cứu \\
+\addlinespace[3pt]
+Tầng đánh giá thứ hai & Backtest rolling ngoài mẫu để kiểm định độ bền của danh mục khi tham số được cập nhật theo thời gian \\
+\addlinespace[3pt]
+Danh mục đối chiếu & Equal-Weight, đóng vai trò mốc tham chiếu nhất quán trên cùng tập tài sản và cùng giai đoạn đánh giá \\
+\addlinespace[3pt]
+Cửa sổ ước lượng rolling & 500 phiên giao dịch dùng để ước lượng lại tham số ở mỗi lần tái cân bằng \\
+\addlinespace[3pt]
+Chu kỳ nắm giữ rolling & 20 phiên giao dịch cho mỗi khối nắm giữ sau khi danh mục được xác lập \\
+\addlinespace[3pt]
+Cơ sở năm hóa & Quy đổi năm hóa trên cơ sở 252 phiên giao dịch \\
+\addlinespace[3pt]
+Nhóm chỉ tiêu & Tỷ suất sinh lợi năm hóa, độ biến động năm hóa, Sharpe ratio với Rf = 0, Max Drawdown \\
+\addlinespace[3pt]
+Vai trò của Aggressive rolling - Thuần và Aggressive rolling - Lai & Theo dõi bổ sung để minh bạch về mặt phương pháp, không dùng như phần diễn giải kết luận chính trong chương này \\
+\end{longtable}
+\endgroup
+Chương~\ref{Toc227188439} hoàn tất việc xác định đầu vào, mục tiêu tối ưu, ràng buộc và thiết kế đánh giá. Chương~\ref{Toc227188446} trình bày kết quả tương ứng để đối chiếu danh mục tối ưu với mốc chuẩn và thảo luận những khác biệt quan sát được.
+
+\chapter{THỰC NGHIỆM, KẾT QUẢ VÀ THẢO LUẬN}\label{Toc227188446}
+Khung đánh giá sử dụng lợi suất, biến động, Sharpe và mức sụt giảm vốn cực đại, tham khảo giáo trình Đầu tư Tài chính \cite{ref05}, nghiên cứu về Markowitz và Sharpe ratio \cite{ref10}, cùng tổng quan tối ưu hóa danh mục \cite{ref11}. Số liệu và phần thảo luận dưới đây thuộc kết quả thực nghiệm của nhóm.
+
+\section{Thiết kế thực nghiệm và tiêu chí đánh giá}\label{Toc227188447}
+Kết quả được đọc theo hai tầng bổ sung. Danh mục tĩnh mô tả sinh lợi, rủi ro và phân bổ sau khi tối ưu trên toàn bộ mẫu. Rolling ngoài mẫu kiểm tra các đặc tính đó khi mô hình được cập nhật theo thời gian. Sự phân biệt này tránh đồng nhất kết quả trên dữ liệu đã biết với khả năng thích ứng trong giai đoạn kiểm định.
+
+Mỗi nghiệm được tối ưu theo mục tiêu riêng. GMV Defensive ưu tiên phương sai thấp, còn Aggressive yêu cầu mức sinh lợi cao hơn và chấp nhận biến động lớn hơn trong khung ràng buộc đã thiết lập. Vì thế, đánh giá tập trung vào sự đánh đổi của từng mục tiêu, không tìm một cấu hình được xem là tốt nhất trong mọi hoàn cảnh.
+
+Backtest rolling kiểm tra độ bền khi dữ liệu thay đổi, không tạo ra một danh mục cố định cho toàn giai đoạn. Danh mục tĩnh chỉ thể hiện cơ cấu đại diện trong mẫu. Thiết kế đầy đủ nằm ở Bảng~\ref{Toc227159904}; Bảng~\ref{Toc227159905} nhắc lại những thành phần cần thiết để đọc kết quả.
+
+\begingroup
+\ResearchTableSetup{2}
+\begin{longtable}{L{0.30}L{0.70}}
+\caption{Tổng hợp thiết kế thực nghiệm Chương~\ref{Toc227188446}}\label{Toc227159905}\\
+\toprule
+\textbf{Hạng mục} & \textbf{Thiết kế sử dụng trong chương 5} \\
+\midrule
+\endfirsthead
+\caption[]{Tổng hợp thiết kế thực nghiệm Chương~\ref{Toc227188446} (tiếp)}\\
+\toprule
+\textbf{Hạng mục} & \textbf{Thiết kế sử dụng trong chương 5} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{2}{r}{\footnotesize\itshape Tiếp ở trang sau}\\
+\endfoot
+\bottomrule
+\endlastfoot
+Phạm vi dữ liệu & VN30 sau tiền xử lý, giai đoạn 2020-01-02 đến 2025-11-28 \\
+\addlinespace[3pt]
+Tập cổ phiếu sau tiền xử lý & 29 mã cổ phiếu \\
+\addlinespace[3pt]
+Cấu trúc phân cụm sử dụng & Phân cụm phân cấp với liên kết Ward, lựa chọn K = 4 \\
+\addlinespace[3pt]
+Nhóm danh mục được báo cáo & Equal-Weight, GMV Defensive, Aggressive, Rolling Defensive, Aggressive rolling - Thuần và Aggressive rolling - Lai \\
+\addlinespace[3pt]
+Trọng tâm đánh giá của chương & So sánh kết quả trong mẫu, ngoài mẫu và thảo luận vai trò của phân cụm trong tối ưu hóa danh mục \\
+\end{longtable}
+\endgroup
+\section{Kết quả danh mục tĩnh (trong mẫu)}\label{Toc227188448}
+Phần trong mẫu đặt các chỉ tiêu hiệu quả cạnh cơ cấu tỷ trọng để mô tả từng danh mục sau tối ưu. Tỷ trọng được xác định một lần và giữ trong giai đoạn đánh giá. Do đó, kết quả thể hiện hình thái đại diện trên dữ liệu lịch sử, làm cơ sở đối chiếu với tầng ngoài mẫu.
+
+\begingroup
+\ResearchTableSetup{5}
+\begin{longtable}{L{0.24}C{0.19}C{0.19}C{0.18}C{0.20}}
+\caption{Chỉ tiêu hiệu quả tĩnh của các danh mục đầu tư}\label{Toc227159906}\\
+\toprule
+\textbf{Danh mục} & \textbf{Tỷ suất sinh lợi năm hoá} & \textbf{Độ biến động năm hoá} & \textbf{Sharpe ratio} & \textbf{Max Drawdown} \\
+\midrule
+\endfirsthead
+\caption[]{Chỉ tiêu hiệu quả tĩnh của các danh mục đầu tư (tiếp)}\\
+\toprule
+\textbf{Danh mục} & \textbf{Tỷ suất sinh lợi năm hoá} & \textbf{Độ biến động năm hoá} & \textbf{Sharpe ratio} & \textbf{Max Drawdown} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{5}{r}{\footnotesize\itshape Tiếp ở trang sau}\\
+\endfoot
+\bottomrule
+\endlastfoot
+Equal-Weight & 23.64\% & 23.65\% & 1.000 & -39.02\% \\
+\addlinespace[3pt]
+GMV Defensive & 13.30\% & 18.87\% & 0.705 & -31.39\% \\
+\addlinespace[3pt]
+Aggressive & 54.65\% & 31.02\% & 1.707 & -49.97\% \\
+\end{longtable}
+\endgroup
+\begin{figure}[htbp]
+\centering
+\includegraphics{images/image10.png}
+\caption{Đường giá trị tài sản ròng tích lũy của các danh mục trong backtest tĩnh trong mẫu}\label{Toc227159883}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics{images/image11.png}
+\caption{Diễn biến mức sụt giảm vốn của các danh mục trong backtest tĩnh trong mẫu}\label{Toc227159884}
+\end{figure}
+
+Trong mẫu, GMV Defensive có biến động và mức sụt giảm vốn cực đại thấp hơn danh mục chuẩn. Đổi lại, mức sinh lợi và tốc độ tăng trưởng thấp hơn. Kết quả phù hợp với mục tiêu phòng thủ: chấp nhận giảm phần sinh lợi để có quỹ đạo vốn ít biến động hơn.
+
+Aggressive cho thấy sự đánh đổi theo hướng ngược lại. Mức sinh lợi cao hơn đi cùng biến động và sụt giảm vốn lớn hơn. Vì vậy, không thể chỉ dựa vào lợi nhuận để kết luận danh mục này vượt trội; cần đánh giá kết quả theo mục tiêu và mức rủi ro mà nó chấp nhận.
+
+Cơ cấu vốn bổ sung cách diễn giải cho các chỉ tiêu. GMV Defensive phân bổ rộng trên nhiều mã, còn Aggressive tập trung hơn vào một số vị thế chủ đạo. Hai hình thái này phù hợp với sự khác nhau về định hướng phòng thủ và yêu cầu sinh lợi của mô hình.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics{images/image12.png}
+\caption{Cơ cấu tỷ trọng 8 mã có tỷ trọng lớn nhất và phần còn lại của danh mục GMV Defensive trong nghiệm tối ưu tĩnh}\label{Toc227159885}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics{images/image13.png}
+\caption{Cơ cấu tỷ trọng các mã có tỷ trọng dương của danh mục Aggressive trong nghiệm tối ưu tĩnh (4 mã)}\label{Toc227159886}
+\end{figure}
+
+Các biểu đồ tỷ trọng minh họa cách mục tiêu tối ưu được phản ánh trong cơ cấu vốn: phân bổ rộng ở nghiệm phòng thủ và tập trung hơn ở nghiệm Aggressive. Cần đọc cơ cấu này cùng các chỉ tiêu hiệu quả để thấy đầy đủ đặc tính của mỗi danh mục.
+
+\section{Kết quả backtest rolling ngoài mẫu}\label{Toc227188449}
+Ở tầng ngoài mẫu, nhóm ước lượng lại tham số từ 500 phiên quá khứ tại mỗi kỳ và giữ tỷ trọng trong 20 phiên tiếp theo. Cơ chế tái cân bằng tách giai đoạn ước lượng khỏi kiểm định, cho phép quan sát danh mục khi dữ liệu đầu vào thay đổi thay vì chỉ đánh giá một nghiệm cố định.
+
+Ngoài mẫu là phần kiểm định chính về khả năng duy trì đặc tính chiến lược. Equal-Weight tiếp tục làm mốc chuẩn. Danh mục phòng thủ vẫn có xu hướng biến động và sụt giảm vốn thấp hơn, đồng thời tăng trưởng thấp hơn. Sự đánh đổi này cần được xem cùng kết quả trong mẫu để đánh giá tính nhất quán của mục tiêu.
+
+Giai đoạn ngoài mẫu kéo dài từ 07/03/2022 đến 07/11/2025, bao gồm nhiều trạng thái thị trường. Bối cảnh được xem xét gồm đợt điều chỉnh mạnh năm 2022, nhịp hồi phục 2023-2024 khi chính sách bớt căng thẳng và biến động liên quan đến yếu tố thương mại năm 2025. Các đường giá trị tài sản ròng và sụt giảm vốn do đó phản ánh quá trình qua nhiều điều kiện khác nhau, không phải một giai đoạn ổn định đồng nhất.
+
+\begingroup
+\ResearchTableSetup{2}
+\begin{longtable}{L{0.32}L{0.68}}
+\caption{Cấu hình thực nghiệm rolling ngoài mẫu}\label{Toc227159907}\\
+\toprule
+\textbf{Hạng mục} & \textbf{Cấu hình rolling ngoài mẫu} \\
+\midrule
+\endfirsthead
+\caption[]{Cấu hình thực nghiệm rolling ngoài mẫu (tiếp)}\\
+\toprule
+\textbf{Hạng mục} & \textbf{Cấu hình rolling ngoài mẫu} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{2}{r}{\footnotesize\itshape Tiếp ở trang sau}\\
+\endfoot
+\bottomrule
+\endlastfoot
+Phương thức đánh giá & Backtest rolling / walk-forward ngoài mẫu \\
+\addlinespace[3pt]
+Cửa sổ ước lượng & 500 phiên giao dịch \\
+\addlinespace[3pt]
+Chu kỳ nắm giữ & 20 phiên giao dịch \\
+\addlinespace[3pt]
+Danh mục chuẩn & Equal-Weight Benchmark \\
+\addlinespace[3pt]
+Danh mục so sánh chính & Rolling Defensive \\
+\addlinespace[3pt]
+Danh mục chẩn đoán bổ sung & Aggressive rolling - Thuần, Aggressive rolling - Lai \\
+\addlinespace[3pt]
+Vai trò của backtest rolling ngoài mẫu & Kiểm định độ bền ngoài mẫu; không dùng để xác định một cơ cấu danh mục cố định duy nhất \\
+\end{longtable}
+\endgroup
+\begin{figure}[htbp]
+\centering
+\includegraphics{images/image14.png}
+\caption{Đường giá trị tài sản ròng tích lũy của các danh mục trong backtest rolling ngoài mẫu}\label{Toc227159887}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics{images/image15.png}
+\caption{Diễn biến mức sụt giảm vốn của các danh mục trong backtest rolling ngoài mẫu}\label{Toc227159888}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics{images/image16.png}
+\caption{So sánh các chỉ tiêu hiệu quả của các danh mục trong backtest rolling ngoài mẫu}\label{Toc227159889}
+\end{figure}
+
+Bảng cấu hình xác định cửa sổ ước lượng, chu kỳ nắm giữ và thời gian kiểm định. Đường giá trị tài sản ròng mô tả tích lũy vốn, còn đường sụt giảm cho thấy độ sâu và diễn biến tổn thất. Đối chiếu hai dạng biểu đồ với các chỉ tiêu hiệu quả giúp đọc rõ sự đánh đổi giữa tăng trưởng và rủi ro.
+
+Kết quả ngoài mẫu được dùng để xem các đặc tính đã quan sát trong mẫu có duy trì khi cập nhật dữ liệu hay không. Mức ổn định tương đối qua các trạng thái thị trường có ý nghĩa hơn việc tuyên bố một chiến lược luôn vượt trội trên toàn giai đoạn.
+
+\section{Diễn giải rolling aggressive Thuần và Lai}\label{Toc227188450}
+Kết quả Aggressive ngoài mẫu được tách thành Thuần và Lai thay vì gộp thành một chuỗi. Thuần ghi nhận các kỳ nghiệm khả thi ngay tại thời điểm giải; Lai ghi nhận những kỳ phương án cuối cùng còn khả thi sau kiểm tra và điều chỉnh. Việc tách chuỗi giúp phân biệt kết quả của nghiệm ban đầu với kết quả sau bước xử lý tính khả thi.
+
+Aggressive ngoài mẫu thay đổi tỷ trọng theo kỳ tái cân bằng và trạng thái khả thi tại mỗi thời điểm. Thuần và Lai vì thế là hai cách ghi nhận kết quả theo điều kiện khác nhau, không phải hai danh mục bất biến được duy trì song song suốt giai đoạn.
+
+\begingroup
+\ResearchTableSetup{2}
+\begin{longtable}{L{0.38}L{0.62}}
+\caption{Trạng thái khả thi và phương án thay thế của danh mục aggressive}\label{Toc227159908}\\
+\toprule
+\textbf{Khía cạnh} & \textbf{Nội dung} \\
+\midrule
+\endfirsthead
+\caption[]{Trạng thái khả thi và phương án thay thế của danh mục aggressive (tiếp)}\\
+\toprule
+\textbf{Khía cạnh} & \textbf{Nội dung} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{2}{r}{\footnotesize\itshape Tiếp ở trang sau}\\
+\endfoot
+\bottomrule
+\endlastfoot
+Thuần & Chỉ ghi nhận lợi suất ở các kỳ aggressive khả thi ngay tại thời điểm giải bài toán. \\
+\addlinespace[3pt]
+Lai & Chỉ ghi nhận lợi suất khi phương án aggressive cuối cùng vẫn còn khả thi sau bước kiểm tra và điều chỉnh. \\
+\addlinespace[3pt]
+Mức độ tìm được nghiệm từ bộ giải của nhánh aggressive & 46/46 kỳ tái cân bằng. \\
+\addlinespace[3pt]
+Số kỳ Aggressive thuần khả thi ngay sau hậu kiểm & 42/46 kỳ. \\
+\addlinespace[3pt]
+Số chu kỳ phải thực hiện cơ chế chuyển đổi dự phòng trong mô hình lai & 4 kỳ. \\
+\addlinespace[3pt]
+Số kỳ có lựa chọn aggressive khả thi cuối cùng & 45/46 kỳ. \\
+\addlinespace[3pt]
+Cách diễn giải & Chỉ xem như thông tin chẩn đoán bổ sung; không đặt ngang hàng với mốc tham chiếu và Rolling Defensive trong phần đối chiếu chính. \\
+\end{longtable}
+\endgroup
+Trong Hình~\ref{Toc227159887} và Hình~\ref{Toc227159888}, hai nhánh Aggressive rolling - Thuần và Aggressive rolling - Lai cần được đọc theo điều kiện ghi nhận tương ứng. Khoảng trống hoặc phạm vi hoạt động không liên tục phản ánh tính khả thi, không phải lỗi trình bày. Bảng trạng thái và phương án thay thế giải thích vì sao các chuỗi này không được đặt ngang hàng với mốc chuẩn và danh mục phòng thủ trong đối chiếu chính.
+
+Hai chuỗi Aggressive cung cấp thông tin chẩn đoán về độ nhạy và giới hạn vận hành của mô hình. Tính khả thi phụ thuộc vào dữ liệu và điều kiện tại từng kỳ tái cân bằng, nên các chỉ tiêu không được dùng để xác lập ưu thế đầu tư tuyệt đối hay xếp hạng cuối cùng.
+
+\section{Thảo luận vai trò của phân cụm trong tối ưu hóa danh mục}\label{Toc227188451}
+Phân cụm tác động đến danh mục thông qua miền phân bổ khả thi. Trần tỷ trọng giới hạn vốn tập trung vào nhóm cổ phiếu đồng biến, từ đó bổ sung cấu trúc cho bài toán Markowitz. Tác động này không đồng nghĩa với việc phân cụm trực tiếp quyết định danh mục có lợi suất cao hơn.
+
+Hai danh mục ở mục 5.2 minh họa giới hạn của cách quy kết kết quả. GMV Defensive phân bổ rộng hơn, còn Aggressive tập trung hơn dù cùng sử dụng thông tin cụm. Chênh lệch kết quả vì vậy phải được đọc cùng mục tiêu tối ưu và bộ giới hạn tỷ trọng, không thể quy hoàn toàn cho riêng kỹ thuật phân cụm.
+
+Hình~\ref{Toc227159882} và Bảng~\ref{Toc227159897} ở Chương~\ref{Toc227188433} trình bày cấu trúc tương quan và lựa chọn số cụm. Hình~\ref{Toc227159885} và Hình~\ref{Toc227159886} thể hiện các cơ cấu danh mục khi cấu trúc đó được đưa vào tối ưu. Chuỗi đối chiếu này nối dữ liệu, quyết định phương pháp và nghiệm phân bổ. Trong bối cảnh cổ phiếu có những pha vận động theo ngành hoặc nhóm dẫn dắt, việc chú ý quan hệ giữa các mã giúp bổ sung cho cách xem xét từng tài sản riêng lẻ.
+
+Giá trị được khảo sát là khả năng tổ chức phân bổ vốn và hạn chế tập trung theo nhóm. Kết quả không chứng minh rằng chỉ cần phân cụm sẽ tạo lợi thế đầu tư trong mọi bối cảnh. Thông tin cụm là thành phần hỗ trợ của mô hình, cần được đánh giá cùng các giả định và ràng buộc còn lại.
+
+\section{Hạn chế nghiên cứu và ý nghĩa thực tiễn}\label{Toc227188452}
+Các kết luận gắn với dữ liệu đã làm sạch, cấu trúc cụm được chọn và hai tầng đánh giá cụ thể. Những danh mục được trình bày là cấu hình đại diện trong thiết kế này, không phải phương án phân bổ cố định áp dụng cho mọi giai đoạn.
+
+Về ứng dụng, quy trình kết nối dữ liệu, ràng buộc và mục tiêu thành các bước xây dựng danh mục có thể kiểm tra và tái lập. Nhánh phòng thủ minh họa khả năng kiểm soát rủi ro; nhánh Aggressive làm rõ độ nhạy khi đặt yêu cầu sinh lợi cao hơn. Ý nghĩa thực tiễn nằm ở cách tổ chức quyết định, không ở lời khẳng định về một chiến lược tốt nhất.
+
+\begingroup
+\ResearchTableSetup{7}
+\begin{longtable}{L{0.10}L{0.18}C{0.11}C{0.11}C{0.10}C{0.12}L{0.28}}
+\caption{Tổng hợp kết quả chính của Chương~\ref{Toc227188446}}\label{Toc227159909}\\
+\toprule
+\textbf{Giai đoạn đánh giá} & \textbf{Danh mục} & \textbf{Tỷ suất sinh lợi năm hoá} & \textbf{Độ biến động năm hoá} & \textbf{Hệ số Sharpe} & \textbf{Mức sụt giảm vốn lớn nhất} & \textbf{Diễn giải ngắn} \\
+\midrule
+\endfirsthead
+\caption[]{Tổng hợp kết quả chính của Chương~\ref{Toc227188446} (tiếp)}\\
+\toprule
+\textbf{Giai đoạn đánh giá} & \textbf{Danh mục} & \textbf{Tỷ suất sinh lợi năm hoá} & \textbf{Độ biến động năm hoá} & \textbf{Hệ số Sharpe} & \textbf{Mức sụt giảm vốn lớn nhất} & \textbf{Diễn giải ngắn} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{7}{r}{\footnotesize\itshape Tiếp ở trang sau}\\
+\endfoot
+\bottomrule
+\endlastfoot
+Trong mẫu & Equal-Weight & 23.64\% & 23.65\% & 1.000 & -39.02\% & Mốc tham chiếu trong mẫu \\
+\addlinespace[3pt]
+Trong mẫu & GMV Defensive & 13.30\% & 18.87\% & 0.705 & -31.39\% & Giảm biến động và mức sụt giảm vốn, đổi lại mức sinh lợi thấp hơn \\
+\addlinespace[3pt]
+Trong mẫu & Agrressive & 54.65\% & 31.02\% & 1.707 & -49.97\% & Sinh lợi cao hơn nhưng rủi ro và mức độ tập trung lớn hơn \\
+\addlinespace[3pt]
+Ngoài mẫu & Equal-Weight & 10.65\% & 21.66\% & 0.492 & -39.02\% & Danh mục tham chiếu ngoài mẫu \\
+\addlinespace[3pt]
+Ngoài mẫu & Rolling Defensive & 7.58\% & 17.53\% & 0.432 & -23.33\% & Thận trọng hơn về biến động và mức sụt giảm vốn nhưng tăng trưởng thấp hơn \\
+\addlinespace[3pt]
+Ngoài mẫu & Aggressive rolling - Thuần (chuỗi chẩn đoán) & 11.01\% & 18.48\% & 0.596 & -21.98\% & Chỉ tính trên 840/920 ngày ngoài mẫu mà nghiệm Aggressive thuần khả thi; dùng để đọc độ nhạy về tính khả thi, không dùng cho xếp hạng chính. \\
+\addlinespace[3pt]
+Ngoài mẫu & Aggressive rolling - Lai (chuỗi chẩn đoán) & 12.48\% & 18.79\% & 0.664 & -25.36\% & Chuỗi chẩn đoán có mức độ bao phủ 900/920 ngày sau khi áp dụng cơ chế dự phòng; vẫn được báo cáo riêng và không đưa vào khối so sánh chính khi độ bao phủ chưa đầy đủ. \\
+\end{longtable}
+\endgroup
+\begin{figure}[htbp]
+\centering
+\includegraphics{images/image17.png}
+\caption{So sánh các chỉ tiêu hiệu quả của các danh mục trong backtest tĩnh trong mẫu}\label{Toc227159890}
+\end{figure}
+
+Kết quả tổng hợp của Chương~\ref{Toc227188446} được trình bày qua Bảng~\ref{Toc227159909} và Hình~\ref{Toc227159890}, cùng phần đối chiếu ngoài mẫu ở Hình~\ref{Toc227159889}. Các bảng và hình cho phép đọc đồng thời đặc tính rủi ro - lợi nhuận trong mẫu và mức duy trì ngoài mẫu, tránh rút kết luận từ một chỉ tiêu riêng lẻ.
+
+Phạm vi diễn giải vẫn bị giới hạn bởi tập cổ phiếu sau tiền xử lý, cách chọn cụm, tham số đầu vào và hệ ràng buộc. Đây là các quyết định thiết kế, không phải bằng chứng về một cấu hình tối ưu duy nhất. Giai đoạn 2020-2025 cũng bao gồm cú sốc COVID, pha hưng phấn của dòng tiền cá nhân, đợt điều chỉnh năm 2022 và biến động liên quan đến thương mại năm 2025. Kết quả cần được xem là bằng chứng trên chu kỳ nhiều biến động này, không suy rộng trực tiếp cho toàn thị trường hoặc mọi giai đoạn khác.
+
+\begingroup
+\ResearchTableSetup{3}
+\begin{longtable}{L{0.21}L{0.40}L{0.39}}
+\caption{Tổng hợp các hạn chế chính của nghiên cứu}\label{Toc227159910}\\
+\toprule
+\textbf{Nhóm hạn chế} & \textbf{Nội dung chính} & \textbf{Hàm ý khi diễn giải kết quả} \\
+\midrule
+\endfirsthead
+\caption[]{Tổng hợp các hạn chế chính của nghiên cứu (tiếp)}\\
+\toprule
+\textbf{Nhóm hạn chế} & \textbf{Nội dung chính} & \textbf{Hàm ý khi diễn giải kết quả} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{3}{r}{\footnotesize\itshape Tiếp ở trang sau}\\
+\endfoot
+\bottomrule
+\endlastfoot
+Phạm vi dữ liệu & Kết quả được xây dựng trên tập cổ phiếu VN30 sau tiền xử lý còn 29 mã trong giai đoạn 2020-01-02 đến 2025-11-28. & Không nên suy rộng trực tiếp sang toàn bộ thị trường hay các giai đoạn khác mà không kiểm định lại. \\
+\addlinespace[3pt]
+Cấu trúc phân cụm & Cấu trúc chính dùng phân cụm phân cấp với liên kết Ward và K = 4 là lựa chọn thiết kế phục vụ ràng buộc danh mục. & Kết luận không hàm ý rằng đây là cấu hình phân cụm tối ưu duy nhất cho mọi mục tiêu đầu tư. \\
+\addlinespace[3pt]
+Giả định mô hình & Danh mục được xây dựng trong khung Markowitz với bộ tham số đầu vào và hệ ràng buộc cụ thể của nghiên cứu. & Kết quả phụ thuộc vào giả định ước lượng lợi suất, rủi ro và các giới hạn tỷ trọng theo cụm đang áp dụng. \\
+\addlinespace[3pt]
+Kết quả trong mẫu & Các danh mục tĩnh chủ yếu cho thấy hình thái rủi ro - lợi nhuận đại diện trên dữ liệu lịch sử đã biết. & Không nên đọc các chỉ tiêu trong mẫu như bằng chứng đủ để khẳng định hiệu quả triển khai ngoài mẫu. \\
+\addlinespace[3pt]
+Nhánh aggressive ngoài mẫu & Nhánh aggressive ngoài mẫu nhạy hơn với tính khả thi theo từng kỳ tái cân bằng và cần tách Thuần/Lai để đọc đúng ngữ cảnh. & Đây là thông tin chẩn đoán bổ sung, không phải phần đối chiếu chính ngang hàng với mốc tham chiếu và Rolling Defensive. \\
+\addlinespace[3pt]
+Ý nghĩa thực tiễn & Quy trình cho thấy cách kết hợp phân cụm với tối ưu hóa để tổ chức quyết định đầu tư có cấu trúc hơn. & Giá trị thực tiễn nằm ở khung ra quyết định có kiểm soát, không phải ở một công thức bất biến bảo đảm vượt trội trong mọi bối cảnh. \\
+\end{longtable}
+\endgroup
+\unnumberedchapter{KẾT LUẬN}\label{Toc227188453}
+\section{Kết luận chung}\label{Toc227188454}
+Tiểu luận xem xét cách sử dụng phân cụm để bổ sung thông tin về quan hệ giữa cổ phiếu VN30 trong mô hình Markowitz. Trọng tâm là kiểm soát mức độ tập trung thông qua cấu trúc nhóm, thay vì thay thế lý thuyết danh mục hiện đại hoặc tạo tín hiệu dự báo độc lập.
+
+Nhóm triển khai quy trình từ làm sạch giá, tính lợi suất và các ma trận thống kê đến phân cụm Ward với K = 4. Cấu trúc cụm được chuyển thành ràng buộc để xây dựng GMV Defensive và Aggressive. Đánh giá tĩnh trong mẫu và rolling ngoài mẫu cho phép xem xét kết quả khi đầu vào cố định cũng như khi được cập nhật theo thời gian.
+
+Kết quả làm rõ hai định hướng phân bổ: phòng thủ để kiểm soát biến động và chấp nhận rủi ro cao hơn để theo đuổi sinh lợi. Phân cụm hỗ trợ diễn giải và giới hạn vốn theo các nhóm tương đồng, giúp quy trình phân bổ có cấu trúc hơn. Tuy nhiên, nghiên cứu chưa cho phép khẳng định phân cụm tự thân tạo lợi thế vượt trội trong mọi điều kiện; giá trị của nó phải được xem trong toàn bộ mô hình và thiết kế đánh giá.
+
+\section{Hạn chế của nghiên cứu}\label{Toc227188455}
+Giới hạn về dữ liệu là tập VN30 sau tiền xử lý còn 29 mã, trong giai đoạn 02/01/2020 đến 28/11/2025. Mẫu bao gồm nhiều trạng thái thị trường nhưng không đại diện cho toàn bộ chứng khoán Việt Nam hay mọi chu kỳ tương lai.
+
+Kết quả còn phụ thuộc vào cấu trúc K = 4, cách ước lượng đầu vào và các ràng buộc Markowitz. Chi phí giao dịch, thuế, bán khống và trượt giá chưa được phân tích chuyên sâu, nên khả năng áp dụng trong vận hành thực tế cần được xem xét thận trọng.
+
+Danh mục tĩnh chỉ mô tả nghiệm đại diện trong mẫu; rolling ngoài mẫu mới là phần kiểm định quan trọng hơn về độ bền. Aggressive rolling - Thuần và Aggressive rolling - Lai có vai trò chẩn đoán tính khả thi và độ nhạy, không được dùng như các chiến lược hoàn chỉnh để xếp hạng trực tiếp cùng các danh mục chính.
+
+\section{Hướng nghiên cứu tiếp theo}\label{Toc227188456}
+Hướng tiếp theo là mở rộng tập tài sản sang VN100 hoặc phạm vi rộng hơn trên HOSE, đồng thời kiểm định ở các giai đoạn khác. Việc mở rộng cả không gian và thời gian giúp xem xét mức ổn định của kết quả trong những điều kiện đa dạng hơn.
+
+Về phương pháp, có thể đối chiếu các thuật toán phân cụm và tiêu chí chọn số cụm khác nhau. Các thử nghiệm đó sẽ giúp phân biệt vai trò của ý tưởng sử dụng cấu trúc nhóm với ảnh hưởng của từng lựa chọn kỹ thuật cụ thể.
+
+Để tiến gần điều kiện vận hành, nghiên cứu tiếp theo có thể bổ sung chi phí giao dịch, ràng buộc thực tiễn và quy tắc tái cân bằng chi tiết hơn. So sánh với những mô hình danh mục ngoài Markowitz cũng là hướng mở rộng cần thiết để đánh giá khả năng ứng dụng trên thị trường Việt Nam.
+
+\begin{thebibliography}{99}
+\phantomsection
+\addcontentsline{toc}{chapter}{\bibname}
+\bibitem{ref01} B. Q. Hoàng, "Xây dựng danh mục tối ưu với kỹ thuật phân cụm chuỗi thời gian - Trường hợp thị trường chứng khoán Việt Nam," \textit{Trường Đại học Kinh tế Quốc dân, }2022.
+\bibitem{ref02} N. T. Thoa, "Đa dạng hóa danh mục đầu tư sử dụng độ đo rủi ro đa trị," Viện Toán học, 2013.
+\bibitem{ref03} L. V. H. Nga and H. T. T. Dương, "Vận dụng mô hình Markowitz trong xây dựng và lựa chọn danh mục đầu tư tối ưu," \textit{Tạp chí Khoa học Tài chính Kế toán, }2023.
+\bibitem{ref04} T. V. Trí, "Xây dựng và quản lý danh mục đầu tư chứng khoán ở Việt Nam," Học viện Ngân hàng, 2015.
+\bibitem{ref05} Z. Bodie, A. Kane and A. J. Marcus, Đầu tư Tài chính, Nhà xuất bản Kinh tế TP. Hồ Chí Minh, 2020.
+\bibitem{ref06} V. Tola, F. Lillo, M. Gallegati and R. N. Mantegna, "Cluster analysis for portfolio optimization," \textit{Journal of Economic Dynamics \& Control, }2008.
+\bibitem{ref07} M. K. Nejad, "Clustering Stock Exchange data by Using Evolutionary Algorithms for Portfolio Management," \textit{European Research Studies Journal, }2014.
+\bibitem{ref08} T. Issakainen, "Clustering-based value investing strategy in the Helsinki Stock Exchange: k-means algorithm," \textit{Journal of Innovation in Business and Economics, }2023.
+\bibitem{ref09} J. U, I. Yun, H. Jong and W. Rim, "Portfolio optimization based on k-means clustering and particle swarm optimization using financial statements and stock price data," Kim Chaek University of Technology, 2024.
+\bibitem{ref10} Z. Ma, "Maximizing Returns and Minimizing Risk: A Data-Driven Portfolio Optimization Analysis Using Markowitz's Theory and Sharpe Ratio," \textit{Academic Journal of Business \& Management, }2023.
+\bibitem{ref11} A. Salo, M. Doumpos, J. Liesiö and C. Zopounidis, "Fifty years of portfolio optimization," \textit{European Journal of Operational Research, }2024.
+\end{thebibliography}
+
+\unnumberedchapter{PHỤ LỤC}\label{Toc227188458}
+\researchappendix
+Phụ lục này trình bày các đoạn mã nguồn chính của đề tài nhằm minh họa trực tiếp cho quy trình xử lý dữ liệu, phân cụm và tối ưu hóa danh mục đầu tư. Các ảnh chụp được lựa chọn theo nguyên tắc chỉ giữ những khối mã thể hiện rõ logic nghiên cứu, không bao gồm output hay các thao tác kỹ thuật phụ trợ.
+
+\section{Làm sạch dữ liệu và tạo bộ dữ liệu cân bằng phục vụ nghiên cứu}\label{Toc227188459}
+Cụm hình này minh họa các bước làm sạch dữ liệu ban đầu để hình thành tập VN29 và bộ dữ liệu cân bằng phục vụ phân tích.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics{images/image18.jpg}
+\caption[]{Đoạn mã loại cổ phiếu SSB khỏi tập cổ phiếu nghiên cứu để hình thành tập VN29 phục vụ phân tích.}\label{fig:pl-1a}
+\end{figure}
+\begin{figure}[htbp]
+\centering
+\includegraphics{images/image19.jpeg}
+\caption[]{Đoạn mã kiểm tra tính hợp lệ của dữ liệu OHLC và loại các dòng vi phạm.}\label{fig:pl-1b}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics{images/image20.jpeg}
+\caption[]{Đoạn mã xác định và loại các ngày giao dịch thiếu mã để tạo bộ dữ liệu cân bằng.}\label{fig:pl-1c}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\ContinuedFloat
+\includegraphics{images/image21.png}
+\caption[]{Đoạn mã xác định và loại các ngày giao dịch thiếu mã để tạo bộ dữ liệu cân bằng. \textit{(tiếp)}}\label{fig:pl-1c-2}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics{images/image22.jpg}
+\caption[]{Đoạn mã gắn cờ ngoại lệ trong dữ liệu mà không loại bỏ khỏi tập nghiên cứu.}\label{fig:pl-1d}
+\end{figure}
+
+\section{Tính log-return và tạo ma trận lợi suất sạch}\label{Toc227188460}
+Cụm hình này minh họa bước chuyển đổi dữ liệu giá sang dữ liệu lợi suất dùng cho các bước phân tích tiếp theo.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics{images/image23.jpeg}
+\caption[]{Đoạn mã tính lợi suất logarit theo từng mã cổ phiếu.}\label{fig:pl-2a}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\ContinuedFloat
+\includegraphics{images/image24.png}
+\caption[]{Đoạn mã tính lợi suất logarit theo từng mã cổ phiếu. \textit{(tiếp)}}\label{fig:pl-2a-2}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics{images/image25.jpg}
+\caption[]{Đoạn mã pivot dữ liệu thành ma trận lợi suất sạch dùng cho các bước tiếp theo.}\label{fig:pl-2b}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\ContinuedFloat
+\includegraphics{images/image26.png}
+\caption[]{Đoạn mã pivot dữ liệu thành ma trận lợi suất sạch dùng cho các bước tiếp theo. \textit{(tiếp)}}\label{fig:pl-2b-2}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics{images/image27.jpeg}
+\caption[]{Đoạn mã xuất ma trận lợi suất sạch ra tệp đầu ra phục vụ phân tích.}\label{fig:pl-2c}
+\end{figure}
+
+\section{Tạo ma trận tương quan, hiệp phương sai và khoảng cách}\label{Toc227188461}
+Cụm hình này minh họa các ma trận đầu vào được sử dụng cho phân cụm và tối ưu hóa danh mục.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics{images/image28.jpeg}
+\caption[]{Đoạn mã xây dựng ma trận tương quan và ma trận hiệp phương sai từ dữ liệu lợi suất.}\label{fig:pl-3a}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics{images/image29.jpeg}
+\caption[]{Đoạn mã chuyển ma trận tương quan thành ma trận khoảng cách phục vụ phân cụm.}\label{fig:pl-3b}
+\end{figure}
+
+\section{Phân cụm phân cấp và lựa chọn số cụm}\label{Toc227188462}
+Cụm hình này minh họa quá trình phân cụm phân cấp với liên kết Ward và lựa chọn số cụm phù hợp cho tập cổ phiếu nghiên cứu.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics{images/image30.jpeg}
+\caption[]{Đoạn mã triển khai phân cụm phân cấp theo phương pháp Ward.}\label{fig:pl-4a}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics{images/image31.jpeg}
+\caption[]{Đoạn mã đánh giá các giá trị K ứng viên theo nhiều tiêu chí.}\label{fig:pl-4b}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\ContinuedFloat
+\includegraphics{images/image32.png}
+\caption[]{Đoạn mã đánh giá các giá trị K ứng viên theo nhiều tiêu chí. \textit{(tiếp)}}\label{fig:pl-4b-2}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics{images/image33.jpg}
+\caption[]{Đoạn mã chốt số cụm cuối cùng và tạo bảng gán cụm cho từng cổ phiếu.}\label{fig:pl-4c}
+\end{figure}
+
+\section{Chẩn đoán tương quan nội cụm và liên cụm}\label{Toc227188463}
+Cụm hình này minh họa hàm hỗ trợ dùng để đo lường mức độ gắn kết trong cụm và mức phân tách giữa các cụm cổ phiếu.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics{images/image34.jpeg}
+\caption[]{Đoạn mã xây dựng thống kê tương quan nội cụm và liên cụm từ ma trận tương quan và bản đồ cụm.}\label{fig:pl-5a}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\ContinuedFloat
+\includegraphics{images/image35.png}
+\caption[]{Đoạn mã xây dựng thống kê tương quan nội cụm và liên cụm từ ma trận tương quan và bản đồ cụm. \textit{(tiếp)}}\label{fig:pl-5a-2}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\ContinuedFloat
+\includegraphics{images/image36.png}
+\caption[]{Đoạn mã xây dựng thống kê tương quan nội cụm và liên cụm từ ma trận tương quan và bản đồ cụm. \textit{(tiếp)}}\label{fig:pl-5a-3}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\ContinuedFloat
+\includegraphics{images/image37.png}
+\caption[]{Đoạn mã xây dựng thống kê tương quan nội cụm và liên cụm từ ma trận tương quan và bản đồ cụm. \textit{(tiếp)}}\label{fig:pl-5a-4}
+\end{figure}
+
+\section{Thiết lập bài toán Markowitz tĩnh với ràng buộc theo cụm}\label{Toc227188464}
+Cụm hình này minh họa cách kết quả phân cụm được tích hợp vào mô hình Markowitz dưới dạng các ràng buộc trần tỷ trọng theo cụm.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics{images/image38.jpeg}
+\caption[]{Đoạn mã khai báo trần tỷ trọng theo cụm cho các nhánh danh mục tĩnh.}\label{fig:pl-6a}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\ContinuedFloat
+\includegraphics{images/image39.png}
+\caption[]{Đoạn mã khai báo trần tỷ trọng theo cụm cho các nhánh danh mục tĩnh. \textit{(tiếp)}}\label{fig:pl-6a-2}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics{images/image40.png}
+\caption[]{Đoạn mã dựng bài toán GMV với các ràng buộc không bán khống và đầu tư toàn bộ vốn}\label{fig:pl-6b}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics{images/image41.jpeg}
+\caption[]{Đoạn mã giải danh mục GMV Defensive trên bộ dữ liệu hiện tại.}\label{fig:pl-6c}
+\end{figure}
+
+\section{Chọn mức sinh lợi mục tiêu cho danh mục Aggressive}\label{Toc227188465}
+Cụm hình này minh họa cách đề tài lựa chọn mức sinh lợi mục tiêu cho nhánh Aggressive trên cơ sở sàng lọc tính khả thi.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics{images/image42.jpg}
+\caption[]{Đoạn mã quét các mức sinh lợi mục tiêu để tìm những mức khả thi cho nhánh Aggressive.}\label{fig:pl-7a}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\ContinuedFloat
+\includegraphics{images/image43.png}
+\caption[]{Đoạn mã quét các mức sinh lợi mục tiêu để tìm những mức khả thi cho nhánh Aggressive. \textit{(tiếp)}}\label{fig:pl-7a-2}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\ContinuedFloat
+\includegraphics{images/image44.png}
+\caption[]{Đoạn mã quét các mức sinh lợi mục tiêu để tìm những mức khả thi cho nhánh Aggressive. \textit{(tiếp)}}\label{fig:pl-7a-3}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\ContinuedFloat
+\includegraphics{images/image45.png}
+\caption[]{Đoạn mã quét các mức sinh lợi mục tiêu để tìm những mức khả thi cho nhánh Aggressive. \textit{(tiếp)}}\label{fig:pl-7a-4}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics{images/image46.jpeg}
+\caption[]{Đoạn mã giải bài toán Aggressive với mức sinh lợi mục tiêu đã chọn.}\label{fig:pl-7b}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\ContinuedFloat
+\includegraphics{images/image47.png}
+\caption[]{Đoạn mã giải bài toán Aggressive với mức sinh lợi mục tiêu đã chọn. \textit{(tiếp)}}\label{fig:pl-7b-2}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\ContinuedFloat
+\includegraphics{images/image48.png}
+\caption[]{Đoạn mã giải bài toán Aggressive với mức sinh lợi mục tiêu đã chọn. \textit{(tiếp)}}\label{fig:pl-7b-3}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics{images/image49.png}
+\caption[]{Đoạn mã xây dựng danh sách mức sinh lợi mục tiêu khả thi và lựa chọn mức cuối cùng cho nhánh Aggressive.}\label{fig:pl-7c}
+\end{figure}
+
+\section{Tái tạo cấu trúc cụm theo từng cửa sổ huấn luyện và chuẩn hóa nhãn cụm}\label{Toc227188466}
+Cụm hình này minh họa các hàm hỗ trợ phục vụ tái tạo cấu trúc cụm trong từng cửa sổ huấn luyện và chuẩn hóa nhãn cụm giữa các kỳ tái cân bằng.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics{images/image50.png}
+\caption[]{Đoạn mã chuyển ma trận tương quan thành ma trận khoảng cách trong từng cửa sổ huấn luyện.}\label{fig:pl-8a}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics{images/image51.jpeg}
+\caption[]{Đoạn mã chuẩn hóa nhãn cụm theo hồ sơ lợi suất và độ biến động.}\label{fig:pl-8b}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\ContinuedFloat
+\includegraphics{images/image52.png}
+\caption[]{Đoạn mã chuẩn hóa nhãn cụm theo hồ sơ lợi suất và độ biến động. \textit{(tiếp)}}\label{fig:pl-8b-2}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\ContinuedFloat
+\includegraphics{images/image53.png}
+\caption[]{Đoạn mã chuẩn hóa nhãn cụm theo hồ sơ lợi suất và độ biến động. \textit{(tiếp)}}\label{fig:pl-8b-3}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics{images/image54.png}
+\caption[]{Đoạn mã tái tạo cấu trúc cụm cho từng cửa sổ huấn luyện.}\label{fig:pl-8c}
+\end{figure}
+
+\section{Tối ưu hóa Markowitz trong backtest rolling ngoài mẫu và vòng lặp tái cân bằng}\label{Toc227188467}
+Cụm hình này minh họa phần thực nghiệm backtest rolling ngoài mẫu của đề tài, bao gồm bước tối ưu hóa, hậu kiểm tính khả thi và ghi nhận lợi suất theo từng kỳ tái cân bằng.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics{images/image55.jpeg}
+\caption[]{Đoạn mã hàm giải Markowitz cho nhánh Defensive trong backtest rolling ngoài mẫu.}\label{fig:pl-9a}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\ContinuedFloat
+\includegraphics{images/image56.png}
+\caption[]{Đoạn mã hàm giải Markowitz cho nhánh Defensive trong backtest rolling ngoài mẫu. \textit{(tiếp)}}\label{fig:pl-9a-2}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics{images/image57.jpeg}
+\caption[]{Đoạn mã hàm giải Markowitz cho nhánh Aggressive với mức sinh lợi mục tiêu trong backtest rolling ngoài mẫu.}\label{fig:pl-9b}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\ContinuedFloat
+\includegraphics{images/image58.png}
+\caption[]{Đoạn mã hàm giải Markowitz cho nhánh Aggressive với mức sinh lợi mục tiêu trong backtest rolling ngoài mẫu. \textit{(tiếp)}}\label{fig:pl-9b-2}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics{images/image59.jpeg}
+\caption[]{Đoạn mã hậu kiểm số học tính khả thi của nghiệm sau khi giải.}\label{fig:pl-9c}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics{images/image60.jpeg}
+\caption[]{Đoạn mã vòng lặp tái cân bằng ngoài mẫu và ghi nhận lợi suất theo từng kỳ kiểm định.}\label{fig:pl-9d}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\ContinuedFloat
+\includegraphics{images/image61.png}
+\caption[]{Đoạn mã vòng lặp tái cân bằng ngoài mẫu và ghi nhận lợi suất theo từng kỳ kiểm định. \textit{(tiếp)}}\label{fig:pl-9d-2}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\ContinuedFloat
+\includegraphics{images/image62.png}
+\caption[]{Đoạn mã vòng lặp tái cân bằng ngoài mẫu và ghi nhận lợi suất theo từng kỳ kiểm định. \textit{(tiếp)}}\label{fig:pl-9d-3}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\ContinuedFloat
+\includegraphics{images/image63.png}
+\caption[]{Đoạn mã vòng lặp tái cân bằng ngoài mẫu và ghi nhận lợi suất theo từng kỳ kiểm định. \textit{(tiếp)}}\label{fig:pl-9d-4}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\ContinuedFloat
+\includegraphics{images/image64.png}
+\caption[]{Đoạn mã vòng lặp tái cân bằng ngoài mẫu và ghi nhận lợi suất theo từng kỳ kiểm định. \textit{(tiếp)}}\label{fig:pl-9d-5}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\ContinuedFloat
+\includegraphics{images/image65.png}
+\caption[]{Đoạn mã vòng lặp tái cân bằng ngoài mẫu và ghi nhận lợi suất theo từng kỳ kiểm định. \textit{(tiếp)}}\label{fig:pl-9d-6}
+\end{figure}
+
+\end{document}

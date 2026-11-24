@@ -1,0 +1,16 @@
+\chapter{Tổng quan dự án}
+
+\section{Bối cảnh và mục tiêu}
+BTL03 chuyển đổi mười cấu hình thuộc năm nhóm từ mã Keras sang PyTorch hướng đối tượng. Mục tiêu chương này là xác định phạm vi và snapshot; sự hiện diện của model code không tự chứng minh đã huấn luyện đầy đủ.
+
+\section{Đối tượng và phạm vi}
+Các nhóm gồm MLP, CNN+MLP, CNN+LSTM, training utilities và advanced vision. Hai utilities configs dùng lại Gender/Emotion nên mười cấu hình không phải mười kiến trúc độc lập. Báo cáo chốt tại commit T0212 đã nêu ở bìa.
+
+\section{Phương pháp và nguồn evidence}
+Phương pháp là đối chiếu task reports, notebook/baseline CSV, source/config, tests và Git history. Không chạy lại Keras, không nội suy metric thiếu và không trình bày synthetic smoke như thí nghiệm trên dữ liệu thật.
+
+\section{Trạng thái tại T0212}
+Report tích hợp ghi parameter-count audit và 10/10 synthetic one-epoch cases; logger bị chặn bởi protobuf/TensorBoard và full suite có bốn lỗi theo các shard. Trạng thái tổng thể là \textbf{BLOCKED}, chưa đủ điều kiện nghiệm thu/merge.
+
+\section{Câu hỏi nghiên cứu và cấu trúc}
+RQ nguyên văn cần được lấy từ charter chính thức đã xác minh; file charter Markdown đúng tên chưa có trong snapshot nên không tự dựng RQ từ README. Chương 2 trình bày framework/data contract; chương 3 pipeline/OOP; chương 4 audit/evidence; chương 5 thảo luận và kế hoạch.

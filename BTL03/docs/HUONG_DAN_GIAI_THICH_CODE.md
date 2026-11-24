@@ -1,5 +1,36 @@
 # Hướng dẫn giải thích code — Task T0102
 
+## Phụ lục T0101 — Hệ thống viết báo cáo tổng kết T0212
+
+### Luồng tạo và xuất bản
+
+- `docs/thesis/templates/` chứa cấu trúc gốc Markdown/LaTeX; sửa nội dung báo cáo trong `md_drafts/` và `tex_source/`, không sửa template để lấp số liệu.
+- `source_materials/evidence_sources_manifest.md` ánh xạ evidence ID đến report, CSV, source/config và giới hạn diễn giải.
+- Bản Markdown là bản review dễ diff; bộ XeLaTeX có năm chapter và BibLaTeX là nguồn upload Overleaf. Đồng bộ số liệu, bảng, trạng thái, caveat và citation trước mỗi snapshot.
+- Từ gốc `BTL03/`, build local bằng `cd docs/thesis/tex_source; latexmk -xelatex -interaction=nonstopmode -halt-on-error main.tex`. Build local cần XeLaTeX/polyglossia/Biber; không tuyên bố build thành công nếu chưa xem exit code và log.
+- Overleaf workflow: nén *nội dung* `tex_source/` để `main.tex` ở root ZIP → upload/chọn XeLaTeX/compile → kiểm tra và lưu PDF đã duyệt dưới `docs/thesis/`. Không commit `.aux/.log/.fls/.fdb_latexmk` hoặc PDF build tạm.
+
+### Cách đọc snapshot T0212
+
+- T0212 ghi trạng thái tổng thể `BLOCKED`, dù 10/10 synthetic one-epoch smoke cases và parameter count audit PASS.
+- Logger 10/10 bị chặn bởi protobuf/TensorBoard; full suite được chia shard ghi 78 pass, 4 fail trên 82 test.
+- Không diễn giải parameter parity thành weight/output/accuracy parity; synthetic smoke không thay thế dataset thật.
+- T0201 có 36 PyTorch sweep runs nhưng Keras numeric MSE không lưu; T0202 có một MNIST MLP run 30 epoch, test accuracy 0.95870, với protocol validation Keras/PyTorch khác nhau.
+- WP03/WP04 giữ trạng thái chưa nghiệm thu tại snapshot theo workbook/report; trước một phiên bản báo cáo sau phải kiểm tra evidence mới, không sao chép status lịch sử.
+- Họ tên pháp lý/MSSV/tỷ lệ đóng góp chưa đủ bằng chứng: dùng placeholder, hỏi nhóm; alias được trích từ hồ sơ thành viên.
+
+### Câu hỏi chuyển giao
+
+**Smoke 10/10 có nghĩa là mười model huấn luyện xong không?** Không. Mỗi case chỉ train/validate một epoch trên synthetic fixtures; logger bị block, không đại diện convergence/full data.
+
+**Parameter parity có nghĩa hai framework cho cùng accuracy không?** Không. Nó chỉ so sánh số lượng tham số theo cách đếm đã ghi; còn phụ thuộc dữ liệu, layout, initializer, padding, loss, optimizer, weights và split.
+
+**Có thể ghi T0301–T0306 hoàn toàn chưa triển khai ở snapshot không?** Chỉ ghi deliverable/workbook state có nguồn; giữ đúng phân biệt Todo, code đã có, blocked và chưa có evidence. Kiểm tra lại workbook/report sau T0212 trước khi phát hành snapshot mới.
+
+**Vì sao chưa có PDF?** Chưa có xác nhận thông tin pháp lý/đóng góp và build đầy đủ chưa được xác nhận; không tạo PDF giả hoặc gọi bản local tạm là Overleaf deliverable.
+
+---
+
 ## 1. Luồng dữ liệu
 
 `scripts/download_data.py` quản lý việc tải MNIST IDX, kiểm kê file WIKI/FER, tải tài nguyên chỉ khi cấu hình URL/Google Drive ID thật và sinh dữ liệu giả deterministic cho smoke-test. Dữ liệu lớn ở `data/raw/` và cache trong `data/processed/` bị `.gitignore` bảo vệ.

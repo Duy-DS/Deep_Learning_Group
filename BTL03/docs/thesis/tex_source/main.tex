@@ -1,0 +1,32 @@
+% Báo cáo snapshot T0212; compiler: XeLaTeX.
+\documentclass[12pt,a4paper,oneside]{book}
+\input{preamble.tex}
+\addbibresource{references.bib}
+\begin{document}
+\frontmatter
+\input{frontmatter.tex}
+\tableofcontents
+\listoffigures
+\listoftables
+\mainmatter
+\input{chapters/01_tong_quan.tex}
+\input{chapters/02_co_so_ly_thuyet.tex}
+\input{chapters/03_thiet_ke_va_chuyen_doi_pytorch.tex}
+\input{chapters/04_kiem_toan_t0212_va_trang_thai_thuc_nghiem.tex}
+\input{chapters/05_ket_luan_va_huong_phat_trien.tex}
+\printbibliography[heading=bibintoc,title={Tài liệu tham khảo}]
+\appendix
+\chapter{Danh mục bằng chứng snapshot}
+\begin{longtable}{p{0.18\textwidth}p{0.48\textwidth}p{0.26\textwidth}}
+\toprule Evidence ID & Nguồn trong repository gốc & Giới hạn diễn giải \\
+\midrule
+E-T0103 & \texttt{docs/reports/261127\_T0103\_keras\_baseline\_log.md}; \texttt{experiments/csv\_logs/keras\_baseline\_10\_models.csv} & Keras notebook output; không phải PyTorch run \\
+E-T0201 & \texttt{docs/reports/T0201\_261122\_2112.md}; sweep CSV/epoch logs & Keras numeric MSE không lưu \\
+E-T0202 & \texttt{docs/reports/T0202\_261122\_2112.md}; master/epoch CSV & Một MNIST MLP run; protocol khác legacy \\
+E-T0206--07 & Hai report CNN-LSTM & Parameter count khác nhau; cần đối chiếu \\
+E-T0210--11 & Hai report nhóm 5 và model tests & Chưa có full-data quality metrics \\
+E-T0212 & \texttt{docs/reports/T0212\_261123\_2130.md} & Snapshot tổng thể BLOCKED; smoke là synthetic \\
+\bottomrule
+\end{longtable}
+Manifest nội bộ chi tiết nằm tại \texttt{source\_materials/evidence\_sources\_manifest.md}; không đính kèm dataset, checkpoint, runtime logs hoặc dữ liệu cá nhân.
+\end{document}

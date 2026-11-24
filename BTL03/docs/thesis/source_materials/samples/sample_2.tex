@@ -1,0 +1,1206 @@
+% =====================================================================
+%  BÁO CÁO TỔNG KẾT ĐỀ TÀI MÔN HỌC — TRỰC QUAN HÓA DỮ LIỆU (858018)
+%  ETT_GRID_VIS_2026 — Trực quan hóa dữ liệu & phân tích thống kê
+%  vận hành lưới điện và an toàn nhiệt máy biến áp
+% ---------------------------------------------------------------------
+%  Biên dịch: pdfLaTeX (khuyến nghị, chạy 2 lần) hoặc XeLaTeX/LuaLaTeX.
+%  Overleaf: Menu -> Compiler -> pdfLaTeX. Thư mục figures/ đi kèm.
+%  Quy ước trình bày: chữ đen trên nền trắng (đơn sắc), Times 13pt,
+%  giãn dòng 1,3, căn đều hai bên, lề T/P/Tr/D = 3,0/1,5/2,0/2,0 cm.
+% =====================================================================
+\documentclass[12pt,a4paper,oneside]{report}
+
+% ---------------------------- Font & ngôn ngữ ------------------------
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[utf8]{inputenc}
+  \usepackage[T5]{fontenc}
+  \usepackage{mathptmx}
+\else
+  \usepackage{mathptmx}
+  \usepackage{fontspec}
+  \IfFontExistsTF{Times New Roman}%
+    {\setmainfont{Times New Roman}}%
+    {\setmainfont{TeX Gyre Termes}}
+\fi
+\usepackage[vietnamese]{babel}
+\usepackage{textcomp}
+\usepackage{xspace}
+
+% ---------------------------- Bố cục trang ---------------------------
+\usepackage[a4paper,left=3.0cm,right=1.5cm,top=2.0cm,bottom=2.0cm,
+            headheight=15pt,footskip=1.0cm]{geometry}
+\usepackage{setspace}
+\setstretch{1.3}
+\setlength{\parindent}{1.0cm}
+\setlength{\parskip}{4pt}
+
+% Cỡ chữ thân bài 13pt
+\makeatletter
+\renewcommand{\normalsize}{\@setfontsize\normalsize{13pt}{16pt}%
+  \abovedisplayskip 8pt plus 2pt minus 4pt
+  \belowdisplayskip \abovedisplayskip
+  \abovedisplayshortskip 0pt plus 2pt
+  \belowdisplayshortskip 4pt plus 2pt minus 2pt}
+\makeatother
+
+% ---------------------------- Gói tiện ích ---------------------------
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage[table]{xcolor}
+\usepackage{array,tabularx,multirow,longtable,booktabs}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{titletoc}
+\usepackage[nottoc]{tocbibind}
+\usepackage[most]{tcolorbox}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric,fit,calc,
+                backgrounds,decorations.pathreplacing}
+\usepackage[hidelinks,unicode]{hyperref}
+
+\graphicspath{{figures/}}
+
+% ---------------------- Màu chữ: chỉ đen / trắng ---------------------
+\color{black}
+\arrayrulecolor{black}
+
+% ---------------------------- Tiêu đề chương / mục -------------------
+\titleformat{\chapter}[display]
+  {\centering\bfseries\fontsize{14}{18}\selectfont}
+  {CHƯƠNG \thechapter}{4pt}{}
+\titlespacing*{\chapter}{0pt}{0pt}{14pt}
+\titleformat{\section}
+  {\bfseries\fontsize{13}{16}\selectfont}{\thesection.}{0.5em}{}
+\titlespacing*{\section}{0pt}{12pt}{5pt}
+\titleformat{\subsection}
+  {\bfseries\itshape\fontsize{13}{16}\selectfont}{\thesubsection.}{0.5em}{}
+\titlespacing*{\subsection}{0pt}{8pt}{3pt}
+
+\titlecontents{chapter}[0pt]{\addvspace{5pt}\bfseries}
+  {CHƯƠNG \thecontentslabel:\ }{}{\titlerule*[0.6pc]{.}\contentspage}
+\titlecontents{section}[1.0cm]{}
+  {\contentslabel{1.0cm}}{}{\titlerule*[0.6pc]{.}\contentspage}
+\titlecontents{subsection}[2.2cm]{\small}
+  {\contentslabel{1.2cm}}{}{\titlerule*[0.6pc]{.}\contentspage}
+\setcounter{tocdepth}{2}
+
+\addto\captionsvietnamese{%
+  \renewcommand{\contentsname}{MỤC LỤC}%
+  \renewcommand{\listfigurename}{DANH MỤC HÌNH ẢNH VÀ SƠ ĐỒ}%
+  \renewcommand{\listtablename}{DANH MỤC BẢNG BIỂU}%
+  \renewcommand{\bibname}{TÀI LIỆU THAM KHẢO}%
+  \renewcommand{\figurename}{Hình}%
+  \renewcommand{\tablename}{Bảng}}
+
+% ---------------------------- Chú thích hình / bảng ------------------
+\captionsetup{labelsep=period,justification=centering,skip=4pt}
+\captionsetup[figure]{font=small,labelfont={bf,it},textfont={bf,it}}
+\captionsetup[table]{position=top,font=small,labelfont=bf,textfont=bf}
+
+% ---------------------------- Đầu / chân trang -----------------------
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\footnotesize\itshape Báo cáo tổng kết -- Trực quan hóa dữ liệu (858018)}
+\fancyhead[R]{\footnotesize\itshape ETT\_GRID\_VIS\_2026}
+\fancyfoot[C]{\small\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\fancypagestyle{plain}{\fancyhf{}\fancyfoot[C]{\small\thepage}%
+  \renewcommand{\headrulewidth}{0pt}}
+
+% ---------------------------- Bảng biểu ------------------------------
+\renewcommand{\tabularxcolumn}[1]{m{#1}}
+\newcolumntype{L}{>{\raggedright\arraybackslash}X}
+\newcolumntype{Y}{>{\centering\arraybackslash}X}
+\newcolumntype{C}[1]{>{\centering\arraybackslash}m{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\arraybackslash}m{#1}}
+\newcolumntype{Q}[1]{>{\raggedright\arraybackslash}m{#1}}
+\newcommand{\thead}{\rowcolor{gray!20}}
+\newcommand{\tablesetup}{\small\setstretch{1.05}%
+  \renewcommand{\arraystretch}{1.3}\rowcolors{2}{white}{gray!6}}
+
+% ---------------------------- Hộp nhấn mạnh (đơn sắc) ----------------
+\newtcolorbox{calloutbox}[1]{enhanced,breakable,sharp corners,
+  colback=gray!5,colframe=black,coltext=black,coltitle=black,
+  colbacktitle=gray!18,boxrule=0.5pt,leftrule=3pt,
+  fonttitle=\bfseries\small,title={#1},
+  fontupper=\small\itshape,before skip=8pt,after skip=8pt}
+
+% ---------------------------- Macro ----------------------------------
+\newcommand{\dC}{\textdegree C\xspace}
+\newcommand{\dCh}{\textdegree C$\cdot$h\xspace}
+\newcommand{\code}[1]{\texttt{#1}}
+\setlist[itemize]{leftmargin=1.0cm,itemsep=2pt,topsep=3pt,label=\textbullet}
+\setlist[enumerate]{leftmargin=1.0cm,itemsep=2pt,topsep=3pt}
+
+% ---------------------------- Kiểu TikZ dùng chung -------------------
+\tikzset{
+  box/.style={draw=black,thick,rectangle,rounded corners=2pt,align=center,
+              minimum height=11mm,text width=26mm,font=\footnotesize,
+              fill=white,inner sep=2pt},
+  store/.style={box,fill=gray!14},
+  arr/.style={-{Stealth[length=2.4mm]},thick},
+  zone/.style={draw=black,dashed,rounded corners=4pt,inner sep=3mm},
+  zlabel/.style={font=\scriptsize\itshape}
+}
+
+% ---------------------------- Khung bìa ------------------------------
+\newcommand{\coverframe}{%
+  \begin{tikzpicture}[remember picture,overlay]
+    \draw[line width=2.4pt]
+      ($(current page.north west)+(2.2cm,-1.3cm)$) rectangle
+      ($(current page.south east)+(-1.0cm,1.3cm)$);
+    \draw[line width=0.7pt]
+      ($(current page.north west)+(2.42cm,-1.52cm)$) rectangle
+      ($(current page.south east)+(-1.22cm,1.52cm)$);
+  \end{tikzpicture}}
+
+\newcommand{\makecover}{%
+\begin{titlepage}
+\coverframe
+\setstretch{1.15}
+\centering
+{\fontsize{14}{18}\selectfont\bfseries TRƯỜNG ĐẠI HỌC SÀI GÒN\par
+ KHOA TOÁN - ỨNG DỤNG\par}
+\vspace{2pt}
+\rule{4.2cm}{0.8pt}\par
+\vspace{0.9cm}
+\includegraphics[width=3.4cm]{logo_sgu.jpg}\par
+\vspace{0.9cm}
+{\fontsize{16}{21}\selectfont\bfseries BÁO CÁO TỔNG KẾT\par
+ ĐỀ TÀI MÔN HỌC CỦA SINH VIÊN\par}
+\vspace{1.0cm}
+{\fontsize{15}{22}\selectfont\bfseries
+ TRỰC QUAN HÓA DỮ LIỆU \& PHÂN TÍCH THỐNG KÊ\par
+ VẬN HÀNH LƯỚI ĐIỆN VÀ AN TOÀN NHIỆT MÁY BIẾN ÁP\par
+ HỆ THỐNG TRỰC QUAN HÓA ĐA CHIỀU\par
+ (ETT\_GRID\_VIS\_2026)\par}
+\vfill
+{\fontsize{13}{18}\selectfont
+\begin{tabular}{@{}l@{\hspace{4pt}}l@{}}
+\textbf{Sinh viên thực hiện:} & 3123580008 -- Nguyễn Tấn Duy\\
+                              & 3123580009 -- Nguyễn Thành Đạt\\
+                              & 3123580054 -- Đinh Thái Toàn\\
+                              & 3123580056 -- Nguyễn Công Trí\\
+                              & 3123580065 -- Trần Chí Vỹ\\
+\textbf{Học phần:}            & Trực quan hóa dữ liệu (858018)\\
+\textbf{Lớp:}                 & DDU1231\\
+\textbf{Giảng viên hướng dẫn:}& TS. Trịnh Tiến Đạt\\
+\end{tabular}\par}
+\vfill
+{\itshape\bfseries Thành phố Hồ Chí Minh, 11/2026\par}
+\vspace{0.4cm}
+\end{titlepage}}
+
+% =====================================================================
+\begin{document}
+\color{black}
+\normalsize
+
+% ------------------------------ BÌA CHÍNH + BÌA PHỤ -------------------
+\makecover
+\makecover
+
+\pagenumbering{roman}
+\setcounter{page}{1}
+
+% ------------------------------ BẢNG ĐÁNH GIÁ THÀNH VIÊN --------------
+\thispagestyle{plain}
+\begin{center}
+{\fontsize{14}{18}\selectfont\bfseries BẢNG ĐÁNH GIÁ THÁI ĐỘ THAM GIA\\ CỦA CÁC THÀNH VIÊN NHÓM\par}
+\end{center}
+\vspace{6pt}
+\begin{table}[H]
+\centering
+\tablesetup
+\begin{tabularx}{\textwidth}{|C{0.9cm}|C{2.2cm}|Q{2.9cm}|L|C{1.6cm}|C{1.6cm}|}
+\hline
+\thead \textbf{STT} & \textbf{MSSV} & \textbf{Họ và Tên} & \textbf{Nhiệm vụ chi tiết} & \textbf{Đóng góp} & \textbf{Ký tên}\\ \hline
+1 & 3123580008 & Nguyễn Tấn Duy & TQH-01 \& TQH-02: Thu thập dữ liệu ETT, xây dựng pipeline ETL chuẩn hóa Parquet, Trưởng nhóm quản lý WBS/DoD & 100\% & \\ \hline
+2 & 3123580009 & Nguyễn Thành Đạt & TQH-02 \& TQH-04: Xây dựng Feature Engineering v2.0, Statistical Analytics Engine (STL, Quantile bands, Lag) & 100\% & \\ \hline
+3 & 3123580054 & Đinh Thái Toàn & TQH-03 \& TQH-05: Thiết kế và phát triển biểu đồ Story 1 (Operational Manager: Calendar, STL, Quantiles, Stacked) & 100\% & \\ \hline
+4 & 3123580056 & Nguyễn Công Trí & TQH-03 \& TQH-05: Thiết kế và phát triển biểu đồ Story 2 (Safety \& Risk Monitor: OT Threshold, Small Multiples, LOESS) & 100\% & \\ \hline
+5 & 3123580065 & Trần Chí Vỹ & TQH-06: Tích hợp Composition Root Streamlit, Action Titles động, tối ưu Caching SLA $<$1,5\,s, Kiểm toán Data-Ink \& WCAG AA & 100\% & \\ \hline
+\end{tabularx}
+\end{table}
+
+% ------------------------------ LỜI CẢM ƠN ----------------------------
+\chapter*{LỜI CẢM ƠN}
+\addcontentsline{toc}{chapter}{LỜI CẢM ƠN}
+
+Lời đầu tiên, nhóm sinh viên chúng em xin gửi lời cảm ơn chân thành và sâu sắc nhất đến Ban Giám hiệu Trường Đại học Sài Gòn, cùng toàn thể quý thầy cô Khoa Toán - Ứng dụng. Quý trường và quý thầy cô đã tạo ra một môi trường học tập chất lượng, cung cấp cho chúng em những nền tảng kiến thức vững chắc và điều kiện tốt nhất để thực hiện đề tài nghiên cứu này.
+
+Đặc biệt, nhóm sinh viên chúng em xin bày tỏ lòng biết ơn sâu sắc nhất đến TS. Trịnh Tiến Đạt, giảng viên trực tiếp phụ trách và tận tình giảng dạy học phần Trực quan hóa dữ liệu. Trong suốt quá trình triển khai đề tài, Thầy đã luôn định hướng phương pháp tiếp cận khoa học, chỉ bảo cặn kẽ về tư duy trực quan hóa dữ liệu, nguyên lý thẩm mỹ Edward Tufte, quy chuẩn Gestalt cũng như các chuẩn mực công nghệ dashboard tương tác hiện đại. Những lời khuyên học thuật quý báu của Thầy chính là kim chỉ nam giúp nhóm tháo gỡ nhiều vướng mắc trong quá trình tiền xử lý dữ liệu chuỗi thời gian lớn, phân tích thống kê chuyên sâu và hoàn thiện sản phẩm báo cáo trực quan hoàn chỉnh này.
+
+Mặc dù toàn bộ các thành viên trong nhóm đã nỗ lực hết sức mình trong việc thu thập tài liệu, lập trình thực nghiệm với cường độ cao và phân tích thống kê số liệu, nhưng do những giới hạn nhất định về mặt thời gian cũng như kinh nghiệm nghiên cứu khoa học, bản báo cáo này chắc chắn vẫn còn những thiếu sót không thể tránh khỏi.
+
+Chúng em rất mong nhận được sự thông cảm, cũng như những lời góp ý, chỉ bảo quý báu từ Hội đồng chấm thi và quý thầy cô. Những nhận xét đó sẽ là hành trang quý giá để chúng em tiếp tục hoàn thiện bản thân, củng cố kiến thức và phát triển sâu hơn trên con đường học thuật và kỹ thuật trong tương lai.
+
+Một lần nữa, chúng em xin chân thành cảm ơn!
+
+\vspace{1.2cm}
+\begin{flushright}
+\begin{minipage}{7cm}
+\centering
+\itshape Thành phố Hồ Chí Minh, tháng 11 năm 2026\\
+\upshape\bfseries Nhóm sinh viên thực hiện
+\end{minipage}
+\end{flushright}
+
+% ------------------------------ MỤC LỤC & DANH MỤC --------------------
+\tableofcontents
+\listoffigures
+\listoftables
+
+% ------------------------------ KÝ HIỆU VIẾT TẮT ----------------------
+\chapter*{KÝ HIỆU VIẾT TẮT, THUẬT NGỮ VÀ NHÃN DANH MỤC}
+\addcontentsline{toc}{chapter}{KÝ HIỆU VIẾT TẮT, THUẬT NGỮ VÀ NHÃN DANH MỤC}
+
+Nhằm tạo sự thuận tiện, nhất quán và minh bạch cho người đọc trong suốt quá trình theo dõi báo cáo, phần này tổng hợp toàn bộ các ký hiệu viết tắt, thuật ngữ khoa học chuyên ngành hệ thống điện và kỹ thuật dữ liệu, cùng hệ thống nhãn phân loại chế độ vận hành nhiệt được quy ước sử dụng trong đề tài.
+
+\section*{1. Ký hiệu và chữ viết tắt}
+\begin{center}
+\tablesetup
+\begin{tabularx}{\textwidth}{|C{0.9cm}|C{1.8cm}|Q{5.2cm}|L|}
+\hline
+\thead \textbf{STT} & \textbf{Viết tắt} & \textbf{Thuật ngữ tiếng Anh gốc} & \textbf{Diễn giải ý nghĩa tiếng Việt}\\ \hline
+1 & ETT & Electricity Transformer Temperature & Nhiệt độ máy biến áp điện lực (bộ dữ liệu chuẩn)\\ \hline
+2 & OT & Oil Temperature & Nhiệt độ dầu máy biến áp (\dC) -- biến trọng tâm\\ \hline
+3 & HUFL & High Useful Load & Phụ tải hữu ích cấp cao thế\\ \hline
+4 & HULL & High Unuseful Load & Phụ tải không hữu ích / vô công cấp cao thế\\ \hline
+5 & MUFL & Middle Useful Load & Phụ tải hữu ích cấp trung thế\\ \hline
+6 & MULL & Middle Unuseful Load & Phụ tải không hữu ích / vô công cấp trung thế\\ \hline
+7 & LUFL & Low Useful Load & Phụ tải hữu ích cấp hạ thế\\ \hline
+8 & LULL & Low Unuseful Load & Phụ tải không hữu ích / vô công cấp hạ thế\\ \hline
+9 & STL & Seasonal and Trend decomposition using Loess & Phân rã chuỗi thời gian thành xu hướng, mùa vụ và phần dư\\ \hline
+10 & IQR & Interquartile Range & Khoảng cách giữa hai tứ phân vị ($Q_{75}-Q_{25}$)\\ \hline
+11 & KDE & Kernel Density Estimation & Ước lượng mật độ xác suất bằng hàm hạt nhân\\ \hline
+12 & LOWESS & Locally Weighted Scatterplot Smoothing & Làm mượt phi tuyến cục bộ trên biểu đồ phân tán\\ \hline
+13 & SLA & Service Level Agreement & Cam kết thời gian đáp ứng hệ thống ($<$ 1,5 giây)\\ \hline
+14 & WCAG & Web Content Accessibility Guidelines & Hướng dẫn tiếp cận nội dung Web chuẩn W3C (mức AA)\\ \hline
+\end{tabularx}
+\end{center}
+
+\section*{2. Thuật ngữ tiếng Anh -- tiếng Việt}
+\begin{center}
+\tablesetup
+\begin{tabularx}{\textwidth}{|C{0.9cm}|Q{3.4cm}|Q{4.0cm}|L|}
+\hline
+\thead \textbf{STT} & \textbf{Thuật ngữ tiếng Anh} & \textbf{Thuật ngữ tiếng Việt} & \textbf{Ý nghĩa và ngữ cảnh ứng dụng}\\ \hline
+1 & Useful Load & Tải hữu ích / công suất tác dụng & Đại lượng phản ánh công suất sinh công hữu ích tại từng cấp điện áp.\\ \hline
+2 & Unuseful Load & Tải vô ích / công suất phản kháng & Thành phần tải gây tổn thất hoặc tiêu hao trong hệ thống.\\ \hline
+3 & Reactive Ratio & Tỷ số phản kháng / vô công & Tỷ lệ tổng tải vô ích trên tổng tải hữu ích.\\ \hline
+4 & Degree-Hours & Độ-giờ quá nhiệt tích lũy (\dCh) & Tích phân phần nhiệt độ dầu vượt ngưỡng theo thời gian.\\ \hline
+5 & Calendar Heatmap & Bản đồ nhiệt lịch & Hiển thị cường độ dữ liệu theo ngày trong tháng và theo tháng.\\ \hline
+6 & Quantile Fan Chart & Biểu đồ quạt bách phân vị & Dải phân vị lịch sử biểu diễn biên độ dao động theo 24 giờ.\\ \hline
+7 & Small Multiples & Đa biểu đồ con đồng bộ & Dãy biểu đồ con cùng cấu trúc, chung trục tọa độ để so sánh.\\ \hline
+8 & Rug / Barcode Plot & Biểu đồ vạch mã vạch & Các vạch dọc trên trục thời gian đánh dấu thời điểm sự kiện.\\ \hline
+9 & Data-Ink Ratio & Tỷ lệ mực hiển thị dữ liệu & Khái niệm của E. Tufte đo phần tử đồ họa mang thông tin thực chất.\\ \hline
+10 & Gestalt Principles & Nguyên luật thị giác Gestalt & Độ gần, tương đồng, khép kín, số phận chung, hình -- nền.\\ \hline
+\end{tabularx}
+\end{center}
+
+\section*{3. Nhãn danh mục và cấu hình đánh giá chế độ nhiệt}
+\begin{center}
+\tablesetup
+\begin{tabularx}{\textwidth}{|C{0.9cm}|C{2.2cm}|C{3.3cm}|Q{3.3cm}|L|}
+\hline
+\thead \textbf{STT} & \textbf{Nhãn} & \textbf{Ngưỡng / Thời gian} & \textbf{Quy ước thị giác trên dashboard} & \textbf{Ý nghĩa cảnh báo và điều độ}\\ \hline
+1 & Normal & OT $<$ 85\dC & Navy \#1E3A8A, nét liền & Vận hành an toàn, không ghi nhận rủi ro nhiệt.\\ \hline
+2 & Warning & 85\dC $\leq$ OT $<$ 95\dC & Amber \#D97706, nét đứt + nhãn & Cảnh báo nhiệt cao, máy biến áp chịu ứng suất nhiệt đáng kể.\\ \hline
+3 & Critical & OT $\geq$ 95\dC & Crimson \#DC2626, nét chấm + nhãn & Sự cố nghiêm trọng, đe dọa tuổi thọ cách điện và an toàn lưới.\\ \hline
+4 & Unknown & OT bị thiếu & Xám, không tô màu cảnh báo & Không đủ dữ liệu, không suy diễn thành Normal.\\ \hline
+5 & Dry & Tháng 11 -- Tháng 4 & Nhãn chữ ``Dry'' & Quy ước mùa khô của dự án.\\ \hline
+6 & Wet & Tháng 5 -- Tháng 10 & Nhãn chữ ``Wet'' & Quy ước mùa mưa của dự án.\\ \hline
+\end{tabularx}
+\end{center}
+
+\begin{calloutbox}{Lưu ý về quy ước ngưỡng}
+Ngưỡng 85\dC và 95\dC là quy ước phân tích nội bộ của dự án, không khẳng định là tiêu chuẩn kỹ thuật phổ quát cho mọi chủng loại máy biến áp. Trong bản in đơn sắc, các trạng thái luôn được phân biệt đồng thời bằng kiểu nét và nhãn chữ, không chỉ bằng màu.
+\end{calloutbox}
+
+% ------------------------------ TÓM TẮT -------------------------------
+\chapter*{TÓM TẮT ĐỀ TÀI}
+\addcontentsline{toc}{chapter}{TÓM TẮT ĐỀ TÀI}
+
+Nhiệt độ dầu máy biến áp (Oil Temperature -- OT) là một trong những chỉ báo xung yếu hàng đầu quyết định trực tiếp đến độ tin cậy, tuổi thọ lớp cách điện và an toàn vận hành liên tục của hệ thống truyền tải điện lực. Tuy nhiên, việc giám sát và phân tích vận hành trong thực tế gặp nhiều thách thức: sự phân tán của đa nhánh phụ tải qua ba cấp điện áp (cao thế, trung thế, hạ thế), tính phi tuyến và độ trễ quán tính nhiệt đáng kể giữa phụ tải và nhiệt độ dầu, cũng như hiện tượng biểu đồ ``mạng nhện'' (spaghetti plot) gây rối loạn thị giác khi chồng nhiều chuỗi thời gian trên cùng một trục. Đề tài xây dựng một giải pháp hoàn chỉnh về trực quan hóa dữ liệu và phân tích thống kê ứng dụng cho hệ thống máy biến áp ETT (mã dự án \code{ETT\_GRID\_VIS\_2026}, phiên bản v2.0), tập trung vào diễn giải dữ liệu, phát hiện thông tin ẩn và hỗ trợ ra quyết định điều độ, hoạt động hoàn toàn trên môi trường CPU-only, không lệ thuộc vào các mô hình học sâu.
+
+Về phương pháp, nghiên cứu thiết lập đường ống xử lý dữ liệu tuân thủ nguyên tắc giải ghép \code{[STRICT:DECOUPLE]}: toàn bộ phân tích thống kê nặng (phân rã STL, dải bách phân vị thực nghiệm 24 giờ, ma trận tương quan trễ 0--12 giờ, hồi quy phi tuyến cục bộ LOWESS và tích phân áp lực nhiệt Degree-Hours) được tiền tính toán ngoại tuyến bằng Statistical Analytics Engine và lưu thành các tệp Parquet/JSON có siêu dữ liệu kiểm toán. Giao diện tương tác (Streamlit + Plotly) là tầng tiêu thụ chỉ đọc (read-only consumer), chỉ lát cắt dữ liệu nhẹ và dựng hình, bảo đảm thời gian phản hồi đạt SLA $<$ 1,5 giây.
+
+Sản phẩm trực quan hóa xoay quanh hai góc nhìn người dùng: (1) \textbf{US-01 -- Nhà quản lý vận hành} với Calendar Heatmap, STL Panels, Hourly Quantile Fan, 100\% Stacked Bar và Lag Heatmap; (2) \textbf{US-02 -- Giám sát an toàn rủi ro} với biểu đồ OT đối chiếu ngưỡng 85\dC/95\dC, Barcode/Rug Plot, sáu biểu đồ nhánh tải đồng bộ (Synchronized Small Multiples), Scatter + LOWESS và Boxplot chế độ nhiệt. Toàn bộ hệ thống đồ họa được chuẩn hóa theo triết lý tối đa hóa tỷ lệ mực dữ liệu của Edward Tufte, các quy luật Gestalt, tiêu đề hành động động (Action Titles) dựa trên bằng chứng và kiểm toán tiếp cận màu sắc theo W3C WCAG 2.1 AA.
+
+\begin{calloutbox}{Thông điệp nghiên cứu cốt lõi}
+Trực quan hóa dữ liệu không đơn thuần là vẽ đồ thị, mà là quá trình chuyển hóa dữ liệu chuỗi thời gian phức tạp thành các cấu trúc thị giác sáng sủa, trung thực và có khả năng định hướng hành động can thiệp kỹ thuật chính xác cho người kỹ sư vận hành lưới điện.
+\end{calloutbox}
+
+\noindent\textbf{Từ khóa:} trực quan hóa dữ liệu, ETT, nhiệt độ dầu máy biến áp, STL, empirical quantiles, lag cross-correlation, Degree-Hours, Streamlit, Tufte, Gestalt, WCAG 2.1 AA.
+
+% ------------------------------ PHẦN MỞ ĐẦU ---------------------------
+\chapter*{PHẦN MỞ ĐẦU}
+\addcontentsline{toc}{chapter}{PHẦN MỞ ĐẦU}
+\pagenumbering{arabic}
+\setcounter{page}{1}
+
+\section*{1. Lý do chọn đề tài}
+\addcontentsline{toc}{section}{1. Lý do chọn đề tài}
+
+Trong thời đại công nghiệp 4.0 và chuyển dịch năng lượng thông minh, lưới điện ngày càng phức tạp với sự hòa lưới của nhiều nguồn năng lượng phân tán và sự biến thiên phụ tải khó lường từ các trung tâm tiêu thụ công nghiệp và đô thị. Máy biến áp lực (Power Transformer) là trái tim của trạm biến áp, đảm nhận chức năng biến đổi và truyền tải các dòng công suất lớn. Một trong những thông số quan trọng nhất phản ánh tình trạng sức khỏe của máy biến áp chính là nhiệt độ dầu cách điện (OT). Khi nhiệt độ dầu vượt ngưỡng cho phép, dầu cách điện và giấy cellulose bọc cuộn dây bị thoái hóa nhiệt với tốc độ cấp số nhân (theo quy tắc kinh nghiệm Montsinger, cứ mỗi 6--8\dC gia tăng trên 98\dC, tuổi thọ cách điện suy giảm khoảng một nửa). Sự cố quá nhiệt nghiêm trọng có thể dẫn đến phóng điện cục bộ, đánh thủng cách điện, cháy nổ máy biến áp, gây thiệt hại lớn và làm gián đoạn cung cấp điện trên diện rộng.
+
+Mặc dù các hệ thống SCADA đã ghi nhận liên tục dữ liệu nhiệt độ và các thành phần công suất với tần suất cao (từng giờ hoặc từng 15 phút), kỹ sư vận hành vẫn thường đối mặt với tình trạng ``ngập trong dữ liệu nhưng đói thông tin''. Khi vẽ chồng 7 biến quan sát (nhiệt độ dầu và 6 nhánh phụ tải) trên cùng một trục, biểu đồ lập tức trở thành một spaghetti plot hỗn loạn, che khuất quy luật chu kỳ ngày/đêm, đặc tính mùa vụ và độ trễ phản ứng nhiệt giữa công suất điện và nhiệt độ dầu. Xuất phát từ nhu cầu đó, nhóm lựa chọn đề tài: \textit{``Trực quan hóa dữ liệu và phân tích thống kê vận hành lưới điện và an toàn nhiệt máy biến áp (ETT\_GRID\_VIS\_2026)''}, nhằm thiết lập một phương pháp luận trực quan hóa khoa học, có chiều sâu thống kê, phục vụ thiết thực cho công tác điều độ công suất và phòng ngừa sự cố nhiệt.
+
+\section*{2. Lịch sử nghiên cứu vấn đề}
+\addcontentsline{toc}{section}{2. Lịch sử nghiên cứu vấn đề}
+
+\textbf{2.1. Tình hình nghiên cứu trên thế giới.} Bộ dữ liệu ETT được giới thiệu trong công trình của Haoyi Zhou và cộng sự tại AAAI-2021 \cite{zhou2021informer}. Bộ dữ liệu ghi nhận quá trình vận hành liên tục trong hai năm (07/2016 -- 07/2018) của các máy biến áp tại hai hạt ở Trung Quốc, với hai mức phân giải thời gian: chuỗi giờ (ETTh1, ETTh2) và chuỗi 15 phút (ETTm1, ETTm2). Từ 2021, ETT trở thành bộ dữ liệu chuẩn (benchmark) phổ biến trong dự báo chuỗi thời gian dài (LSTF). Tuy nhiên, hầu hết công trình xem ETT như đầu vào để huấn luyện mạng học sâu (Informer, Autoformer, FEDformer, PatchTST, iTransformer) với mục tiêu tối ưu MSE/MAE. Còn ít nghiên cứu đi sâu vào trực quan hóa khám phá, giải mã cấu trúc phụ tải ba cấp điện áp, động học nhiệt độ dầu qua các chu kỳ thời gian, hoặc xây dựng công cụ hỗ trợ thị giác trực tiếp cho kỹ sư vận hành.
+
+\textbf{2.2. Tình hình nghiên cứu tại Việt Nam.} Các đề tài về dữ liệu lưới điện thường tập trung vào dự báo phụ tải ngắn hạn bằng ARIMA, Random Forest hay LSTM. Các nghiên cứu về trực quan hóa dữ liệu trong khối ngành toán ứng dụng và khoa học dữ liệu còn tương đối mới, chủ yếu dừng ở biểu đồ thống kê mô tả trên Power BI hoặc Tableau, chưa vận dụng đầy đủ các nguyên lý đồ họa nâng cao như Data-Ink Ratio \cite{tufte2001}, Gestalt hay WCAG 2.1 AA \cite{wcag21}. Đề tài này hướng đến việc kết hợp phân tích thống kê với thiết kế thị giác ứng dụng trên bộ dữ liệu ETT, giải quyết bài toán giao tiếp thông tin cho hai nhóm đối tượng tác nghiệp cụ thể.
+
+\section*{3. Mục đích và nhiệm vụ nghiên cứu}
+\addcontentsline{toc}{section}{3. Mục đích và nhiệm vụ nghiên cứu}
+
+\textbf{Mục đích nghiên cứu:} Xây dựng hệ thống trực quan hóa phân tích (Visual Analytics Dashboard) trên môi trường CPU-only, chuyển hóa dữ liệu lịch sử thô của lưới điện ETT thành hai góc nhìn tương tác có tính hành động cao: hỗ trợ điều độ phân bổ công suất (Operational Management) và tra cứu, kiểm soát sớm nguy cơ mất an toàn nhiệt máy biến áp (Thermal Safety Monitoring). Các nhiệm vụ chủ yếu:
+\begin{itemize}
+  \item \textbf{Nhiệm vụ 1:} Thu thập, kiểm toán chất lượng dữ liệu thô (đơn điệu thời gian, khoảng trống, bản ghi trùng) và chuẩn hóa thành hợp đồng dữ liệu sạch Parquet 14 cột.
+  \item \textbf{Nhiệm vụ 2:} Xây dựng đường ống trích xuất thuộc tính lưới điện 23 cột, bổ sung biến chu kỳ lịch (giờ, thứ, tháng, mùa khô/mưa) và tỷ số thành phần tải.
+  \item \textbf{Nhiệm vụ 3:} Phát triển Statistical Analytics Engine tiền tính toán ngoại tuyến: STL, dải bách phân vị 24 giờ, ma trận tương quan trễ 0--12 h, LOWESS và Degree-Hours.
+  \item \textbf{Nhiệm vụ 4:} Thiết kế 5 mô-đun trực quan cho US-01: Calendar Heatmap, STL Panels, Hourly Quantile Fan, 100\% Stacked Bar, Lag Heatmap.
+  \item \textbf{Nhiệm vụ 5:} Thiết kế 5 mô-đun trực quan cho US-02: OT đối chiếu ngưỡng 85\dC/95\dC, Barcode/Rug, Synchronized Small Multiples, Scatter + LOWESS, Thermal Boxplots.
+  \item \textbf{Nhiệm vụ 6:} Tích hợp Composition Root trên Streamlit, bộ sinh Action Titles dựa trên bằng chứng, tối ưu bộ nhớ đệm đạt SLA $<$ 1,5\,s, kiểm toán Data-Ink và WCAG 2.1 AA.
+\end{itemize}
+
+\section*{4. Đối tượng và phạm vi nghiên cứu}
+\addcontentsline{toc}{section}{4. Đối tượng và phạm vi nghiên cứu}
+
+\textbf{Đối tượng nghiên cứu:} Quy trình phân tích thống kê ứng dụng, các phương pháp phân rã chuỗi thời gian và kỹ thuật biểu diễn thị giác thông tin vận hành (nhiệt độ dầu OT và 6 nhánh phụ tải máy biến áp).
+\begin{itemize}
+  \item \textbf{Phạm vi không gian:} Ba trạm quan trắc ETTh1 (trạm 1, 1 giờ), ETTh2 (trạm 2, 1 giờ) và ETTm1 (trạm 1, 15 phút). Không trộn hay gộp mẫu giữa các trạm/độ phân giải khác nhau.
+  \item \textbf{Phạm vi thời gian:} Dữ liệu liên tục 24 tháng, từ 01/07/2016 00:00 đến 26/06/2018 19:45 (17.420 mốc cho chuỗi giờ và 69.680 mốc cho chuỗi 15 phút).
+  \item \textbf{Ranh giới kỹ thuật \code{[STRICT:SCOPE]}:} Hoàn toàn CPU-only, không dùng PyTorch, GPU/CUDA, không xây dựng mô hình dự báo Informer. Hệ thống chỉ xử lý dữ liệu lịch sử, phục vụ diễn giải nghiệp vụ.
+\end{itemize}
+
+\section*{5. Phương pháp nghiên cứu}
+\addcontentsline{toc}{section}{5. Phương pháp nghiên cứu}
+
+Đề tài áp dụng phương pháp nghiên cứu định lượng thống kê kết hợp kỹ thuật phát triển phần mềm theo khung WBS (Work Breakdown Structure):
+\begin{enumerate}
+  \item \textbf{Tiền xử lý và làm sạch dữ liệu:} bảo toàn tính nguyên vẹn vật lý, chính sách bảo tồn giá trị rỗng (preserve null), kiểm toán khoảng trống (gap audit), không xóa đỉnh nhiệt độ hợp lệ và không tự gán múi giờ.
+  \item \textbf{Phân tích thống kê chuỗi thời gian:} STL tách xu hướng và chu kỳ ngày; dải phân vị thực nghiệm (Empirical Quantiles); tương quan trễ Pearson/Spearman căn theo mốc thời gian thực; hồi quy phi tuyến LOWESS.
+  \item \textbf{Thiết kế thị giác và giao diện:} mô hình What--Why--How của T. Munzner \cite{munzner2014}; nguyên lý Data-Ink của E. Tufte; 5 nguyên luật Gestalt; bảng màu có kiểm định WCAG 2.1 AA và mã hóa kép.
+\end{enumerate}
+
+\section*{6. Những đóng góp mới của đề tài}
+\addcontentsline{toc}{section}{6. Những đóng góp mới của đề tài}
+
+\begin{itemize}
+  \item \textbf{Thứ nhất -- Kiến trúc giải ghép tính toán \code{[STRICT:DECOUPLE]}:} tách Statistical Engine chạy nền khỏi luồng UI Streamlit. Mọi phép tính phức tạp được đóng gói thành Parquet/JSON artifacts có mã băm SHA-256, giúp UI phản hồi dưới 1,5 giây.
+  \item \textbf{Thứ hai -- Tiêu đề hành động dựa trên bằng chứng (Evidence-based Action Titles):} thay tiêu đề tĩnh bằng tiêu đề phản ánh đúng ngữ cảnh lọc, số mẫu và bằng chứng định lượng (đỉnh nhiệt độ, số đợt cảnh báo, Degree-Hours).
+  \item \textbf{Thứ ba -- Khắc phục Spaghetti Plot:} mô hình Synchronized Small Multiples 6 nhánh tải liên kết trục thời gian, kết hợp 100\% Stacked Bar ba cấp áp tách bạch tải hữu ích và vô ích.
+  \item \textbf{Thứ tư -- Công bằng thị giác:} loại bỏ cặp màu đối kháng đỏ -- xanh lá, thiết lập mã hóa kép (Dual Visual Encoding) bằng kiểu nét và nhãn trực tiếp, đọc được cả khi in đơn sắc.
+\end{itemize}
+
+\section*{7. Cấu trúc của đề tài}
+\addcontentsline{toc}{section}{7. Cấu trúc của đề tài}
+
+Ngoài phần mở đầu, kết luận, tài liệu tham khảo và phụ lục, nội dung chính gồm 4 chương:
+\begin{itemize}
+  \item \textbf{Chương 1 -- Cơ sở lý thuyết \& tổng quan phương pháp:} bài toán nhiệt độ máy biến áp ETT, các phương pháp STL, Quantile, Lag Correlation, Degree-Hours, LOWESS và các nguyên lý thiết kế thị giác.
+  \item \textbf{Chương 2 -- Nguồn dữ liệu \& quy trình tiền xử lý (TQH-01, TQH-02):} dữ liệu thô ETT, kiến trúc đường ống, hợp đồng \code{clean\_ett.parquet}, \code{grid\_features.parquet} và thống kê mô tả.
+  \item \textbf{Chương 3 -- Phân tích thống kê khám phá \& quy luật chu kỳ (TQH-04):} phân phối OT, chu kỳ giờ/thứ/tháng, cực trị lịch sử.
+  \item \textbf{Chương 4 -- Thiết kế trực quan hóa \& truyền tải thông điệp (TQH-05, TQH-06):} khung What--Why--How, các phát hiện trên ETTh1/ETTh2, kiến trúc dashboard, bộ nhớ đệm và kiểm toán thẩm mỹ/tiếp cận.
+\end{itemize}
+
+% =====================================================================
+%  CHƯƠNG 1: CƠ SỞ LÝ THUYẾT & TỔNG QUAN PHƯƠNG PHÁP
+% =====================================================================
+\chapter{CƠ SỞ LÝ THUYẾT VÀ TỔNG QUAN PHƯƠNG PHÁP}
+
+\section{Tổng quan về bài toán nhiệt độ dầu và phụ tải máy biến áp ETT}
+
+Máy biến áp ngâm dầu làm mát tự nhiên hoặc cưỡng bức (ONAN/ONAF) hoạt động dựa trên nguyên lý cảm ứng điện từ để truyền tải điện năng giữa các cấp điện áp \cite{ieee2012}. Trong quá trình vận hành, hai thành phần tổn thất công suất chính sinh nhiệt gồm:
+\begin{enumerate}
+  \item \textbf{Tổn thất không đổi trong lõi thép} (tổn thất từ hóa hay tổn thất không tải $P_{\text{fe}}$) do dòng điện Foucault và hiện tượng trễ từ;
+  \item \textbf{Tổn thất biến đổi trong cuộn dây} (tổn thất đồng hay tổn thất có tải $P_{\text{cu}}$) tỷ lệ thuận với bình phương dòng điện phụ tải:
+  \begin{equation}
+    P_{\text{total}}(t) = P_{\text{fe}} + P_{\text{cu}}(t) = P_{\text{fe}} + \sum_{k \in \{H, M, L\}} I_k^2(t) \cdot R_k
+  \end{equation}
+\end{enumerate}
+
+Nhiệt lượng sinh ra từ cuộn dây và lõi từ được truyền vào dầu cách điện xung quanh, sau đó dầu đối lưu nhiệt qua các cánh tản nhiệt ra môi trường không khí theo phương trình cân bằng nhiệt vi phân bậc nhất:
+\begin{equation}
+  C_{\text{th}} \frac{\mathrm{d}\,\text{OT}(t)}{\mathrm{d}t} = P_{\text{total}}(t) - \frac{\text{OT}(t) - T_{\text{amb}}(t)}{R_{\text{th}}}
+\end{equation}
+trong đó $C_{\text{th}}$ là dungkháng nhiệt tổng hợp của khối dầu và lõi thép, $R_{\text{th}}$ là nhiệt trở tản nhiệt ra môi trường và $T_{\text{amb}}(t)$ là nhiệt độ môi trường. Do dầu máy biến áp có khối lượng riêng lớn và dung tích nhiệt cao, hằng số thời gian nhiệt $\tau_{\text{oil}} = R_{\text{th}} C_{\text{th}}$ rất đáng kể; nhiệt độ dầu biến thiên chậm hơn nhiều so với sự thay đổi tức thời của dòng điện phụ tải, tạo ra độ trễ pha (phase lag) điển hình từ 2 đến 6 giờ.
+
+Bộ dữ liệu ETT \cite{zhou2021informer} cung cấp các quan sát đa biến đồng thời gồm nhiệt độ dầu \code{OT} (\dC) và 6 nhánh phụ tải điện được phân cấp theo 3 cấp điện áp:
+\begin{itemize}
+  \item \textbf{Cấp cao thế (High Voltage):} gồm \code{HUFL} (\textit{High Useful Load} -- phụ tải hữu ích/tác dụng) và \code{HULL} (\textit{High Unuseful Load} -- phụ tải không hữu ích/vô công).
+  \item \textbf{Cấp trung thế (Middle Voltage):} gồm \code{MUFL} (\textit{Middle Useful Load}) và \code{MULL} (\textit{Middle Unuseful Load}).
+  \item \textbf{Cấp hạ thế (Low Voltage):} gồm \code{LUFL} (\textit{Low Useful Load}) và \code{LULL} (\textit{Low Unuseful Load}).
+\end{itemize}
+
+Về bản chất kỹ thuật, các đơn vị của 6 biến tải trong bộ dữ liệu gốc ETT là giá trị đo thực tế từ cảm biến của trạm nhưng chưa được tài liệu gốc chuẩn hóa sang MW hay MVar. Do đó, trong toàn bộ quy chuẩn của đề tài, các đại lượng tải luôn được giữ nguyên giá trị gốc của nguồn dữ liệu, không tự ý gán nhãn vật lý võ đoán, và các tỷ trọng thành phần được tính toán dưới dạng tỷ số phân số thuần túy.
+
+\section{Cơ sở lý thuyết các phương pháp phân tích thống kê chuỗi thời gian}
+
+\subsection{Phân rã chuỗi thời gian bằng phương pháp STL}
+
+Phương pháp STL (\textit{Seasonal and Trend decomposition using Loess}), được phát triển bởi Cleveland và cộng sự \cite{cleveland1990stl}, là kỹ thuật lọc thống kê lặp dùng hồi quy cục bộ LOESS để phân tách chuỗi thời gian quan sát $Y_t$ thành ba thành phần cộng tính:
+\begin{equation}
+  Y_t = T_t + S_t + R_t, \qquad t = 1, 2, \dots, N
+\end{equation}
+trong đó $T_t$ là thành phần xu hướng dài hạn (\textit{Trend}), $S_t$ là thành phần chu kỳ lặp lại (\textit{Seasonal}) với chu kỳ $P$, và $R_t$ là thành phần phần dư (\textit{Residual}). Ưu điểm vượt trội của STL so với phân rã cổ điển nằm ở khả năng xử lý chu kỳ $P$ bất kỳ ($P = 24$ mẫu đối với chuỗi 1 giờ \code{ETTh1}/\code{ETTh2} và $P = 96$ mẫu đối với chuỗi 15 phút \code{ETTm1}), cho phép biên độ mùa vụ thích nghi theo thời gian, và đặc biệt là khả năng kháng nhiễu ngoại lai (\textit{robustness}) thông qua trọng số suy giảm bậc hai (\textit{bisquare weights}) trong vòng lặp ngoài.
+
+\subsection{Dải bách phân vị thực nghiệm lịch sử (Empirical Quantile Bands)}
+
+Thay vì áp đặt giả định dữ liệu tuân theo phân phối chuẩn Gaussian, nghiên cứu sử dụng dải bách phân vị thực nghiệm phi tham số để xác định hành vi phân bố kỳ vọng theo từng khung giờ $h \in \{0, 1, \dots, 23\}$ và theo từng mùa $s \in \{\text{Dry}, \text{Wet}\}$. Với tập mẫu lịch sử $\mathcal{Y}_{s,h} = \{Y_t \mid \text{season}(t)=s, \text{hour}(t)=h\}$, hàm phân vị mẫu bậc $p \in (0,1)$ là $Q_p(\mathcal{Y}_{s,h})$. Ba dải lồng nhau được định nghĩa tường minh:
+\begin{align}
+  \text{Dải 50\% (IQR):} &\quad \bigl[Q_{0,25},\; Q_{0,75}\bigr] \\
+  \text{Dải 80\%:}       &\quad \bigl[Q_{0,10},\; Q_{0,90}\bigr] \\
+  \text{Dải 95\%:}       &\quad \bigl[Q_{0,025},\; Q_{0,975}\bigr]
+\end{align}
+kèm đường trung vị $Q_{0,50}$ và đường trung bình cộng $\bar{Y}_{s,h}$. Các phân vị luôn thỏa tính đơn điệu không giảm:
+\begin{equation}
+  Q_{0,025} \le Q_{0,10} \le Q_{0,25} \le Q_{0,50} \le Q_{0,75} \le Q_{0,90} \le Q_{0,975}
+\end{equation}
+Cần nhấn mạnh đây là \textit{dải phân vị lịch sử thực nghiệm} (\textit{empirical historical bands}), phản ánh biên độ dao động tự nhiên của quá khứ, không phải khoảng tin cậy của kỳ vọng hay khoảng dự báo tương lai.
+
+\subsection{Hệ số tương quan trễ chéo (Lag Cross-Correlation)}
+
+Để lượng hóa mối liên kết và độ trễ quán tính giữa từng nhánh phụ tải $X_t \in \{\text{HUFL}, \dots, \text{LULL}\}$ và nhiệt độ dầu $\text{OT}_{t}$, hàm tương quan trễ chéo tại độ trễ $k \in \{0, 1, \dots, 12\}$ giờ được định nghĩa theo quy ước:
+\begin{equation}
+  r(k) = \mathrm{corr}\bigl(X(t),\; \text{OT}(t + k\text{ giờ})\bigr)
+  = \frac{\sum_{t \in \mathcal{T}_k} \bigl(X(t) - \bar{X}\bigr)\bigl(\text{OT}(t + k\Delta) - \overline{\text{OT}}\bigr)}
+         {\sqrt{\sum_{t \in \mathcal{T}_k}\bigl(X(t) - \bar{X}\bigr)^2}\,\sqrt{\sum_{t \in \mathcal{T}_k}\bigl(\text{OT}(t + k\Delta) - \overline{\text{OT}}\bigr)^2}}
+\end{equation}
+Quy ước dấu: $k > 0$ nghĩa là phụ tải $X(t)$ đi trước nhiệt độ dầu $\text{OT}(t+k\text{ giờ})$ một khoảng $k$ giờ (tương ứng $k$ mẫu trên \code{ETTh1}/\code{ETTh2} và $4k$ mẫu trên \code{ETTm1}). Việc ghép cặp $\mathcal{T}_k$ được thực hiện bằng phép nối khóa thời gian thực (\code{timestamp}), tuyệt đối không dịch chỉ mục mù (\code{shift}) qua các khoảng trống dữ liệu.
+
+\subsection{Mô hình áp lực nhiệt tích lũy (Degree-Hours) và phân định sự kiện vượt ngưỡng}
+
+Đề tài thiết lập hai ngưỡng nhiệt độ quy ước phân tích: ngưỡng cảnh báo $\theta_{\text{warn}} = 85{,}0\,^\circ\text{C}$ và ngưỡng nguy hiểm $\theta_{\text{crit}} = 95{,}0\,^\circ\text{C}$. Mỗi đợt vượt ngưỡng liên tục (\textit{breach event}) $E = [t_{\text{start}}, t_{\text{end}})$ với tập chỉ số mẫu $\mathcal{I}_E$ có thời lượng và chỉ số áp lực nhiệt tích lũy (\textit{Degree-Hours}) tính theo quy tắc bậc thang trái:
+\begin{equation}
+  D(E) = \sum_{i \in \mathcal{I}_E} \Delta t_i \quad (\text{giờ}), \qquad
+  \text{DH}_{\theta}(E) = \sum_{i \in \mathcal{I}_E} \max\bigl(\text{OT}_{t_i} - \theta,\; 0\bigr) \cdot \Delta t_i \quad (^\circ\text{C}\cdot\text{h})
+\end{equation}
+trong đó $\Delta t_i = 1{,}0\,\text{h}$ với \code{ETTh1}/\code{ETTh2} và $\Delta t_i = 0{,}25\,\text{h}$ với \code{ETTm1}. Đợt sự kiện tự động đóng khi $\text{OT} < \theta$ hoặc khi gặp khoảng trống dữ liệu (\textit{gap}), không nối bắc cầu qua khoảng thiếu.
+
+\subsection{Hồi quy phi tuyến cục bộ LOWESS}
+
+LOWESS (\textit{Locally Weighted Scatterplot Smoothing}) \cite{cleveland1979lowess} khớp đa thức bậc một cục bộ tại mỗi điểm mục tiêu $x_0$ bằng trọng số hạt nhân ba bậc (\textit{tricube kernel}):
+\begin{equation}
+  w_i(x_0) = \left(1 - \left|\frac{x_i - x_0}{d(x_0)}\right|^3\right)^3 \cdot \mathbb{I}\bigl(|x_i - x_0| < d(x_0)\bigr)
+\end{equation}
+với $d(x_0)$ là khoảng cách đến điểm lân cận thứ $\lceil f \cdot n \rceil$ (tham số băng thông $f = 0{,}30$). Phương pháp này cho phép nhận diện các điểm uốn bão hòa hoặc vùng dốc nhiệt học phi tuyến giữa từng nhánh tải và \code{OT} mà không áp đặt dạng hàm toàn cục.
+
+\section{Các nguyên lý thiết kế và tiêu chuẩn trực quan hóa dữ liệu}
+
+\begin{enumerate}
+  \item \textbf{Tỷ lệ mực dữ liệu (Data-Ink Ratio) của Edward Tufte \cite{tufte2001}:}
+  \begin{equation}
+    \text{Data-Ink Ratio} = \frac{\text{Lượng mực hiển thị dữ liệu thực chất}}{\text{Tổng lượng mực in trên đồ thị}}
+  \end{equation}
+  Hệ thống tối đa hóa tỷ lệ này bằng cách loại bỏ toàn bộ khung viền thừa, bóng đổ 3D, lưới phụ; chỉ giữ lưới chính mảnh và gắn nhãn trực tiếp (\textit{direct labels}) tại biên phải đường ngưỡng 85\dC và 95\dC.
+  \item \textbf{Các quy luật tâm lý học thị giác Gestalt:} vận dụng đồng bộ 5 quy luật: \textit{Độ gần} (\textit{Proximity} -- gom cụm thẻ KPI), \textit{Độ tương đồng} (\textit{Similarity} -- thống nhất mã hóa cùng một đại lượng), \textit{Tính khép kín} (\textit{Closure} -- vùng bao dải phân vị 50\%/80\%/95\%), \textit{Số phận chung} (\textit{Common Fate} -- khóa đồng bộ trục thời gian $X$ trên 6 biểu đồ Small Multiples) và \textit{Hình -- Nền} (\textit{Figure--Ground} -- làm nổi bật điểm cảnh báo trên nền ngữ cảnh tĩnh).
+  \item \textbf{Tiêu chuẩn tiếp cận màu sắc W3C WCAG 2.1 AA \cite{wcag21}:} tỷ số tương phản độ chói tương đối (\textit{Relative Luminance Contrast Ratio}):
+  \begin{equation}
+    \text{CR} = \frac{L_{\max} + 0{,}05}{L_{\min} + 0{,}05} \ge 4{,}5 : 1 \quad (\text{đối với văn bản thường})
+  \end{equation}
+  Bảng màu loại bỏ hoàn toàn cặp màu Đỏ -- Xanh lá và áp dụng cơ chế \textbf{Mã hóa kép} (\textit{Redundant Visual Encoding}: màu sắc + kiểu nét đứt/chấm + nhãn trực tiếp), bảo đảm đọc chính xác 100\% ngay cả trên bản in trắng đen hoặc đối với người khiếm khuyết thị giác màu.
+\end{enumerate}
+
+% =====================================================================
+%  CHƯƠNG 2: NGUỒN DỮ LIỆU & QUY TRÌNH TIỀN XỬ LÝ (TQH-01 & TQH-02)
+% =====================================================================
+\chapter{NGUỒN DỮ LIỆU VÀ QUY TRÌNH TIỀN XỬ LÝ (TQH-01 \& TQH-02)}
+
+\section{Nguồn gốc dữ liệu thô và cấu trúc thuộc tính}
+
+Dữ liệu nguồn được thu thập từ kho lưu trữ chuẩn của công trình AAAI-2021 ETT Dataset \cite{zhou2021informer}, gồm các tệp CSV thô lưu tại phân vùng chỉ đọc \code{data/raw/} (\code{RED ZONE}). Ba tập dữ liệu thuộc phạm vi vận hành của hệ thống gồm: \code{ETTh1.csv} (17.420 dòng, chu kỳ 1 giờ), \code{ETTh2.csv} (17.420 dòng, chu kỳ 1 giờ) và \code{ETTm1.csv} (69.680 dòng, chu kỳ 15 phút), tổng cộng \textbf{104.520 bản ghi}. Cấu trúc 8 thuộc tính gốc được trình bày tại Bảng \ref{tab:raw_schema}.
+
+\begin{table}[H]
+\centering
+\caption{Cấu trúc các thuộc tính của bộ dữ liệu gốc ETT}
+\label{tab:raw_schema}
+\tablesetup
+\begin{tabularx}{\textwidth}{|C{2.0cm}|C{2.8cm}|C{3.4cm}|L|}
+\hline
+\thead \textbf{Tên biến} & \textbf{Kiểu dữ liệu} & \textbf{Đơn vị đo} & \textbf{Ý nghĩa vật lý trong hệ thống máy biến áp}\\ \hline
+\code{date} & Chuỗi ký tự & \code{YYYY-MM-DD HH:MM:SS} & Dấu mốc thời gian ghi nhận mẫu đo từ cảm biến giám sát.\\ \hline
+\code{HUFL} & Số thực (\code{f32}) & Tải đo thực tế & Phụ tải hữu ích cấp điện áp cao thế (\textit{High Useful Load}).\\ \hline
+\code{HULL} & Số thực (\code{f32}) & Tải đo thực tế & Phụ tải vô ích / phản kháng cấp cao thế (\textit{High Unuseful Load}).\\ \hline
+\code{MUFL} & Số thực (\code{f32}) & Tải đo thực tế & Phụ tải hữu ích cấp điện áp trung thế (\textit{Middle Useful Load}).\\ \hline
+\code{MULL} & Số thực (\code{f32}) & Tải đo thực tế & Phụ tải vô ích / phản kháng cấp trung thế (\textit{Middle Unuseful Load}).\\ \hline
+\code{LUFL} & Số thực (\code{f32}) & Tải đo thực tế & Phụ tải hữu ích cấp điện áp hạ thế (\textit{Low Useful Load}).\\ \hline
+\code{LULL} & Số thực (\code{f32}) & Tải đo thực tế & Phụ tải vô ích / phản kháng cấp hạ thế (\textit{Low Unuseful Load}).\\ \hline
+\code{OT}   & Số thực (\code{f32}) & \dC (Celsius) & Nhiệt độ dầu máy biến áp (\textit{Oil Temperature}) -- biến trọng tâm.\\ \hline
+\end{tabularx}
+\end{table}
+
+\section{Kiến trúc đường ống dữ liệu và kiểm toán chất lượng ban đầu}
+
+Để đảm bảo nguyên tắc giải ghép \code{[STRICT:DECOUPLE]} và phản hồi giao diện tức thì, toàn bộ hệ thống được tổ chức theo kiến trúc đường ống 5 tầng minh họa tại Hình \ref{fig:tikz_pipeline}. Tầng giao diện người dùng tuyệt đối không truy cập tệp CSV thô hay chạy các thuật toán thống kê nặng trong luồng sự kiện tương tác.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=5mm and 5mm]
+  % Hàng 1: Data & ETL
+  \node[box, text width=27mm] (raw) {\textbf{1. Raw CSV}\\ \code{data/raw/*.csv}\\ (RED ZONE -- Read-only)};
+  \node[box, text width=31mm, right=7mm of raw] (etl) {\textbf{2. ETL \& Audit}\\ \code{preprocess\_ett.py}\\ Gap/Duplicate/Null Check};
+  \node[store, text width=33mm, right=7mm of etl] (clean) {\textbf{3. Clean Contract}\\ \code{clean\_ett.parquet} (14 cột)\\ \code{grid\_features.parquet} (23 cột)};
+  \node[box, text width=33mm, right=7mm of clean] (engine) {\textbf{4. Statistical Engine}\\ STL $\cdot$ Quantiles $\cdot$ Lag\\ Breach $\cdot$ LOWESS};
+
+  % Hàng 2: Pre-computed Artifacts
+  \node[store, text width=29mm, below=11mm of raw, xshift=4mm] (a1) {\textbf{Artifact 1}\\ \code{load\_profiles\_stl}\\ \code{.parquet} (941.976 dòng)};
+  \node[store, text width=29mm, right=4mm of a1] (a2) {\textbf{Artifact 2}\\ \code{quantile\_bands}\\ \code{.parquet} (1.296 dòng)};
+  \node[store, text width=29mm, right=4mm of a2] (a3) {\textbf{Artifact 3}\\ \code{lag\_correlation}\\ \code{\_matrix.json} (6$\times$13)};
+  \node[store, text width=29mm, right=4mm of a3] (a4) {\textbf{Artifact 4 \& 5}\\ \code{thermal\_breach} +\\ \code{loess\_curves.parquet}};
+
+  % Hàng 3: Cache & UI
+  \node[box, text width=52mm, below=12mm of a1, xshift=15mm] (cache) {\textbf{5. Versioned Cache Layer}\\ \code{st.cache\_data} khóa theo\\ \code{(path, mtime\_ns, size)}};
+  \node[box, text width=62mm, below=12mm of a3, xshift=16mm] (ui) {\textbf{6. Streamlit Composition Root (\code{app.py})}\\ US-01 Operational Manager $\mid$ US-02 Safety Monitor\\ Action Titles động $\cdot$ Plotly Canvas (SLA $<$ 1,5\,s)};
+
+  % Mũi tên kết nối
+  \draw[arr] (raw) -- (etl);
+  \draw[arr] (etl) -- (clean);
+  \draw[arr] (clean) -- (engine);
+  \draw[arr] (engine.south) -- ++(0,-4mm) -| (a1.north);
+  \draw[arr] (engine.south) -- ++(0,-4mm) -| (a2.north);
+  \draw[arr] (engine.south) -- ++(0,-4mm) -| (a3.north);
+  \draw[arr] (engine.south) -- ++(0,-4mm) -| (a4.north);
+
+  \draw[arr] (a1.south) -- ++(0,-3.5mm) -| (cache.north);
+  \draw[arr] (a2.south) -- ++(0,-3.5mm) -| (cache.north);
+  \draw[arr] (a3.south) -- ++(0,-3.5mm) -| (cache.north);
+  \draw[arr] (a4.south) -- ++(0,-3.5mm) -| (cache.north);
+  \draw[arr] (cache) -- node[above, font=\scriptsize\bfseries]{Chỉ đọc} (ui);
+
+  % Đường ranh giới STRICT:DECOUPLE
+  \draw[thick, dashed] ([yshift=-6.5mm]a1.south west) -- ([yshift=-6.5mm]a4.south east)
+    node[pos=0.5, fill=white, inner sep=2pt, font=\scriptsize\bfseries]
+    {RANH GIỚI GIẢI GHÉP TÍNH TOÁN \code{[STRICT:DECOUPLE]} (Offline Batch vs.\ Online Read-Only UI)};
+\end{tikzpicture}
+\caption{Sơ đồ kiến trúc đường ống dữ liệu đầu cuối (End-to-End Data Pipeline) và ranh giới giải ghép tính toán \code{[STRICT:DECOUPLE]}}
+\label{fig:tikz_pipeline}
+\end{figure}
+
+Kết quả kiểm toán tự động trên cả ba trạm cho thấy chuỗi thời gian hoàn toàn đơn điệu tăng dần, không có bản ghi trùng lặp (\code{duplicate\_count = 0}), không có bước nhảy thời gian sai nhịp (\code{gap\_count = 0}) và tỷ lệ đầy đủ đạt 100\% trên mọi biến đo (Hình \ref{fig:missing_matrix}).
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{fig2_1_missing_matrix.png}
+\caption{Ma trận kiểm toán độ đầy đủ dữ liệu (Missingness Matrix) xác nhận tỷ lệ hiện diện 100\% (1,00) trên toàn bộ 8 thuộc tính gốc}
+\label{fig:missing_matrix}
+\end{figure}
+
+\section{Hợp đồng dữ liệu \code{clean\_ett.parquet} (14 cột) và \code{grid\_features.parquet} (23 cột)}
+
+Mô-đun \code{scripts/preprocess\_ett.py} và \code{src/data/feature\_builder.py} thực hiện biến đổi dữ liệu thô sang hai hợp đồng dữ liệu chuẩn hóa:
+\begin{enumerate}
+  \item \textbf{Hợp đồng \code{clean\_ett.parquet} (14 cột):} gồm khóa ghép \code{(dataset, timestamp)}, 7 biến vật lý gốc ép kiểu tường minh \code{float32}, hai biến tổng tải:
+  \begin{align}
+    \text{total\_useful\_load}   &= \text{HUFL} + \text{MUFL} + \text{LUFL} \\
+    \text{total\_unuseful\_load} &= \text{HULL} + \text{MULL} + \text{LULL}
+  \end{align}
+  tỷ số phản kháng \code{reactive\_ratio = total\_unuseful\_load / total\_useful\_load} (gán \code{null} an toàn khi mẫu số $\le 0$), nhãn chế độ nhiệt \code{thermal\_regime} $\in \{\text{Normal}, \text{Warning}, \text{Critical}, \text{Unknown}\}$ và cờ \code{is\_imputed}.
+  \item \textbf{Hợp đồng \code{grid\_features.parquet} (23 cột):} bổ sung 9 trường dẫn xuất gồm \code{hour} (0--23), \code{day\_of\_week} (0--6), \code{day\_name}, \code{is\_weekend}, \code{month} (1--12), \code{season} (\code{Dry}: tháng 11--4; \code{Wet}: tháng 5--10) và 3 tỷ trọng cấp áp \code{HUFL\_ratio}, \code{MUFL\_ratio}, \code{LUFL\_ratio}.
+\end{enumerate}
+
+Quy trình thuật toán bên trong Statistical Analytics Engine để sinh hai nhóm artifact phức tạp nhất (phân rã STL + hồ sơ tải theo mùa/giờ và trích xuất sự kiện vượt ngưỡng nhiệt Degree-Hours) được mô tả chi tiết tại Hình \ref{fig:tikz_stl_breach}.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=4mm and 6mm]
+  % Nhánh trái: STL & Quantiles
+  \node[store, text width=68mm] (in1) {\textbf{Đầu vào:} \code{clean\_ett.parquet} ($\Delta t \in \{1\text{h}, 0{,}25\text{h}\}$)};
+  \node[box, text width=68mm, below=5mm of in1] (stl1) {\textbf{Nhánh A -- Phân rã STL \& Quantile Bands}\\ Xác định chu kỳ ngày $P = 24$ (1h) hoặc $P = 96$ (15m)};
+  \node[box, text width=68mm, below=4mm of stl1] (stl2) {Lọc LOESS lặp có trọng số kháng nhiễu (Robust STL):\\ $Y_t = T_t + S_t + R_t$, kiểm tra $|Y_t - (T_t+S_t+R_t)| < 10^{-4}$};
+  \node[box, text width=68mm, below=4mm of stl2] (stl3) {Nhóm theo \code{(dataset, variable, season, hour)}:\\ Tính $Q_{0,025}, Q_{0,10}, Q_{0,25}, Q_{0,50}, Q_{0,75}, Q_{0,90}, Q_{0,975}$};
+  \node[store, text width=68mm, below=4mm of stl3] (out1) {\textbf{Xuất nguyên tử:} \code{load\_profiles\_stl.parquet}\\ \& \code{quantile\_bands.parquet}};
+
+  % Nhánh phải: Breach Segmentation & Degree-Hours
+  \node[store, text width=68mm, right=12mm of in1] (in2) {\textbf{Đầu vào:} Chuỗi $\text{OT}_t$ và ngưỡng $\theta \in \{85^\circ\text{C}, 95^\circ\text{C}\}$};
+  \node[box, text width=68mm, below=5mm of in2] (br1) {\textbf{Nhánh B -- Trích xuất sự kiện vượt ngưỡng}\\ Quét trạng thái bậc thang trái $\mathbb{I}(\text{OT}_t \ge \theta)$};
+  \node[box, text width=68mm, below=4mm of br1] (br2) {Đóng sự kiện khi $\text{OT}_t < \theta$ hoặc gặp khoảng trống\\ ($\Delta t_i > \Delta t_{\text{cadence}}$); gắn cờ \code{is\_right\_censored} ở biên cuối};
+  \node[box, text width=68mm, below=4mm of br2] (br3) {Tích phân áp lực nhiệt bậc thang trái:\\ $\text{DH}_\theta = \sum_{i \in E} \max(\text{OT}_{t_i}-\theta,0)\cdot\Delta t_i$ (\dCh)};
+  \node[store, text width=68mm, below=4mm of br3] (out2) {\textbf{Xuất nguyên tử:} \code{thermal\_breach\_events.parquet}\\ (Bảng rỗng đúng kiểu dữ liệu nếu 0 sự kiện)};
+
+  \draw[arr] (in1) -- (stl1);
+  \draw[arr] (stl1) -- (stl2);
+  \draw[arr] (stl2) -- (stl3);
+  \draw[arr] (stl3) -- (out1);
+
+  \draw[arr] (in2) -- (br1);
+  \draw[arr] (br1) -- (br2);
+  \draw[arr] (br2) -- (br3);
+  \draw[arr] (br3) -- (out2);
+\end{tikzpicture}
+\caption{Sơ đồ thuật toán phân rã chuỗi thời gian STL, tính toán dải phân vị thực nghiệm và phân đoạn sự kiện vượt ngưỡng nhiệt (Degree-Hours)}
+\label{fig:tikz_stl_breach}
+\end{figure}
+
+\section{Bảng thống kê mô tả toàn diện dữ liệu thực tế trên ba trạm}
+
+Bảng \ref{tab:descriptive_stats} tổng hợp các tham số thống kê mô tả của các biến vật lý trên ba tập dữ liệu.
+
+\begin{table}[H]
+\centering
+\caption{Thống kê mô tả toàn diện các thuộc tính vật lý trên ba trạm ETT (ETTh1, ETTh2, ETTm1)}
+\label{tab:descriptive_stats}
+\tablesetup
+\begin{tabularx}{\textwidth}{|L|C{1.8cm}|R{1.6cm}|R{1.6cm}|R{1.6cm}|R{1.6cm}|R{1.6cm}|R{1.6cm}|}
+\hline
+\thead \textbf{Tập dữ liệu} & \textbf{Biến đo} & \textbf{Mean} & \textbf{Std} & \textbf{Min} & \textbf{Median} & \textbf{Max} & \textbf{IQR}\\ \hline
+ETTh1 (17.420 mẫu) & OT (\dC) & 13,32 & 8,57 & $-4{,}08$ & 11,40 & 46,01 & 13,00\\ \hline
+ETTh1 & HUFL & 7,38 & 7,07 & $-22{,}71$ & 8,77 & 23,64 & 9,80\\ \hline
+ETTh1 & HULL & 2,24 & 2,04 & $-4{,}76$ & 2,21 & 10,11 & 2,60\\ \hline
+ETTh1 & MUFL & 4,30 & 6,83 & $-25{,}09$ & 5,97 & 17,34 & 9,85\\ \hline
+ETTh1 & MULL & 0,88 & 1,81 & $-5{,}93$ & 0,96 & 7,75 & 2,20\\ \hline
+ETTh1 & LUFL & 3,07 & 1,16 & $-1{,}19$ & 2,83 & 8,50 & 1,55\\ \hline
+ETTh1 & LULL & 0,86 & 0,60 & $-1{,}37$ & 0,98 & 3,05 & 0,80\\ \hline
+ETTh2 (17.420 mẫu) & OT (\dC) & 26,61 & 11,89 & $-2{,}65$ & 26,58 & 58,88 & 17,50\\ \hline
+ETTh2 & HUFL & 37,19 & 10,22 & 0,00 & 37,19 & 107,89 & 13,10\\ \hline
+ETTh2 & HULL & 8,54 & 6,02 & $-18{,}68$ & 9,13 & 36,44 & 7,90\\ \hline
+ETTh2 & MUFL & 43,83 & 13,06 & 11,20 & 41,39 & 93,23 & 17,60\\ \hline
+ETTh2 & MULL & 8,32 & 4,37 & $-6{,}59$ & 9,30 & 28,74 & 5,80\\ \hline
+ETTh2 & LUFL & $-3{,}42$ & 6,14 & $-14{,}35$ & $-3{,}77$ & 17,22 & 7,90\\ \hline
+ETTh2 & LULL & $-2{,}09$ & 6,01 & $-31{,}46$ & $-1{,}23$ & 2,93 & 5,40\\ \hline
+ETTm1 (69.680 mẫu) & OT (\dC) & 13,32 & 8,56 & $-4{,}22$ & 11,40 & 46,01 & 13,00\\ \hline
+ETTm1 & HUFL & 7,41 & 7,08 & $-23{,}24$ & 8,84 & 24,18 & 9,85\\ \hline
+ETTm1 & HULL & 2,26 & 2,04 & $-5{,}69$ & 2,21 & 10,31 & 2,60\\ \hline
+ETTm1 & MUFL & 4,32 & 6,83 & $-26{,}37$ & 6,01 & 18,09 & 9,85\\ \hline
+\end{tabularx}
+\end{table}
+
+Từ Bảng \ref{tab:descriptive_stats}, có thể rút ra nhận xét quan trọng: trạm \code{ETTh2} vận hành ở chế độ phụ tải và nền nhiệt cao hơn hẳn so với \code{ETTh1}. Nhiệt độ dầu trung bình của \code{ETTh2} đạt 26,61\dC (gấp đôi mức 13,32\dC của \code{ETTh1}), cực đại đạt 58,88\dC (so với 46,01\dC của \code{ETTh1}); phụ tải cao thế \code{HUFL} trung bình đạt 37,19 (gấp hơn 5 lần mức 7,38 của \code{ETTh1}). Ngược lại, hai nhánh hạ thế của \code{ETTh2} (\code{LUFL} trung bình $-3{,}42$, \code{LULL} trung bình $-2{,}09$) mang dấu âm kéo dài, phản ánh đặc trưng trào lưu công suất ngược tại trạm 2. Sự khác biệt cấu trúc này khẳng định quy tắc không gộp chung các trạm khi phân tích.
+
+% =====================================================================
+%  CHƯƠNG 3: PHÂN TÍCH THỐNG KÊ KHÁM PHÁ & QUY LUẬT CHU KỲ (TQH-04)
+% =====================================================================
+\chapter{PHÂN TÍCH THỐNG KÊ KHÁM PHÁ VÀ QUY LUẬT CHU KỲ (TQH-04)}
+
+\section{Phân phối mật độ xác suất nhiệt độ dầu OT và xu hướng dài hạn}
+
+Khám phá phân phối xác suất thực nghiệm là bước khởi đầu bắt buộc để kiểm chứng xem nhiệt độ dầu \code{OT} có tuân theo giả định phân phối chuẩn hay không. Hình \ref{fig:ot_kde} minh họa hàm mật độ xác suất hạt nhân (KDE) kết hợp biểu đồ tần số của \code{OT} trên cả ba tập dữ liệu.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\textwidth]{fig3_1_ot_kde.png}
+\caption{Phân phối mật độ xác suất nhiệt độ dầu (\code{OT}, \dC) trên ba trạm quan sát ETTh1, ETTh2 và ETTm1}
+\label{fig:ot_kde}
+\end{figure}
+
+Biểu đồ cho thấy phân phối nhiệt độ của \code{ETTh1} và \code{ETTm1} hoàn toàn trùng khớp (do cùng đo tại trạm 1 với hai độ phân giải 1 giờ và 15 phút), mang hình thái hai đỉnh nhẹ (\textit{bimodal}) với vùng tập trung thứ nhất quanh 6--10\dC (mùa đông -- xuân) và vùng thứ hai quanh 20--25\dC (mùa hè -- thu). Ngược lại, phân phối của \code{ETTh2} dịch chuyển hẳn sang miền nhiệt độ cao với trung vị 26,58\dC, khoảng tứ phân vị $\text{IQR} = 17{,}50\,^\circ\text{C}$ và đuôi phải vươn tới 58,88\dC. Sự lệch phải và đa đỉnh chứng minh việc dùng trung vị $Q_{0,50}$ và các dải phân vị thực nghiệm là phù hợp hơn nhiều so với trung bình $\pm$ độ lệch chuẩn.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\textwidth]{fig3_2_daily_mean_ot.png}
+\caption{Diễn biến chuỗi thời gian giá trị trung bình ngày (\textit{Daily Mean OT}) giai đoạn 07/2016 -- 06/2018}
+\label{fig:daily_mean_ot}
+\end{figure}
+
+Hình \ref{fig:daily_mean_ot} biểu diễn chuỗi trung bình ngày của \code{OT} suốt 24 tháng quan trắc. Đồ thị làm nổi bật sóng chu kỳ mùa vụ hàng năm (\textit{annual seasonality}): đáy nhiệt độ rơi xuống mức âm nhẹ ($-2\,^\circ\text{C}$ đến $-4\,^\circ\text{C}$) vào tháng 1--2, tăng dần theo hình sin và đạt cực đại vào tháng 6--8. Giữa hai chu kỳ năm 2016--2017 và 2017--2018, biên độ mùa vụ được duy trì ổn định, và toàn bộ đường biểu diễn trên cả ba tập dữ liệu đều nằm thấp hơn rất xa so với ngưỡng cảnh báo 85\dC.
+
+\section{Các quy luật chu kỳ thời gian: Giờ trong ngày, Thứ trong tuần và Tháng trong năm}
+
+Để hỗ trợ điều độ viên lập kế hoạch vận hành, nghiên cứu bóc tách quy luật biến thiên của nhiệt độ dầu và phụ tải theo ba thang chu kỳ: vi mô (24 giờ trong ngày), trung mô (7 ngày trong tuần) và vĩ mô (12 tháng trong năm).
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\textwidth]{fig3_3_diurnal_cycle.png}
+\caption{Chu kỳ biến thiên nhiệt độ dầu theo 24 giờ trong ngày kết hợp dải bách phân vị thực nghiệm 80\% ($Q_{10}$--$Q_{90}$)}
+\label{fig:diurnal_cycle}
+\end{figure}
+
+\textbf{Chu kỳ 24 giờ trong ngày (Hình \ref{fig:diurnal_cycle}):} Nhiệt độ dầu \code{OT} chạm đáy vào khoảng 06:00--07:00 sáng sau thời gian phụ tải thấp và tản nhiệt ban đêm; sau đó tăng liên tục từ 08:00 và đạt đỉnh vào khung giờ 14:00--17:00 chiều trước khi hạ dần về đêm. Biên độ dao động ngày trung bình đạt 6,5--12,8\dC.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\textwidth]{fig3_4_weekly_cycle.png}
+\caption{Chu kỳ biến thiên theo các thứ trong tuần (Thứ Hai đến Chủ Nhật)}
+\label{fig:weekly_cycle}
+\end{figure}
+
+\textbf{Chu kỳ các thứ trong tuần (Hình \ref{fig:weekly_cycle}):} Khác với lưới điện dân dụng thuần túy, lưới điện tại hai trạm ETT mang đậm tính chất phụ tải công nghiệp liên tục: đường trung vị và dải phân vị giữ mức gần như phẳng từ Thứ Hai đến Chủ Nhật, chỉ giảm nhẹ khoảng 3--5\% vào cuối tuần.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\textwidth]{fig3_5_monthly_cycle.png}
+\caption{Chu kỳ biến thiên theo 12 tháng trong năm (Tháng 1 đến Tháng 12)}
+\label{fig:monthly_cycle}
+\end{figure}
+
+\textbf{Chu kỳ theo 12 tháng trong năm (Hình \ref{fig:monthly_cycle}):} Phân hóa sắc nét giữa hai mùa quy ước: mùa mưa/nóng (\code{Wet}, tháng 5--10) có nền nhiệt cao nhất tại tháng 7 ($\text{Median OT} \approx 24\,^\circ\text{C}$ trên \code{ETTh1} và $\approx 39\,^\circ\text{C}$ trên \code{ETTh2}), trong khi mùa khô/lạnh (\code{Dry}, tháng 11--4) chạm đáy vào tháng 1.
+
+\section{Nhận diện các điểm cực trị lịch sử và biên dự trữ an toàn nhiệt}
+
+Trích xuất các mốc quan sát có nhiệt độ dầu cao nhất trên toàn bộ lịch sử 2 năm cho thấy:
+\begin{itemize}
+  \item Trên \textbf{ETTh1} và \textbf{ETTm1}: đỉnh nhiệt độ dầu đạt \textbf{46,01\dC} vào mùa hè năm 2016, thấp hơn ngưỡng cảnh báo 85\dC một khoảng dự trữ an toàn \textbf{38,99\dC}.
+  \item Trên \textbf{ETTh2}: đỉnh nhiệt độ dầu đạt \textbf{58,88\dC} vào cuối tháng 06/2017, thấp hơn ngưỡng cảnh báo 85\dC một khoảng dự trữ an toàn \textbf{26,12\dC}.
+\end{itemize}
+Như vậy, xét trên tiêu chí ngưỡng quy ước 85\dC/95\dC, cả ba tập dữ liệu đều có 100\% mẫu nằm trong chế độ \code{Normal} ($0$ sự kiện \code{Warning}, $0$ sự kiện \code{Critical}). Tuy nhiên, đi sâu vào từng nhánh phụ tải lại bộc lộ nhiều hiện tượng vận hành bất thường (đột biến tải vô công, đảo pha công suất âm, bão hòa cảm biến) được phân tích chi tiết tại Chương 4.
+
+% =====================================================================
+%  CHƯƠNG 4: THIẾT KẾ TRỰC QUAN HÓA & TRUYỀN TẢI THÔNG ĐIỆP (TQH-05/06)
+% =====================================================================
+\chapter{THIẾT KẾ TRỰC QUAN HÓA VÀ TRUYỀN TẢI THÔNG ĐIỆP (TQH-05 \& TQH-06)}
+
+\section{Khung phân tích thiết kế trực quan hóa What -- Why -- How}
+
+Theo khung phương pháp luận của Tamara Munzner \cite{munzner2014}, mỗi thành phần biểu đồ trong hệ thống \code{ETT\_GRID\_VIS\_2026} được thiết kế bằng cách ánh xạ chặt chẽ ba chiều: \textbf{What} (kiểu dữ liệu và thuộc tính đầu vào), \textbf{Why} (nhiệm vụ nhận thức của người dùng theo User Story) và \textbf{How} (kỹ thuật mã hóa thị giác và cơ chế tương tác). Toàn bộ sơ đồ ánh xạ kiến trúc thị giác được trình bày tại Hình \ref{fig:tikz_what_why_how}.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=4mm and 5mm]
+  % Cột 1: WHAT
+  \node[store, text width=44mm] (w1) {\textbf{WHAT -- Miền dữ liệu}\\ 1. Chuỗi thời gian đa biến:\\ \code{OT} + 6 nhánh tải (\code{HUFL..LULL})};
+  \node[store, text width=44mm, below=4mm of w1] (w2) {2. Phân phối \& chu kỳ:\\ STL ($T_t, S_t, R_t$), Quantiles 24h,\\ Tỷ trọng tải, Ma trận trễ $6\times 13$};
+  \node[store, text width=44mm, below=4mm of w2] (w3) {3. Sự kiện \& hồi quy:\\ Ngưỡng 85/95\dC, Degree-Hours,\\ Đường cong LOWESS tiền tính};
+
+  % Cột 2: WHY
+  \node[box, text width=46mm, right=8mm of w1, yshift=-4mm] (y1) {\textbf{WHY -- US-01}\\ \textbf{Operational Manager}\\ $\bullet$ Khám phá chu kỳ ngày/mùa\\ $\bullet$ So sánh tỷ trọng hữu ích/vô ích\\ $\bullet$ Sàng lọc độ trễ tải $\to$ nhiệt};
+  \node[box, text width=46mm, below=8mm of y1] (y2) {\textbf{WHY -- US-02}\\ \textbf{Safety \& Risk Monitor}\\ $\bullet$ Giám sát biên an toàn 85/95\dC\\ $\bullet$ Khoanh vùng sự cố 6 nhánh tải\\ $\bullet$ Đánh giá đáp ứng phi tuyến};
+
+  % Cột 3: HOW
+  \node[box, text width=52mm, right=8mm of y1] (h1) {\textbf{HOW -- 5 Biểu đồ US-01}\\ 1. Calendar Heatmap (Tháng$\times$Ngày)\\ 2. STL 4-Panel Decomposition\\ 3. Hourly Quantile Fan (50/80/95\%)\\ 4. 100\% Stacked Bar (3 cấp áp)\\ 5. Lag Cross-Correlation Heatmap};
+  \node[box, text width=52mm, right=8mm of y2] (h2) {\textbf{HOW -- 5 Biểu đồ US-02}\\ 1. OT Threshold + Direct Labels\\ 2. Event Barcode / Rug Timeline\\ 3. Synchronized Small Multiples (6x)\\ 4. Joint Scatter + LOWESS Trend\\ 5. Thermal Regime Boxplots};
+
+  \draw[arr] (w1.east) -- (y1.west);
+  \draw[arr] (w2.east) -- (y1.west);
+  \draw[arr] (w2.east) -- (y2.west);
+  \draw[arr] (w3.east) -- (y2.west);
+  \draw[arr] (y1.east) -- (h1.west);
+  \draw[arr] (y2.east) -- (h2.west);
+\end{tikzpicture}
+\caption{Sơ đồ khung thiết kế trực quan hóa What -- Why -- How (Tamara Munzner Framework) ánh xạ vào hai câu chuyện người dùng US-01 và US-02}
+\label{fig:tikz_what_why_how}
+\end{figure}
+
+Bên cạnh khung What--Why--How, kiến trúc bố cục giao diện và luồng tương tác người dùng trên ứng dụng Streamlit (\code{app.py}) được thiết kế theo mô hình phân tầng từ trên xuống (Hình \ref{fig:tikz_ui_flow}) và bản thiết kế khung dây Wireframe chi tiết (Hình \ref{fig:wireframe_layout}).
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=4mm and 5mm]
+  \node[store, text width=150mm, minimum height=9mm] (sb) {\textbf{Tầng 1 -- Thanh điều khiển toàn cục (Sidebar Global FilterState):}\\ Chọn Trạm (\code{ETTh1} $\mid$ \code{ETTh2} $\mid$ \code{ETTm1}) $\cdot$ Khoảng ngày $\cdot$ Mùa (\code{All} $\mid$ \code{Dry} $\mid$ \code{Wet}) $\cdot$ Biến phân tích $\cdot$ Phương pháp tương quan (\code{Pearson} $\mid$ \code{Spearman})};
+
+  \node[box, text width=72mm, below=6mm of sb, xshift=-39mm] (at) {\textbf{Tầng 2A -- Action Title Engine}\\ Sinh tiêu đề động nêu trực tiếp phát hiện định lượng + cỡ mẫu $n$ theo bộ lọc hiện hành};
+  \node[box, text width=72mm, below=6mm of sb, xshift=39mm] (kpi) {\textbf{Tầng 2B -- Hàng thẻ chỉ số KPI (Gestalt Proximity)}\\ 4 thẻ tóm tắt: Mean/Peak OT, Số đợt vượt ngưỡng, Degree-Hours (\dCh), Peak Lag $k^*$};
+
+  \node[box, text width=72mm, below=5mm of at] (tab1) {\textbf{Tầng 3A -- Không gian US-01 (Operational)}\\ Lưới 2 cột: Calendar Heatmap + STL Panels\\ Quantile Fan 24h + 100\% Stacked Bar + Lag Matrix};
+  \node[box, text width=72mm, below=5mm of kpi] (tab2) {\textbf{Tầng 3B -- Không gian US-02 (Thermal Safety)}\\ OT Timeline \& Barcode Rug (khóa trục thời gian)\\ 6 Synchronized Small Multiples + Scatter LOWESS};
+
+  \draw[arr] (sb.south) -- ++(0,-2mm) -| (at.north);
+  \draw[arr] (sb.south) -- ++(0,-2mm) -| (kpi.north);
+  \draw[arr] (at.south) -- (tab1.north);
+  \draw[arr] (kpi.south) -- (tab2.north);
+  \draw[arr, <->] (tab1.east) -- node[above, font=\scriptsize]{Chuyển tab} (tab2.west);
+\end{tikzpicture}
+\caption{Sơ đồ kiến trúc phân tầng giao diện Dashboard và luồng lan truyền trạng thái bộ lọc toàn cục (\code{FilterState})}
+\label{fig:tikz_ui_flow}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.96\textwidth]{fig4_0_wireframe.png}
+\caption{Bản thiết kế bố cục khung dây (Wireframe Layout) chi tiết cho hai góc nhìn Story 1 (Operational Manager) và Story 2 (Safety \& Risk Monitor)}
+\label{fig:wireframe_layout}
+\end{figure}
+
+\section{Trực quan hóa góc nhìn Quản lý vận hành (US-01 -- Operational Manager)}
+
+\subsection{Bản đồ nhiệt lịch (Calendar Heatmap)}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\textwidth]{fig4_1_calendar_heatmap.png}
+\caption{Bản đồ nhiệt lịch (Calendar Heatmap) nhiệt độ dầu OT theo ngày và tháng trong năm 2017 trên cả ba tập dữ liệu}
+\label{fig:calendar_heatmap}
+\end{figure}
+
+Bản đồ nhiệt lịch (Hình \ref{fig:calendar_heatmap}) biểu diễn ma trận Ngày trong tháng ($1\dots 31$) $\times$ Tháng trong năm ($1\dots 12$) cho năm 2017. Mỗi ô vuông mã hóa giá trị trung bình ngày của biến đang chọn. Cách bố cục hai chiều này cho phép người quản lý quét nhanh 365 ngày để phát hiện các đợt nắng nóng kéo dài vào tháng 6--8 cũng như các cụm ngày xảy ra biến động phụ tải bất thường mà không bị nhiễu tần số cao che khuất.
+
+\subsection{Biểu đồ dải bách phân vị theo giờ (Hourly Quantile Fan Chart)}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\textwidth]{fig4_2_quantile_fan.png}
+\caption{Biểu đồ dải bách phân vị theo giờ (Hourly Quantile Fan Chart) với đường trung vị $Q_{50}$ và các vùng phủ lồng nhau 50\% IQR, 80\% và 95\%}
+\label{fig:quantile_fan}
+\end{figure}
+
+Hình \ref{fig:quantile_fan} vẽ chồng từ rộng đến hẹp ba dải phân vị lịch sử thực nghiệm: dải 95\% ($[Q_{0,025}, Q_{0,975}]$, độ đậm thấp nhất), dải 80\% ($[Q_{0,10}, Q_{0,90}]$) và dải 50\% IQR ($[Q_{0,25}, Q_{0,75}]$) bao quanh đường trung vị $Q_{0,50}$ (nét liền đậm) và đường trung bình (nét đứt). Cấu trúc thị giác lồng nhau theo nguyên luật Gestalt \textit{Closure} giúp điều độ viên nhận biết ngay khung giờ nào có phương sai lịch sử lớn nhất (11:00--15:00) và phân biệt rõ dao động thường nhật với ngoại lai vượt dải 95\%.
+
+\subsection{Biểu đồ cơ cấu tải hữu ích và vô ích (100\% Stacked Bar)}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\textwidth]{fig4_3_stacked_bar.png}
+\caption{Biểu đồ cơ cấu phụ tải 100\% Stacked Bar: tỷ trọng công suất hữu ích (\textit{Useful Load}) và vô ích (\textit{Unuseful Load}) theo giờ qua 3 cấp điện áp}
+\label{fig:stacked_bar}
+\end{figure}
+
+Hình \ref{fig:stacked_bar} chuẩn hóa tổng cặp tải hữu ích và vô ích cùng cấp áp về 100\% theo từng giờ trong ngày cho ba cấp điện áp (Cao áp, Trung áp, Hạ áp). Trên cả ba cấp áp của \code{ETTh1}, thành phần tải hữu ích luôn chiếm ưu thế tuyệt đối từ 70\% đến 85\%; riêng khung giờ trưa 11:00--15:00 trên cấp Cao áp và Trung áp, tỷ trọng tải hữu ích hạ xuống vùng 70--72\% (tương ứng tải vô ích tăng lên 28--30\%), cung cấp căn cứ định lượng để điều chỉnh dung lượng bù công suất phản kháng theo khung giờ.
+
+\subsection{Bản đồ nhiệt tương quan trễ (Lag Cross-Correlation Heatmap 0--12h)}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\textwidth]{fig4_4_lag_heatmap.png}
+\caption{Bản đồ nhiệt tương quan trễ (Lag Cross-Correlation Heatmap 0--12h) giữa 6 nhánh phụ tải và nhiệt độ dầu OT}
+\label{fig:lag_heatmap}
+\end{figure}
+
+Bản đồ nhiệt tương quan trễ (Hình \ref{fig:lag_heatmap}) hiển thị ma trận $6\times 13$ của hệ số tương quan $r(k)$ từ $k = 0$ đến $k = 12$ giờ, với thang phân kỳ đối xứng quanh $0{,}0$ và nhãn giá trị số in trực tiếp trong từng ô. Bảng \ref{tab:kpi_us01} tổng hợp các chỉ số KPI vận hành cốt lõi rút ra từ góc nhìn US-01.
+
+\begin{table}[H]
+\centering
+\caption{Bảng tổng hợp các chỉ số hiệu năng vận hành cốt lõi (US-01)}
+\label{tab:kpi_us01}
+\tablesetup
+\begin{tabularx}{\textwidth}{|Q{3.6cm}|Q{3.2cm}|C{3.2cm}|L|}
+\hline
+\thead \textbf{Chỉ số KPI vận hành} & \textbf{Công thức / Định nghĩa} & \textbf{Giá trị thực tế} & \textbf{Ý nghĩa hỗ trợ quyết định điều độ}\\ \hline
+Tải hữu ích trung bình (HUFL) & $\overline{\text{HUFL}}$ toàn chuỗi & 7,38 (ETTh1) / 37,19 (ETTh2) & Theo dõi nền phụ tải cao thế để phân bổ nguồn phát.\\ \hline
+Tỷ trọng tải hữu ích theo giờ & $\frac{|\text{Useful}|}{|\text{Useful}|+|\text{Unuseful}|}$ & 70\% -- 85\% (ETTh1) & Nhận diện khung giờ trưa (11--15h) tỷ trọng vô công tăng lên $\sim$28--30\%.\\ \hline
+Độ trễ tương quan tải -- nhiệt & $\arg\max_{k \in [0,12]} |r(k)|$ & $k=3\text{--}5$\,h (Dry) / $12$\,h (Wet) & Lượng hóa quán tính nhiệt của dầu máy biến áp theo mùa.\\ \hline
+Khung giờ đỉnh nhiệt trong ngày & $\arg\max_h Q_{0,50}(\text{OT}_h)$ & 14:00 (Dry) / 15:00--17:00 (Wet) & Lập lịch vận hành quạt làm mát cưỡng bức đón đầu đỉnh nhiệt.\\ \hline
+Biên độ dao động nhiệt ngày & $\max_h \text{OT} - \min_h \text{OT}$ & 6,5\dC -- 12,8\dC & Đánh giá mức độ mỏi nhiệt chu kỳ ngày/đêm trên thiết bị.\\ \hline
+\end{tabularx}
+\end{table}
+
+\section{Trực quan hóa góc nhìn Giám sát an toàn rủi ro (US-02 -- Safety \& Risk Monitor)}
+
+\subsection{Biểu đồ giám sát nhiệt độ dầu đối chiếu ngưỡng 85\dC/95\dC và Barcode/Rug Plot}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\textwidth]{fig4_5_ot_threshold.png}
+\caption{Biểu đồ giám sát nhiệt độ dầu OT toàn chuỗi thời gian đối chiếu các ngưỡng giới hạn 85\dC (Warning) và 95\dC (Critical)}
+\label{fig:ot_threshold}
+\end{figure}
+
+Hình \ref{fig:ot_threshold} biểu diễn toàn bộ đường cong nhiệt độ dầu \code{OT} đối chiếu trực tiếp với hai đường ngưỡng 85\dC (nét đứt kèm nhãn trực tiếp \code{85\dC Warning}) và 95\dC (nét chấm kèm nhãn \code{95\dC Critical}). Đi kèm phía dưới là biểu đồ vạch sự kiện Barcode / Rug Plot (Hình \ref{fig:barcode_rug}). Do 100\% mẫu lịch sử nằm dưới 60\dC, dải Barcode hiển thị trạng thái trống trung thực (\textit{Zero-Breach State}) kèm thông báo rõ ràng, tuyệt đối không nâng nhiệt giả hay hạ ngưỡng giả để tạo sự kiện mẫu.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\textwidth]{fig4_6_barcode_rug.png}
+\caption{Biểu đồ vạch thời gian (Barcode / Rug Plot) thể hiện phân bố thời điểm vượt ngưỡng (ghi nhận trung thực trạng thái 0 sự kiện vượt 85\dC)}
+\label{fig:barcode_rug}
+\end{figure}
+
+\subsection{Sáu biểu đồ nhánh tải đồng bộ (Synchronized Small Multiples) và cơ chế thị giác}
+
+Để giải quyết triệt để hiện tượng \textit{spaghetti plot} khi vẽ chung 6 nhánh tải có thang đo khác nhau, đề tài thiết kế mô hình 6 biểu đồ con xếp dọc đồng bộ trục hoành (\textit{Synchronized Small Multiples}) kết hợp cơ chế mã hóa kép và bộ nhớ đệm phiên bản. Nguyên lý hoạt động chi tiết của cơ chế này được minh họa tại Hình \ref{fig:tikz_sync_gestalt}, và kết quả hiển thị thực tế được trình bày tại Hình \ref{fig:small_multiples}.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=3.5mm and 5mm]
+  % Khối trái: Synchronized Small Multiples
+  \node[box, text width=70mm, minimum height=7.5mm] (p1) {\textbf{Panel 1: HUFL} (Cao áp hữu ích) -- Trục $Y_1$ độc lập};
+  \node[box, text width=70mm, minimum height=7.5mm, below=2mm of p1] (p2) {\textbf{Panel 2: HULL} (Cao áp vô công) -- Trục $Y_2$ độc lập};
+  \node[box, text width=70mm, minimum height=7.5mm, below=2mm of p2] (p3) {\textbf{Panel 3: MUFL} (Trung áp hữu ích) -- Trục $Y_3$ độc lập};
+  \node[box, text width=70mm, minimum height=7.5mm, below=2mm of p3] (p4) {\textbf{Panel 4: MULL} (Trung áp vô công) -- Trục $Y_4$ độc lập};
+  \node[box, text width=70mm, minimum height=7.5mm, below=2mm of p4] (p5) {\textbf{Panel 5: LUFL} (Hạ áp hữu ích) -- Trục $Y_5$ độc lập};
+  \node[box, text width=70mm, minimum height=7.5mm, below=2mm of p5] (p6) {\textbf{Panel 6: LULL} (Hạ áp vô công) -- Trục $Y_6$ \& Trục $X$ chung};
+
+  % Đường trục dọc Unified Hover Crosshair
+  \draw[thick, dashed] ([yshift=2mm]p1.north) -- ([yshift=-2mm]p6.south)
+    node[pos=0.0, above, font=\scriptsize\bfseries]{Unified Crosshair $t_0$};
+
+  % Khối phải: Gestalt + Redundant Encoding + Cache SLA
+  \node[store, text width=74mm, right=10mm of p1, yshift=-3mm] (g1) {\textbf{1. Nguyên luật Gestalt \& Đồng bộ hóa}\\ $\bullet$ \textit{Common Fate:} Khóa \code{shared\_xaxes=True}\\ $\bullet$ \textit{Alignment:} Căn thẳng cột mốc sự kiện $t_0$\\ $\bullet$ Tránh tuyệt đối Spaghetti Plot 7 đường};
+  \node[store, text width=74mm, below=4mm of g1] (g2) {\textbf{2. Mã hóa kép (Redundant Encoding WCAG AA)}\\ $\bullet$ Normal: Nét liền đậm + Nhãn trực tiếp\\ $\bullet$ Warning (85\dC): Nét đứt (\code{dash}) + Nhãn biên phải\\ $\bullet$ Critical (95\dC): Nét chấm (\code{dot}) + Nhãn biên phải};
+  \node[store, text width=74mm, below=4mm of g2] (g3) {\textbf{3. Kiểm soát bộ nhớ đệm đạt SLA $<$ 1,5\,s}\\ $\bullet$ Khóa phiên bản: \code{key = (path, mtime\_ns, size)}\\ $\bullet$ Tự động vô hiệu hóa cache khi Artifact cập nhật\\ $\bullet$ Phản hồi lọc mùa/ngày: 0,18\,s -- 0,42\,s};
+
+  \draw[arr] (p2.east) -- (g1.west);
+  \draw[arr] (p4.east) -- (g2.west);
+  \draw[arr] (p6.east) -- (g3.west);
+\end{tikzpicture}
+\caption{Sơ đồ cơ chế đồng bộ hóa đa biểu đồ (\textit{Synchronized Small Multiples}), mã hóa kép tiếp cận thị giác (WCAG 2.1 AA) và cơ chế khóa bộ nhớ đệm đạt SLA $<$ 1,5\,s}
+\label{fig:tikz_sync_gestalt}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\textwidth]{fig4_7_small_multiples.png}
+\caption{Sáu biểu đồ nhánh tải đồng bộ trục thời gian (Synchronized Small Multiples) cho HUFL, HULL, MUFL, MULL, LUFL, LULL}
+\label{fig:small_multiples}
+\end{figure}
+
+\subsection{Phân tích hồi quy phi tuyến Scatter + LOWESS và bảng đánh giá rủi ro nhiệt}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\textwidth]{fig4_8_lowess_scatter.png}
+\caption{Biểu đồ phân tán kết hợp đường hồi quy phi tuyến LOWESS giữa nhiệt độ dầu OT và từng nhánh phụ tải lưới điện}
+\label{fig:lowess_scatter}
+\end{figure}
+
+Hình \ref{fig:lowess_scatter} kết hợp đám mây điểm phân tán với đường cong LOWESS tiền tính toán (lưu trong \code{loess\_curves.parquet}), làm lộ rõ các vùng đáp ứng nhiệt phi tuyến và điểm uốn bão hòa trên từng nhánh tải. Bảng \ref{tab:safety_breach} tổng hợp kết quả đánh giá an toàn nhiệt theo US-02.
+
+\begin{table}[H]
+\centering
+\caption{Bảng đánh giá rủi ro nhiệt độ dầu và chỉ số áp lực nhiệt Degree-Hours (US-02)}
+\label{tab:safety_breach}
+\tablesetup
+\begin{tabularx}{\textwidth}{|Q{3.5cm}|C{2.1cm}|Q{2.9cm}|C{3.1cm}|L|}
+\hline
+\thead \textbf{Chế độ đánh giá} & \textbf{Ngưỡng} & \textbf{Mã hóa thị giác} & \textbf{Số đợt vi phạm} & \textbf{Đánh giá tình trạng kỹ thuật}\\ \hline
+Warning (Cảnh báo) & 85,0\dC & Nét đứt + Amber \#D97706 & 0 đợt (ETTh1, ETTh2, ETTm1) & Toàn bộ lịch sử duy trì $<$ 60\dC; biên an toàn đạt 100\%.\\ \hline
+Critical (Nguy hiểm) & 95,0\dC & Nét chấm + Crimson \#DC2626 & 0 đợt (ETTh1, ETTh2, ETTm1) & Không có biến cố khẩn cấp; cách điện dầu được bảo toàn.\\ \hline
+Đỉnh nhiệt lịch sử (Peak OT) & Cực trị mẫu & Điểm cực đại + Chú thích & 46,01\dC (ETTh1) / 58,88\dC (ETTh2) & Ghi nhận vào mùa hè; thấp hơn ngưỡng Warning từ 26,12\dC đến 38,99\dC.\\ \hline
+Áp lực nhiệt tích lũy (Degree-Hours) & $\sum \max(\text{OT}-85,0)\Delta t$ & Thẻ KPI \dCh & 0,00 \dCh & Không tích tụ ứng suất quá nhiệt vượt ngưỡng 85\dC.\\ \hline
+\end{tabularx}
+\end{table}
+
+\section{Đào sâu các phát hiện và Insight vận hành thực tế trên trạm ETTh1 và ETTh2}
+
+Dựa trên kết quả phân tích chéo toàn bộ 10 dạng biểu đồ của hệ thống trực quan hóa trên hai trạm biến áp đại diện \code{ETTh1} và \code{ETTh2} (được tổng hợp trực quan trong hai bảng tổng kết Hình \ref{fig:etth1_core} và Hình \ref{fig:etth2_core}), nhóm nghiên cứu đúc kết các phát hiện kỹ thuật chi tiết theo từng nhóm biểu đồ như sau.
+
+\subsection{Tổng hợp phát hiện chuyên sâu trên trạm biến áp ETTh1 (17.420 mẫu)}
+
+\begin{enumerate}
+  \item \textbf{Phát hiện từ Bản đồ nhiệt lịch (Calendar Heatmap):}
+  \begin{itemize}
+    \item \textit{Biến cố tăng vọt 10 ngày cuối tháng 08/2017 trên HULL và MULL:} Từ ngày 20/08 đến 29/08/2017, tải vô công cao áp (\code{HULL}) tăng vọt lên mức cực đại $> 6$ và tải vô công trung áp (\code{MULL}) đạt đỉnh $\approx 6$ đồng pha trong 10 ngày liên tiếp. Ngay sau đó, vào ngày 30--31/08/2017, cả hai nhánh đột ngột đảo chiều rơi xuống mức âm sâu ($\approx -4$), gợi ý hiện tượng đóng/cắt mạnh dung lượng bù phản kháng hoặc chuyển đổi phương thức vận hành sau sự cố.
+    \item \textit{Đáy mùa vụ và ngoại lai âm trên MUFL và LULL:} \code{MUFL} xuất hiện cụm ngoại lai âm sâu ($\approx -5$) trong các ngày 08--10/05/2018 và ngày lễ 01/10/2016 ($\approx -4$). Nhánh \code{LULL} ghi nhận dải âm kéo dài từ 07/06 đến giữa tháng 07/2017 ($0$ đến $-0{,}5$) và cụm âm sâu vào 01--14/11/2016 ($\approx -1$).
+  \end{itemize}
+
+  \item \textbf{Phát hiện từ Phân rã chuỗi thời gian STL (STL Decomposition):}
+  \begin{itemize}
+    \item \textit{Chuyển dịch chế độ vận hành (Regime Shift) từ tháng 01/2017:} Trên cả hai nhánh tải hữu ích chính (\code{HUFL} và \code{MUFL}), năm 2016 hầu như chỉ dao động ở miền dương, nhưng từ tháng 01/2017 trở đi biên độ dao động mở rộng mạnh sang miền âm (\code{HUFL} xuống $-20$, \code{MUFL} xuống $-25$), đồng thời phần dư (\code{Residual}) xuất hiện các gai âm dày đặc ($-15$ đến $-25$), báo hiệu hiện tượng trào lưu công suất ngược hoặc thay đổi cấu hình đo lường.
+    \item \textit{Đặc trưng bậc thang của LULL:} Thành phần \code{Trend} của \code{LULL} tạo thành 3 bậc thang rõ rệt (tháng 7--11/2016 cao, tháng 6--7/2017 thấp nhất tại $-0{,}8$, và năm 2018 ổn định quanh $0{,}5$--$1{,}5$), phản ánh khả năng trôi điểm không (\textit{zero-drift}) của cảm biến hạ áp.
+  \end{itemize}
+
+  \item \textbf{Phát hiện từ Biểu đồ quạt bách phân vị 24 giờ (Hourly Quantile Fan):}
+  \begin{itemize}
+    \item \textit{Dịch chuyển giờ đỉnh nhiệt theo mùa:} Mùa khô (\code{Dry}) có trung vị \code{OT} khoảng 7--9\dC và đạt đỉnh sớm lúc \textbf{14:00} ($\text{IQR}_{\max} \approx 7{,}84\,^\circ\text{C}$); trong khi mùa mưa/nóng (\code{Wet}) có trung vị \code{OT} cao gấp đôi (17--19\dC, biên trên 95\% đạt 38--40\dC) và đỉnh nhiệt dịch sang khung \textbf{15:00--17:00} chiều do quán tính tích nhiệt mùa hè.
+    \item \textit{Hiện tượng ``Lõm trưa 12:00'' (Midday Dip) trên HUFL và MUFL:} Cả hai mùa đều ghi nhận \code{HUFL} và \code{MUFL} sụt mạnh vào khung 11:00--14:00 (trung vị chạm đáy lúc 12:00 trưa tại $-1{,}5$ đến $-4$), đồng thời khoảng tứ phân vị IQR nở rộng cực đại vào 10:00--15:00 (cận dưới 95\% rơi xuống $-17$ đến $-20$), phù hợp với giả thuyết nguồn điện mặt trời phân tán phát mạnh vào buổi trưa làm giảm tải thuần tại trạm.
+  \end{itemize}
+
+  \item \textbf{Phát hiện từ Ma trận tương quan trễ (Lag Cross-Correlation) và LOWESS:}
+  \begin{itemize}
+    \item \textit{Đảo dấu tương quan theo mùa:} Trên \code{ETTh1}, mùa khô (\code{Dry}) có hệ số tương quan âm nhẹ ($r \in [-0{,}27; -0{,}10]$, đạt cực trị tại $k=0$\,h với \code{LUFL} $r=-0{,}27$ và $k=3$\,h với \code{HUFL} $r=-0{,}25$, \code{MUFL} $r=-0{,}23$) do mùa đông phụ tải sưởi ấm tăng khi nhiệt độ môi trường hạ thấp. Ngược lại, mùa mưa/nóng (\code{Wet}) có tương quan dương đồng nhất trên toàn bộ 6 nhánh tải ($r \in [+0{,}14; +0{,}34]$), tăng dần theo độ trễ và đạt đỉnh tại $k = 12$\,h (\code{HUFL} $r = +0{,}34$, \code{MUFL} $r = +0{,}32$), phản ánh hiệu ứng tích nhiệt dài hạn của dầu máy biến áp.
+    \item \textit{Điểm uốn phi tuyến trên đường cong LOWESS:} Đường LOWESS của \code{HUFL} gần như phẳng ở miền tải $[-25, +15]$ nhưng dốc đứng lên khi $\text{HUFL} > 15$ (kéo \code{OT} lên 22--25\dC); tương tự \code{MUFL} dốc mạnh khi vượt $+10$, xác định ngưỡng tải bắt đầu gây gia nhiệt nhanh.
+  \end{itemize}
+\end{enumerate}
+
+\begin{figure}[H]
+\centering
+\includegraphics[height=0.82\textheight,keepaspectratio]{fig4_9_etth1_core.png}
+\caption{Bảng tổng hợp trực quan (Visual Cheatsheet) toàn bộ phát hiện thống kê và vận hành trên trạm biến áp ETTh1}
+\label{fig:etth1_core}
+\end{figure}
+
+\subsection{Tổng hợp phát hiện chuyên sâu trên trạm biến áp ETTh2 (17.420 mẫu)}
+
+\begin{enumerate}
+  \item \textbf{Cú sốc cấu trúc đồng bộ tháng 04--05/2017 trên cả 6 nhánh tải:}
+  Trên biểu đồ STL và Synchronized Small Multiples của \code{ETTh2}, giai đoạn tháng 04--05/2017 xuất hiện một cú sốc đồng thời trên toàn bộ các cấp điện áp: \code{MUFL} vọt lên đỉnh lịch sử $> 93$ rồi bị cắt phẳng ngang (\textit{clipping/saturation}) tạo trần nhân tạo trong biểu đồ phân tán; \code{LULL} lao dốc xuống $-31{,}46$; \code{HULL} sụt xuống $-18{,}68$. Đây là bằng chứng điển hình của sự kiện tái cấu hình mạch đo hoặc sự cố đóng cắt cấp trạm.
+
+  \item \textbf{Chuyển trạng thái sang trào lưu công suất âm trên nhánh hạ thế từ giữa năm 2017:}
+  Khác hoàn toàn với \code{ETTh1}, từ tháng 06/2017 đến hết tháng 06/2018, hai nhánh hạ áp của \code{ETTh2} là \code{LUFL} và \code{LULL} chuyển hẳn sang vận hành ở miền giá trị âm (\code{LUFL} duy trì quanh $-5$ đến $-10$ vào mùa mưa; \code{LULL} quanh $-2$ đến $-3$). Điều này cho thấy cấp hạ thế của trạm 2 thường xuyên nhận dòng công suất phát ngược.
+
+  \item \textbf{Đặc tính mùa vụ và đáp ứng phi tuyến LOWESS ở nền nhiệt cao:}
+  Trên \code{ETTh2}, dải phân vị \code{OT} mùa mưa (\code{Wet}) đạt trung vị 31--42\dC (cao hơn mùa khô 13--22\dC tới gần 20\dC). Đường cong LOWESS chỉ ra điểm nhảy bậc nhiệt độ rõ rệt: khi \code{HUFL} vượt ngưỡng tải $\approx 65$, nhiệt độ dầu \code{OT} vọt lên vùng $\approx 54\,^\circ\text{C}$; khi \code{MUFL} đạt vùng tải $\approx 63$, \code{OT} tiệm cận đỉnh $\approx 60\,^\circ\text{C}$.
+\end{enumerate}
+
+\begin{figure}[H]
+\centering
+\includegraphics[height=0.82\textheight,keepaspectratio]{fig4_10_etth2_core.png}
+\caption{Bảng tổng hợp trực quan (Visual Cheatsheet) toàn bộ phát hiện thống kê và vận hành trên trạm biến áp ETTh2}
+\label{fig:etth2_core}
+\end{figure}
+
+\section{Kiến trúc ứng dụng Streamlit Dashboard và Kiểm toán SLA hiệu năng}
+
+Giao diện Dashboard tổng thể được tích hợp tại tệp gốc \code{app.py} kết hợp tầng quản lý bộ nhớ đệm \code{src/visuals/cache\_manager.py}. Nhờ cơ chế khóa bộ nhớ đệm theo bộ ba siêu dữ liệu tệp \code{(path, mtime\_ns, size)}, ứng dụng chỉ đọc các tệp Parquet/JSON tiền tính toán và đạt thời gian phản hồi vượt xa cam kết SLA ($< 1{,}5$ giây cho mọi thao tác lọc tương tác), như ghi nhận thực nghiệm tại Bảng \ref{tab:sla_benchmark}.
+
+\begin{table}[H]
+\centering
+\caption{Kết quả kiểm toán thời gian đáp ứng giao diện (SLA Benchmarks) trên dữ liệu thực tế}
+\label{tab:sla_benchmark}
+\tablesetup
+\begin{tabularx}{\textwidth}{|L|C{2.8cm}|C{2.8cm}|C{3.4cm}|}
+\hline
+\thead \textbf{Kịch bản kiểm thử hiệu năng} & \textbf{Độ trễ thực tế} & \textbf{Ngưỡng SLA} & \textbf{Đánh giá trạng thái}\\ \hline
+Khởi động lạnh (\textit{Cold-start} nạp toàn bộ artifacts) & 1,90 giây & $<$ 3,0 giây & PASS (Đạt yêu cầu)\\ \hline
+Chuyển đổi trạm dữ liệu (\code{ETTh1} $\to$ \code{ETTh2}) & 0,42 giây & $<$ 1,5 giây & PASS (Rất mượt)\\ \hline
+Lọc mùa vụ (\code{All} $\to$ \code{Dry} $\to$ \code{Wet}) & 0,18 giây & $<$ 1,0 giây & PASS (Tức thì)\\ \hline
+Lọc khoảng thời gian ngày (\textit{Date Range Slice}) & 0,25 giây & $<$ 1,0 giây & PASS (Tức thì)\\ \hline
+Dựng biểu đồ Synchronized Small Multiples (6 panels) & 0,68 giây & $<$ 2,0 giây & PASS (Rất tốt)\\ \hline
+\end{tabularx}
+\end{table}
+
+\section{Kiểm toán Data-Ink Ratio và Tiêu chuẩn tiếp cận màu sắc WCAG 2.1 AA}
+
+Toàn bộ bảng màu hiển thị trên Dashboard đã được kiểm định độ tương phản độ chói tương đối trên nền trắng (\code{\#FFFFFF}) theo công thức chuẩn W3C WCAG 2.1 (Bảng \ref{tab:wcag_audit}). Đồng thời, nhờ cơ chế mã hóa kép (nét liền, nét đứt, nét chấm và nhãn trực tiếp), mọi biểu đồ đều bảo toàn 100\% thông tin khi in ấn trắng đen hoặc xem dưới chế độ mù màu (\textit{Deuteranopia / Protanopia / Monochromacy}).
+
+\begin{table}[H]
+\centering
+\caption{Bảng kiểm định tỷ số tương phản độ chói và chuẩn tiếp cận W3C WCAG 2.1 AA}
+\label{tab:wcag_audit}
+\tablesetup
+\begin{tabularx}{\textwidth}{|L|C{2.2cm}|C{2.8cm}|C{2.8cm}|C{3.4cm}|}
+\hline
+\thead \textbf{Vai trò thị giác trên Dashboard} & \textbf{Mã Hex} & \textbf{Độ chói $L$} & \textbf{Tương phản CR} & \textbf{Đánh giá WCAG 2.1}\\ \hline
+Slate-900 (Tiêu đề chính) & \code{\#0F172A} & 0,0076 & 18,31 : 1 & PASS (Vượt chuẩn AAA)\\ \hline
+Slate-800 (Văn bản nội dung) & \code{\#1E293B} & 0,0219 & 14,63 : 1 & PASS (Vượt chuẩn AAA)\\ \hline
+Navy (Đường OT / Chế độ Normal) & \code{\#1E3A8A} & 0,0513 & 10,36 : 1 & PASS (Vượt chuẩn AAA)\\ \hline
+Crimson (Ngưỡng Critical 95\dC) & \code{\#DC2626} & 0,1673 & 4,83 : 1 & PASS (Đạt chuẩn AA)\\ \hline
+Slate-500 (Tải vô công / Ngữ cảnh) & \code{\#64748B} & 0,1706 & 4,76 : 1 & PASS (Đạt chuẩn AA)\\ \hline
+Teal (Tải hữu ích / Công suất) & \code{\#0D9488} & 0,2307 & 3,74 : 1 & PASS (Đồ họa AA + Nhãn)\\ \hline
+Amber (Ngưỡng Warning 85\dC) & \code{\#D97706} & 0,2795 & 3,19 : 1 & PASS (Đồ họa AA + Nét đứt)\\ \hline
+Lưới tọa độ Tufte Gridline & \code{\#E2E8F0} & 0,7712 & 1,23 : 1 & PASS (Làm mờ đúng Tufte)\\ \hline
+\end{tabularx}
+\end{table}
+
+% =====================================================================
+%  KẾT LUẬN VÀ KIẾN NGHỊ
+% =====================================================================
+\chapter*{KẾT LUẬN VÀ KIẾN NGHỊ}
+\addcontentsline{toc}{chapter}{KẾT LUẬN VÀ KIẾN NGHỊ}
+
+\section*{1. Kết luận những kết quả chính đạt được}
+\addcontentsline{toc}{section}{1. Kết luận những kết quả chính đạt được}
+
+Đề tài \textit{``Trực quan hóa dữ liệu và phân tích thống kê vận hành lưới điện và an toàn nhiệt máy biến áp (ETT\_GRID\_VIS\_2026 v2.0)''} đã hoàn thành toàn bộ 6 nhóm nhiệm vụ WBS (TQH-01 đến TQH-06) và giải quyết trọn vẹn hai câu chuyện người dùng mục tiêu:
+\begin{enumerate}
+  \item \textbf{Về quản trị và tiền xử lý dữ liệu:} Xây dựng quy trình ETL kiểm toán nghiêm ngặt 104.520 bản ghi trên ba trạm \code{ETTh1}, \code{ETTh2}, \code{ETTm1}; chuẩn hóa thành hai hợp đồng dữ liệu \code{clean\_ett.parquet} (14 cột) và \code{grid\_features.parquet} (23 cột), bảo toàn 100\% giá trị vật lý gốc của nhiệt độ dầu \code{OT} (\dC).
+  \item \textbf{Về phân tích thống kê ứng dụng:} Phát triển thành công Statistical Analytics Engine chạy hoàn toàn trên CPU, tiền tính toán chính xác phân rã chuỗi thời gian STL, dải bách phân vị thực nghiệm 24 giờ ($50\%, 80\%, 95\%$), ma trận tương quan trễ $6\times 13$ căn theo mốc thời gian thực, phân đoạn sự kiện vượt ngưỡng Degree-Hours và hồi quy phi tuyến cục bộ LOWESS.
+  \item \textbf{Về thiết kế trực quan hóa và phát hiện vận hành:} Hiện thực hóa 10 dạng biểu đồ chuyên sâu kèm 5 sơ đồ kiến trúc/phương pháp luận; xóa bỏ hoàn toàn lỗi \textit{spaghetti plot} bằng \textit{Synchronized Small Multiples} và \textit{100\% Stacked Bar}; phát hiện được hiện tượng đảo dấu tương quan trễ theo mùa, lõm phụ tải buổi trưa 12:00 trên \code{ETTh1}, cũng như cú sốc cấu trúc tháng 04--05/2017 và trào lưu công suất ngược hạ thế trên \code{ETTh2}.
+  \item \textbf{Về hiệu năng phần mềm và chuẩn tiếp cận:} Kiến trúc giải ghép \code{[STRICT:DECOUPLE]} kết hợp bộ nhớ đệm khóa phiên bản giúp giao diện Streamlit phản hồi trong 0,18--0,68 giây (đạt SLA $< 1{,}5$ giây), đồng thời tuân thủ nghiêm ngặt nguyên lý Data-Ink của Tufte, quy luật Gestalt và chuẩn tiếp cận W3C WCAG 2.1 AA.
+\end{enumerate}
+
+\section*{2. Khuyến nghị đối với công tác điều độ và vận hành lưới điện}
+\addcontentsline{toc}{section}{2. Khuyến nghị đối với công tác điều độ và vận hành lưới điện}
+
+\begin{itemize}
+  \item \textbf{Điều độ đón đầu theo quán tính nhiệt:} Trong mùa mưa/nóng (\code{Wet}), nhiệt độ dầu \code{OT} có tương quan dương kéo dài tới độ trễ $k = 12$ giờ với phụ tải cao thế và trung thế, đạt đỉnh vào 15:00--17:00 chiều; do đó cần kích hoạt sớm hệ thống làm mát cưỡng bức từ đầu giờ chiều.
+  \item \textbf{Quản lý công suất phản kháng và trào lưu ngược buổi trưa:} Khung giờ 11:00--15:00 trên \code{ETTh1} xuất hiện lõm tải hữu ích sâu kèm biên độ bất định lớn, đòi hỏi điều chỉnh linh hoạt tụ bù và giám sát nguồn phát phân tán. Trên \code{ETTh2}, cần kiểm tra chỉnh định bảo vệ rơ-le cho hai nhánh hạ áp (\code{LUFL}, \code{LULL}) vận hành âm kéo dài.
+\end{itemize}
+
+\section*{3. Giới hạn diễn giải và hướng phát triển tiếp theo}
+\addcontentsline{toc}{section}{3. Giới hạn diễn giải và hướng phát triển tiếp theo}
+
+\begin{itemize}
+  \item \textbf{Giới hạn diễn giải trung thực:} Hệ thống là công cụ phân tích dữ liệu lịch sử phục vụ nghiên cứu và hỗ trợ quyết định, không tự nhận là hệ thống SCADA thời gian thực hay thiết bị bảo vệ an toàn được chứng nhận; các mối tương quan trễ và đường cong LOWESS chỉ hỗ trợ sàng lọc giả thuyết, không đồng nhất với quan hệ nhân quả vật lý tuyệt đối.
+  \item \textbf{Hướng phát triển:} Tích hợp thêm dữ liệu nhiệt độ môi trường (\textit{ambient temperature}) và tốc độ gió để tách bạch hoàn toàn ảnh hưởng thời tiết khỏi hiệu ứng tự gia nhiệt do dòng tải; mở rộng cơ chế nạp dữ liệu luồng (\textit{incremental Parquet streaming}) phục vụ giám sát cận thời gian thực.
+\end{itemize}
+
+% =====================================================================
+%  TÀI LIỆU THAM KHẢO
+% =====================================================================
+\begin{thebibliography}{99}
+
+\bibitem{zhou2021informer}
+H. Zhou, S. Zhang, J. Peng, S. Zhang, J. Li, H. Xiong, and W. Zhang,
+``Informer: Beyond Efficient Transformer for Long Sequence Time-Series Forecasting,''
+in \textit{Proceedings of the AAAI Conference on Artificial Intelligence (AAAI-21)},
+vol. 35, no. 12, pp. 11106--11115, 2021.
+
+\bibitem{tufte2001}
+E. R. Tufte,
+\textit{The Visual Display of Quantitative Information}, 2nd ed.
+Cheshire, CT, USA: Graphics Press, 2001.
+
+\bibitem{cleveland1990stl}
+R. B. Cleveland, W. S. Cleveland, J. E. McRae, and I. Terpenning,
+``STL: A Seasonal-Trend Decomposition Procedure Based on Loess,''
+\textit{Journal of Official Statistics}, vol. 6, no. 1, pp. 3--73, 1990.
+
+\bibitem{cleveland1979lowess}
+W. S. Cleveland,
+``Robust Locally Weighted Regression and Smoothing Scatterplots,''
+\textit{Journal of the American Statistical Association}, vol. 74, no. 368, pp. 829--836, 1979.
+
+\bibitem{munzner2014}
+T. Munzner,
+\textit{Visualization Analysis and Design}.
+Boca Raton, FL, USA: CRC Press, Taylor \& Francis Group, 2014.
+
+\bibitem{wcag21}
+World Wide Web Consortium (W3C),
+``Web Content Accessibility Guidelines (WCAG) 2.1,''
+W3C Recommendation, Jun. 2018. [Online]. Available: \url{https://www.w3.org/TR/WCAG21/}
+
+\bibitem{ieee2012}
+IEEE Standards Association,
+``IEEE Guide for Loading Mineral-Oil-Immersed Transformers and Step-Voltage Regulators,''
+\textit{IEEE Std C57.91-2011}, 2012.
+
+\bibitem{mckinney2010}
+W. McKinney,
+``Data Structures for Statistical Computing in Python,''
+in \textit{Proceedings of the 9th Python in Science Conference}, pp. 56--61, 2010.
+
+\bibitem{plotly2015}
+Plotly Technologies Inc.,
+``Collaborative Data Science,'' Montréal, QC, Canada, 2015. [Online]. Available: \url{https://plotly.com}
+
+\bibitem{streamlit2024}
+Streamlit Inc.,
+``Streamlit: The Fastest Way to Build and Share Data Apps,'' 2024. [Online]. Available: \url{https://streamlit.io}
+
+\bibitem{waskom2021seaborn}
+M. L. Waskom,
+``seaborn: statistical data visualization,''
+\textit{Journal of Open Source Software}, vol. 6, no. 60, p. 3021, 2021.
+
+\bibitem{hunter2007matplotlib}
+J. D. Hunter,
+``Matplotlib: A 2D Graphics Environment,''
+\textit{Computing in Science \& Engineering}, vol. 9, no. 3, pp. 90--95, 2007.
+
+\end{thebibliography}
+
+% =====================================================================
+%  PHỤ LỤC
+% =====================================================================
+\chapter*{PHỤ LỤC}
+\addcontentsline{toc}{chapter}{PHỤ LỤC}
+
+\section*{Phụ lục A: Bảng phân công chi tiết 6 nhóm công việc (TQH-01 đến TQH-06)}
+\addcontentsline{toc}{section}{Phụ lục A: Bảng phân công chi tiết 6 nhóm công việc (TQH-01 đến TQH-06)}
+
+\begin{table}[H]
+\centering
+\caption{Bảng phân công chi tiết 6 nhóm nhiệm vụ WBS của dự án ETT\_GRID\_VIS\_2026}
+\label{tab:wbs_appendix}
+\tablesetup
+\begin{tabularx}{\textwidth}{|C{1.8cm}|Q{3.8cm}|Q{3.6cm}|L|}
+\hline
+\thead \textbf{Mã việc} & \textbf{Nội dung nhóm công việc} & \textbf{Thành viên phụ trách} & \textbf{Sản phẩm bàn giao cụ thể}\\ \hline
+TQH-01 & Xác định, thu thập và kiểm toán dữ liệu ETT & Nguyễn Tấn Duy (3123580008) & Kiểm toán dữ liệu thô 3 trạm, nhật ký thu thập, bảo vệ phân vùng \code{RED ZONE}.\\ \hline
+TQH-02 & Làm sạch, chuẩn hóa và trích xuất thuộc tính & Nguyễn Thành Đạt (3123580009) & Pipeline \code{clean\_ett.parquet} (14 cột) và \code{grid\_features.parquet} (23 cột).\\ \hline
+TQH-03 & Thiết kế biểu đồ Story 1 (Operational Manager) & Đinh Thái Toàn (3123580054) & Mô-đun Calendar Heatmap, STL Panels, Hourly Quantile Fan, 100\% Stacked Bar, Lag Heatmap.\\ \hline
+TQH-04 & Phân tích thống kê khám phá chuyên sâu (EDA) & Nguyễn Thành Đạt (3123580009) & Statistical Analytics Engine, notebook \code{02\_tqh04}, phân tích chu kỳ và cực trị lịch sử.\\ \hline
+TQH-05 & Thiết kế biểu đồ Story 2 (Safety) \& đúc kết Insight & Nguyễn Công Trí (3123580056) & Mô-đun OT Threshold, Barcode Rug, Small Multiples, LOWESS và bộ insight ETTh1/ETTh2.\\ \hline
+TQH-06 & Tích hợp Dashboard, tối ưu SLA và kiểm toán WCAG & Trần Chí Vỹ (3123580065) & \code{app.py}, Action Titles động, Cache SLA $<$ 1,5\,s, kiểm toán Tufte Data-Ink \& WCAG 2.1 AA.\\ \hline
+\end{tabularx}
+\end{table}
+
+\section*{Phụ lục B: Đặc tả kỹ thuật các tệp dữ liệu tiền tính toán (Pre-computed Artifacts)}
+\addcontentsline{toc}{section}{Phụ lục B: Đặc tả kỹ thuật các tệp dữ liệu tiền tính toán (Pre-computed Artifacts)}
+
+\begin{table}[H]
+\centering
+\caption{Đặc tả kỹ thuật các tệp dữ liệu tiền tính toán (Pre-computed Artifacts)}
+\label{tab:artifacts_appendix}
+\tablesetup
+\begin{tabularx}{\textwidth}{|Q{4.0cm}|C{1.8cm}|C{2.4cm}|C{2.4cm}|L|}
+\hline
+\thead \textbf{Tên tệp Artifact} & \textbf{Số cột} & \textbf{Quy mô} & \textbf{Định dạng} & \textbf{Vai trò cung cấp cho giao diện}\\ \hline
+\code{clean\_ett.parquet} & 14 cột & 104.520 dòng & Parquet (Snappy) & Bảng dữ liệu sạch toàn bộ 3 trạm, bảo toàn null, không gộp mẫu.\\ \hline
+\code{grid\_features.parquet} & 23 cột & 104.520 dòng & Parquet (Snappy) & Bảng thuộc tính tăng cường với biến lịch, mùa vụ và tỷ trọng cấp áp.\\ \hline
+\code{load\_profiles\_stl.parquet} & 14 cột & 941.976 dòng & Parquet (Snappy) & Thành phần phân rã STL và hồ sơ thống kê theo mùa -- giờ cho 9 biến.\\ \hline
+\code{quantile\_bands.parquet} & 13 cột & 1.296 dòng & Parquet (Snappy) & Dải bách phân vị thực nghiệm 50\% IQR, 80\%, 95\% theo 24 giờ và mùa.\\ \hline
+\code{lag\_correlation\_matrix.json} & Envelope & 12 records & JSON chuẩn & Ma trận tương quan trễ $6\times 13$ giữa 6 nhánh tải và OT từ 0--12 giờ.\\ \hline
+\code{thermal\_breach\_events.parquet} & 11 cột & 0 sự kiện & Parquet (Snappy) & Danh mục các đợt vượt ngưỡng 85\dC và 95\dC kèm chỉ số Degree-Hours.\\ \hline
+\code{loess\_curves.parquet} & 8 cột & 10.800 dòng & Parquet (Snappy) & Đường cong hồi quy phi tuyến LOWESS tiền tính toán cho 6 nhánh tải.\\ \hline
+\end{tabularx}
+\end{table}
+
+\end{document}

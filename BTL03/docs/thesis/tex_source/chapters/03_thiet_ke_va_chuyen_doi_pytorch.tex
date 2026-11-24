@@ -1,0 +1,46 @@
+\chapter{Thiết kế hệ thống và chuyển đổi PyTorch}
+\section{Kiến trúc OOP}
+\texttt{BaseMigratedModel} cung cấp hợp đồng forward, kiểm tra NCHW, parameter counters và feature hooks. \texttt{BaseTrainer} đóng gói train/validation, callbacks, logger và checkpoint. Seed helpers, YAML, runners và CLI nằm trong source/config tương ứng.
+
+\section{Logger và trạng thái runtime}
+T0104 ghi nhận logger CSV/TensorBoard schema 18 cột và smoke logger độc lập thành công trong lượt task đó. T0212 ghi SummaryWriter blocked vì protobuf/TensorBoard. Đây là bằng chứng ở hai thời điểm, không dùng kết quả cũ để xóa blocker mới.
+
+\section{Pipeline kiểm toán được}
+Hình~\ref{fig:btl03-pipeline} trình bày các lớp kiểm toán của snapshot. Các mũi tên mô tả luồng cần đối chiếu theo source; chúng không chứng minh full training đã hoàn tất.
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[node distance=7mm and 7mm, every node/.style={draw,rounded corners,align=center,text width=27mm,minimum height=11mm,font=\small}]
+\node (legacy) {Keras notebooks\\baseline CSV};
+\node[right=of legacy] (dataset) {Dataset\\NCHW/normalization};
+\node[right=of dataset] (models) {PyTorch models\\10 configurations};
+\node[below=of models] (engine) {BaseTrainer\\callbacks/logger};
+\node[left=of engine] (cli) {CLI\\synthetic smoke};
+\node[left=of cli] (review) {Reports/tests\\PR audit};
+\draw[-{Stealth}] (legacy) -- (dataset);
+\draw[-{Stealth}] (dataset) -- (models);
+\draw[-{Stealth}] (models) -- (engine);
+\draw[-{Stealth}] (engine) -- (cli);
+\draw[-{Stealth}] (cli) -- (review);
+\end{tikzpicture}
+\caption{Các lớp pipeline được kiểm toán tại T0212; synthetic smoke đạt 10/10 nhưng logger bị BLOCKED.}
+\label{fig:btl03-pipeline}
+\end{figure}
+
+\section{Ma trận năm nhóm, mười cấu hình}
+\begin{longtable}{p{0.09\textwidth}p{0.31\textwidth}p{0.23\textwidth}p{0.27\textwidth}}
+\toprule Nhóm & Cấu hình & Thành phần chính & Trọng tâm và giới hạn \\
+\midrule
+1 & FuncApxmMLP; MNISTMLP & MLP, group-1 runners & T0201 36 sweep runs; T0202 MNIST MLP 30 epoch \\
+2 & MNISTCNN; HumanGenderCNN; EmotionCNN & CNN models/datasets & NCHW, WIKI rotation, FER preprocessing \\
+3 & MNISTCNNLSTM & Sequence dataset/CNN-LSTM & Gộp/tách B,T; full MNIST MAE chưa xác nhận \\
+4 & Gender callbacks; Emotion callbacks & Trainer/callbacks/logger & Dùng lại model nhóm 2; full run T0212 bị chặn \\
+5 & SegNet; FCNObjectDetector & SegNet, FCN/detection dataset & Pixel logits, score-map; thiếu full data evaluation \\
+\bottomrule
+\end{longtable}
+
+\section{CLI và smoke-test}
+CLI hỗ trợ config và smoke mode theo source. Synthetic smoke chỉ xác nhận wiring/shape/train-validation một epoch. Ví dụ đổi layout:
+\begin{lstlisting}[style=python,caption={Đổi layout tensor ảnh}]
+x_nchw = x_nhwc.permute(0, 3, 1, 2).contiguous()
+\end{lstlisting}
+Hình~\ref{fig:btl03-pipeline} là sơ đồ audit, không phải khẳng định pipeline full-data/logger đã đạt end-to-end.

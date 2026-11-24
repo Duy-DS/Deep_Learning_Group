@@ -1,0 +1,21 @@
+% Khung READ-ONLY: biên dịch XeLaTeX; sao chép sang tex_source trước khi sửa.
+\documentclass[12pt,a4paper,oneside]{book}
+\input{preamble.tex}
+\addbibresource{references.bib}
+\begin{document}
+\frontmatter
+\input{frontmatter.tex}
+\tableofcontents
+\listoffigures
+\listoftables
+\mainmatter
+\input{chapters/01_tong_quan.tex}
+\input{chapters/02_co_so_ly_thuyet.tex}
+\input{chapters/03_thiet_ke_va_chuyen_doi_pytorch.tex}
+\input{chapters/04_kiem_toan_t0212_va_trang_thai_thuc_nghiem.tex}
+\input{chapters/05_ket_luan_va_huong_phat_trien.tex}
+\printbibliography[heading=bibintoc,title={Tài liệu tham khảo}]
+\appendix
+\chapter{Phụ lục evidence}
+[Tóm tắt evidence manifest; không chứa dữ liệu, checkpoint hay runtime logs cá nhân.]
+\end{document}
