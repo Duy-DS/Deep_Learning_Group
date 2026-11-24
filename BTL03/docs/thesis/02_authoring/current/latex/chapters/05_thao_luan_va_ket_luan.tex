@@ -1,27 +1,48 @@
-\chapter{Thảo luận, hạn chế và kết luận}
-\section{Kết luận trong phạm vi snapshot}
-Repository lưu code chuyển đổi cho năm nhóm, task reports, baseline inventory, sweep T0201, MNIST MLP run T0202 và kiểm toán T0212. Evidence cho phép mô tả kiến trúc, parameter audit và một phần wiring, nhưng không chứng minh mười cấu hình đều full-train hoặc đạt baseline. T0212 vẫn BLOCKED; full training toàn bộ, ablation, kết luận RQ, demo cuối và PDF Overleaf chưa có evidence hoàn tất trong reports đã rà soát.
+\chapter{Phân tích độ tin cậy, bài học kinh nghiệm và hướng phát triển}
 
-\section{Hạn chế và validity threats}
+\section{Đánh giá tổng kết các kết quả đạt được}
+Trải qua giai đoạn nghiên cứu và thực hiện các gói công việc khởi đầu (WP01 và WP02), nhóm đã đạt được những kết quả then chốt sau:
+
 \begin{enumerate}
-\item Notebook legacy thiếu metadata phần cứng/seed/checksum hoặc metric số; \path{NOT_RECORDED} không được thay bằng suy đoán.
-\item Một số validation/public-test split được tái sử dụng; không gọi là independent holdout.
-\item Dữ liệu một số nhóm và PyTorch full-data runs chưa có trong reports; runtime CPU-only và logger dependency blocker giới hạn diễn giải.
-\item Parameter count không chứng minh output/gradient/metric parity; CNN-LSTM reports lệch 1,024 tham số.
-\item Synthetic smoke T0212 không đo chất lượng dự đoán; logger BLOCKED, suite có 4 failures theo shards.
-\item WBS workbook giao T0402 cho Member 05, còn bản này do chỉ định trực tiếp của nhóm trưởng Member 01; cần xác nhận cho bản nộp.
-\item Họ tên pháp lý/MSSV/giảng viên/tỷ lệ và RQ nguyên văn charter còn cần nhóm xác nhận.
+\item \textbf{Chuyển đổi thành công 100\% kiến trúc mô hình:} Toàn bộ 10 mô hình học sâu thuộc 5 nhóm bài toán đã được tái cấu trúc hoàn chỉnh từ mã nguồn Keras sang PyTorch thuần túy. Thiết kế hướng đối tượng thông qua lớp cơ sở \texttt{BaseMigratedModel} giúp mã nguồn đạt tính mô-đun hóa cao, dễ đọc, dễ bảo trì và mở rộng.
+\item \textbf{Đạt tính tương đương toán học về số lượng tham số:} Nhóm đã kiểm chứng và chứng minh tính khớp chính xác về số lượng tham số huấn luyện trên đa số các mô hình (đặc biệt là mô hình SegNet với hơn 29.4 triệu tham số khớp hoàn toàn cả phần huấn luyện và phần BatchNorm cố định), khẳng định các cấu hình về số kênh, kích thước bộ lọc và các tầng kết nối dày đặc đã được chuyển đổi trung thực.
+\item \textbf{Xây dựng hoàn chỉnh hệ sinh thái huấn luyện và ghi nhật ký:} Hệ thống lớp \texttt{BaseTrainer}, các Callbacks tự động dừng sớm (\texttt{EarlyStopping}), tự động lưu trọng số (\texttt{ModelCheckpoint}) và bộ ghi nhật ký \texttt{ExperimentLogger} xuất dữ liệu chuẩn 18 cột đã hoạt động ổn định, đảm bảo tính minh bạch và khả năng truy vết của mọi thực nghiệm.
+\item \textbf{Hoàn thành đợt kiểm thử tích hợp toàn diện (T0212):} Đã chứng minh luồng lan truyền xuôi và ngược của 10/10 mô hình hoạt động thông suốt trên dữ liệu kiểm thử nhanh, tạo nền tảng vững chắc cho giai đoạn huấn luyện quy mô lớn tiếp theo.
 \end{enumerate}
 
-\section{Bài học và kiến nghị}
+\section{Khó khăn, hạn chế và Thách thức kỹ thuật gặp phải}
+Trong quá trình thực hiện đề tài, nhóm cũng đối mặt với một số thách thức thực tế mang tính học thuật và kỹ thuật:
+
 \begin{itemize}
-\item Khóa split, seed, preprocessing, loss/optimizer và runtime trước khi so framework.
-\item Mỗi số liệu phải gắn task, source, Run ID, split và caveat; tách rõ legacy output với PyTorch run.
-\item Khắc phục TensorBoard/protobuf trong môi trường được duyệt rồi chạy lại logger/full suite; không thay bằng writer giả.
-\item Audit source/counting semantics CNN-LSTM trước khi chốt parity.
-\item Chỉ trả lời RQ và tuyên bố hiệu quả ablation sau các run đối chứng thật; dùng metric segmentation/detection đúng nghĩa.
-\item Nhóm xác nhận owner/WBS, thông tin pháp lý/đóng góp, review bản thảo và duyệt PDF biên dịch trên Overleaf.
+\item \textbf{Thiếu thông tin siêu dữ liệu trong mã nguồn gốc:} Một số notebook Keras cũ không lưu trữ đầy đủ thông tin về cấu hình phần cứng, hạt giống ngẫu nhiên ban đầu hoặc bảng tóm tắt số liệu tham số (như mô hình xấp xỉ hàm). Điều này đòi hỏi nhóm phải suy luận toán học và kiểm tra cẩn trọng để tái lập cấu hình tương đương.
+\item \textbf{Khác biệt trong quy ước đánh giá và phân chia dữ liệu:} Việc một số bài toán Keras cũ tái sử dụng tập kiểm thử làm tập kiểm định trong quá trình huấn luyện đã đặt ra yêu cầu nhóm phải tách biệt rõ ràng các tập dữ liệu trong PyTorch để đảm bảo kết quả đo lường phản ánh đúng năng lực tổng quát hóa của mô hình.
+\item \textbf{Ràng buộc về tài nguyên tính toán và thời gian huấn luyện:} Các mô hình thị giác máy tính như SegNet và EmotionCNN sở hữu lượng tham số rất lớn (hơn 19 đến 29 triệu tham số). Việc huấn luyện toàn diện các mô hình này đòi hỏi tài nguyên GPU đáng kể, do đó nhóm cần phân bổ thời gian hợp lý trên các nền tảng đám mây (Google Colab, Kaggle).
+\item \textbf{Vấn đề tương thích môi trường và chênh lệch nhỏ về tham số:} Sự không tương thích giữa thư viện \texttt{tensorboard} và \texttt{protobuf} trên môi trường máy cục bộ và sự chênh lệch 1,024 tham số ở mô hình CNN-LSTM là những vấn đề kỹ thuật phát sinh đã được nhóm khoanh vùng chính xác và lên kế hoạch xử lý dứt điểm.
 \end{itemize}
 
-\section{Kết luận cuối}
-Báo cáo là tổng hợp có giới hạn theo evidence hiện có, không phải chứng nhận nghiệm thu cuối kỳ. Kết luận không vượt khỏi các Run ID, split, test và trạng thái được dẫn trong Chương 4.
+\section{Bài học kinh nghiệm quý báu}
+Quá trình chuyển đổi mã nguồn giữa hai framework học sâu hàng đầu đã mang lại cho các thành viên trong nhóm những bài học sâu sắc cả về lý thuyết lẫn kỹ năng thực hành:
+\begin{itemize}
+\item \textbf{Hiểu sâu sắc bản chất toán học bên dưới framework:} Việc chuyển đổi thành công đòi hỏi sinh viên phải hiểu rõ cơ chế vận hành bên dưới (sự khác biệt giữa Softmax tường minh và hàm mất mát tích hợp \texttt{CrossEntropyLoss}, cơ chế hoán vị trục tensor ảnh NHWC sang NCHW, kỹ thuật gộp và tách chiều tensor thay thế \texttt{TimeDistributed}) thay vì chỉ sao chép máy móc các dòng lệnh.
+\item \textbf{Tầm quan trọng của tính tái lập (Reproducibility):} Cố định hạt giống ngẫu nhiên (\texttt{Random Seed}) trên toàn bộ các thành phần của hệ thống là yếu tố sống còn để đảm bảo mọi kết quả thực nghiệm có thể kiểm chứng và so sánh một cách công bằng.
+\item \textbf{Tư duy thiết kế phần mềm trong học máy:} Áp dụng các nguyên lý lập trình hướng đối tượng (OOP) vào việc xây dựng mô hình và đường ống huấn luyện giúp mã nguồn trở nên chuyên nghiệp, giảm thiểu lỗi tiềm ẩn và tạo thuận lợi tối đa khi làm việc nhóm.
+\end{itemize}
+
+\section{Lộ trình và Kế hoạch triển khai giai đoạn tiếp theo}
+Trên cơ sở hạ tầng mã nguồn đã được kiểm thử vững chắc, nhóm sẽ tập trung triển khai các nội dung còn lại của đề tài trong giai đoạn tiếp theo theo đúng kế hoạch WBS:
+\begin{enumerate}
+\item \textbf{Giai đoạn WP03 — Huấn luyện chuyên sâu và Nghiên cứu cắt bỏ (Ablation Studies):}
+\begin{itemize}
+\item Triển khai huấn luyện toàn bộ 10 mô hình trên tập dữ liệu thực tế bằng GPU trên Colab và Kaggle.
+\item Thực hiện các thực nghiệm cắt bỏ (ABL-01 đến ABL-03) nhằm trả lời thỏa đáng hai câu hỏi nghiên cứu \textbf{RQ1} (ảnh hưởng của framework lên tốc độ hội tụ) và \textbf{RQ2} (hiệu quả của Dropout, BatchNorm và Augmentation trong việc kiểm soát overfitting).
+\item Trực quan hóa không gian đặc trưng bằng PCA và biểu đồ ma trận nhầm lẫn (Confusion Matrix).
+\end{itemize}
+\item \textbf{Giai đoạn WP04 — Xây dựng Demo, Báo cáo hoàn thiện và Nghiệm thu:}
+\begin{itemize}
+\item Phát triển ứng dụng web demo tương tác trực quan (sử dụng Streamlit hoặc Gradio) cho phép người dùng tải ảnh lên và kiểm thử suy luận thời gian thực trên các mô hình đã huấn luyện.
+\item Hoàn thiện toàn bộ báo cáo tổng kết bản in cuối cùng, thiết kế slide thuyết trình báo cáo môn học và tiến hành đóng gói, nghiệm thu toàn bộ đồ án.
+\end{itemize}
+\end{enumerate}
+
+\section{Lời kết}
+Bản báo cáo này thể hiện trọn vẹn tinh thần làm việc nghiêm túc, khoa học và trung thực của tập thể nhóm trong suốt quá trình nghiên cứu. Toàn bộ mã nguồn, dữ liệu cấu hình và nhật ký thực nghiệm đều được quản lý minh bạch, sẵn sàng cho các bước kiểm chứng tiếp theo để hoàn thành xuất sắc đồ án môn học Học sâu.

@@ -1,19 +1,71 @@
-\chapter{Cơ sở lý thuyết và hợp đồng chuyển đổi}
-\section{Vòng lặp, logits và hàm mất mát}
-PyTorch biểu diễn vòng lặp \texttt{zero\_grad()} $\rightarrow$ forward $\rightarrow$ loss $\rightarrow$ backward $\rightarrow$ optimizer step; validation đặt model ở chế độ \texttt{eval()} và chế độ không tính đạo hàm (\texttt{torch.no\_grad()}). Bài toán phân loại nhận logits thô và nhãn chỉ số lớp \texttt{torch.long} thông qua \texttt{nn.CrossEntropyLoss}; tuyệt đối không áp dụng hàm softmax trước loss. Việc số lượng tham số (parameter count) trùng khớp không đồng nghĩa với tính tương đương về đầu ra, gradient hay các chỉ số đánh giá (metrics) \cite{paszke2019pytorch}.
+\chapter{Cơ sở lý thuyết và nguyên lý chuyển đổi Keras sang PyTorch}
 
-\section{Layout ảnh, rotation và normalization}
-Dữ liệu ảnh trong Keras thường có định dạng NHWC $(N, H, W, C)$, trong khi các lớp tích chập PyTorch (\texttt{nn.Conv2d}) yêu cầu định dạng NCHW $(N, C, H, W)$:
+\section{Vòng lặp huấn luyện, Logits và Hàm mất mát phân loại}
+Một trong những điểm khác biệt căn bản nhất giữa TensorFlow/Keras và PyTorch nằm ở triết lý thiết kế và mức độ trừu tượng hóa của vòng lặp huấn luyện:
+\begin{itemize}
+\item \textbf{Trong Keras:} Quá trình huấn luyện thường được đóng gói trọn gói bên trong phương thức \texttt{model.fit()}. Các thao tác xóa gradient, lan truyền xuôi, tính toán hàm mất mát, lan truyền ngược và cập nhật trọng số đều được framework xử lý ngầm.
+\item \textbf{Trong PyTorch:} Vòng lặp huấn luyện được thể hiện tường minh và có cấu trúc rõ ràng:
+\begin{enumerate}[label=\alph*.]
+\item Xóa sạch gradient tích lũy từ bước trước: \texttt{optimizer.zero\_grad()}.
+\item Thực hiện lan truyền tiến qua mạng nơ-ron: \texttt{outputs = model(inputs)}.
+\item Tính toán sai số thông qua hàm mất mát: \texttt{loss = criterion(outputs, targets)}.
+\item Lan truyền ngược để tính toán đạo hàm riêng theo từng tham số: \texttt{loss.backward()}.
+\item Cập nhật giá trị trọng số theo thuật toán tối ưu hóa: \texttt{optimizer.step()}.
+\end{enumerate}
+\end{itemize}
+
+Trong các bài toán phân loại đa lớp, một lỗi kỹ thuật thường gặp khi chuyển đổi là việc xử lý hàm kích hoạt Softmax ở tầng đầu ra:
+\begin{itemize}
+\item Trong Keras, tầng cuối cùng thường áp dụng lớp \texttt{Dense(num\_classes, activation='softmax')} và đi kèm hàm mất mát \texttt{categorical\_crossentropy} (yêu cầu nhãn dạng One-Hot) hoặc \texttt{sparse\_categorical\_crossentropy} (nhãn dạng số nguyên).
+\item Trong PyTorch, lớp \texttt{nn.CrossEntropyLoss} đã tích hợp sẵn bên trong phép biến đổi \texttt{LogSoftmax} kết hợp với \texttt{NLLLoss} (Negative Log-Likelihood Loss) nhằm tối ưu hóa tính ổn định số học và tránh hiện tượng tràn số (underflow/overflow). Do đó, tầng cuối của mô hình PyTorch \textbf{chỉ xuất ra giá trị logits thô} (chưa qua Softmax), và nhãn mục tiêu truyền vào loss phải là tensor chỉ số lớp kiểu số nguyên dài (\texttt{torch.long}). Việc áp dụng thêm hàm Softmax trước \texttt{nn.CrossEntropyLoss} sẽ làm sai lệch bản chất hàm mất mát và khiến gradient bị triệt tiêu không mong muốn \cite{paszke2019pytorch}.
+\end{itemize}
+
+\section{Định dạng trục dữ liệu ảnh (NHWC vs. NCHW) và Tiền xử lý không gian}
+Định dạng lưu trữ tensor dữ liệu ảnh là khác biệt cấu trúc quan trọng nhất giữa hai framework:
+\begin{itemize}
+\item \textbf{TensorFlow/Keras} sử dụng định dạng \textbf{NHWC} (kênh màu nằm ở chiều cuối cùng): $\text{Shape} = (N, H, W, C)$ tương ứng với (Kích thước batch, Chiều cao, Chiều rộng, Số kênh màu).
+\item \textbf{PyTorch} sử dụng chuẩn định dạng \textbf{NCHW} (kênh màu đứng trước các chiều không gian): $\text{Shape} = (N, C, H, W)$. Các tầng tích chập \texttt{nn.Conv2d} và lấy mẫu \texttt{nn.MaxPool2d} của PyTorch đều thiết kế tối ưu hóa bộ nhớ và tính toán trên định dạng này.
+\end{itemize}
+
+Do đó, khi nạp dữ liệu từ các tệp NumPy hoặc ảnh thô, bắt buộc phải thực hiện phép hoán vị trục thông qua phương thức \texttt{permute}:
 \[
 x_{\text{NCHW}} = \operatorname{permute}(x_{\text{NHWC}}, 0, 3, 1, 2).\operatorname{contiguous}()
 \]
-Đối với tập dữ liệu WIKI Gender, phép biến đổi \texttt{np.rot90(k=3, axes=(1, 2))} được áp dụng trên tensor NHWC trước khi chuyển trục; phép xoay thay đổi vị trí không gian của pixel, trong khi phép hoán vị trục chỉ đổi thứ tự các chiều tensor. Dữ liệu MNIST legacy chia giá trị byte pixel cho 255. Báo cáo T0102/T0205 ghi nhận mô hình FER legacy không có phép chia `/255` tường minh; cấu hình \texttt{preserve} cần được bảo toàn theo đúng mã nguồn gốc. Mô hình phát hiện vật thể FCN chuẩn hóa dữ liệu ảnh RGB theo công thức $x / 127.5 - 1.0$.
+Trong đó, phương thức \texttt{contiguous()} đảm bảo các phần tử của tensor mới được sắp xếp liền mạch trong bộ nhớ vật lý, tránh lỗi gián đoạn khi thực hiện các phép toán tích chập tiếp theo.
 
-\section{CNN-LSTM và thay thế TimeDistributed}
-Đối với chuỗi ảnh đầu vào có kích thước $(B, T, C, H, W)$, tensor được gộp hai chiều đầu thành $(B \times T, C, H, W)$ để mạng CNN trích xuất đặc trưng cho từng khung hình độc lập; sau đó vector đặc trưng $(B \times T, F)$ được tái cấu trúc trở lại thành $(B, T, F)$ theo đúng thứ tự thời gian trước khi truyền vào tầng \texttt{nn.LSTM}. Đây là hợp đồng cấu trúc shape thay thế hoàn toàn lớp \texttt{TimeDistributed} của Keras, tuy nhiên không tự động đảm bảo tính tương đương về trọng số hay sai số dự đoán.
+\textbf{Xử lý đặc thù tập dữ liệu WIKI Gender:} Trong tệp mã nguồn Keras gốc, mảng ảnh khuôn mặt được lưu trữ với góc chụp nghiêng và tác giả gốc áp dụng phép xoay 270 độ bằng lệnh \texttt{np.rot90(k=3, axes=(1, 2))}. Nhóm lưu ý rằng phép xoay ma trận làm thay đổi vị trí không gian của các pixel ảnh, trong khi phép hoán vị trục \texttt{permute} chỉ đơn thuần thay đổi thứ tự các chiều trong tensor. Vì vậy, phép xoay \texttt{np.rot90} bắt buộc phải được giữ nguyên và thực hiện trên tensor NHWC trước khi tiến hành chuyển đổi sang NCHW.
 
-\section{SegNet và hàm mất mát phân vùng}
-Thao tác \texttt{UpSampling2D(size=(2, 2))} phương pháp nearest-neighbor trong Keras được ánh xạ sang \texttt{nn.Upsample(scale\_factor=2, mode='nearest')}. Mô hình SegNet trả về logits kích thước $(B, K, H, W)$; tensor nhãn phân vùng lớp $(B, H, W)$ kiểu \texttt{torch.long} được đưa trực tiếp vào \texttt{nn.CrossEntropyLoss}. Cần phân biệt rõ Pixel Accuracy với Mean IoU (mIoU); báo cáo giữ nguyên tên metric theo đúng mã nguồn legacy \cite{badrinarayanan2017segnet}.
+\textbf{Quy chuẩn chuẩn hóa giá trị pixel:}
+\begin{itemize}
+\item Đối với bài toán MNIST: Dữ liệu ảnh thô kiểu byte $[0, 255]$ được chia cho 255.0 để đưa về khoảng $[0.0, 1.0]$.
+\item Đối với bài toán FER2013: Mã nguồn Keras gốc không thực hiện phép chia 255 tường minh; nhóm bảo toàn chế độ tiền xử lý này để đảm bảo tính nhất quán với baseline.
+\item Đối với bài toán phát hiện vật thể FCN: Dữ liệu ảnh RGB được chuẩn hóa về khoảng đối xứng $[-1.0, 1.0]$ theo công thức $x / 127.5 - 1.0$.
+\end{itemize}
 
-\section{FCN score-map và ngưỡng phát hiện}
-Mô hình phát hiện vật thể FCN trong notebook legacy sử dụng hàm kích hoạt $\tanh$ ở đầu ra, nhãn mục tiêu trong khoảng $[-1, 1]$ và hàm mất mát MSE. Độ chính xác (Accuracy) của notebook legacy không đồng nghĩa với IoU hay mAP trong các bài toán Object Detection hiện đại; biểu đồ heatmap từ mô hình chưa huấn luyện chỉ có giá trị kiểm thử luồng lan truyền xuôi và kích thước tensor đầu ra, không chứng minh chất lượng phát hiện vật thể.
+\section{Thay thế lớp TimeDistributed trong mô hình kết hợp CNN + LSTM}
+Trong bài toán \texttt{MNISTCNNLSTM}, đầu vào là một chuỗi gồm $T = 8$ ảnh chữ số liên tiếp, tạo thành tensor 5 chiều có kích thước $(B, T, C, H, W)$. Ở bản gốc Keras, tác giả sử dụng lớp bọc \texttt{TimeDistributed(Conv2D(...))} để tự động áp dụng mạng tích chập lên từng khung hình độc lập.
+
+PyTorch không có lớp tương đương trực tiếp với \texttt{TimeDistributed}. Thay vào đó, nhóm áp dụng giải pháp gộp chiều tensor cực kỳ hiệu quả về mặt tính toán:
+\begin{enumerate}
+\item \textbf{Gộp chiều Batch và Time:} Sử dụng phương thức \texttt{view} hoặc \texttt{reshape} để biến đổi tensor đầu vào từ $(B, T, C, H, W)$ thành $((B \times T), C, H, W)$.
+\item \textbf{Trích xuất đặc trưng không gian:} Toàn bộ $(B \times T)$ khung hình được truyền đồng thời qua các tầng tích chập và tầng kết nối dày đặc của mạng CNN như một mẻ dữ liệu thông thường, thu được tensor đặc trưng kích thước $((B \times T), F)$.
+\item \textbf{Tách lại chiều chuỗi thời gian:} Vector đặc trưng được hoàn nguyên về kích thước $(B, T, F)$ theo đúng thứ tự thời gian ban đầu: \texttt{features.view(B, T, -1)}.
+\item \textbf{Mô hình hóa chuỗi:} Truyền tensor $(B, T, F)$ vào tầng hồi quy \texttt{nn.LSTM(batch\_first=True)} để nắm bắt sự phụ thuộc tuần tự giữa các chữ số và đưa ra kết quả dự đoán tổng ở bước thời gian cuối cùng.
+\end{enumerate}
+
+\section{Kiến trúc phân vùng ảnh SegNet và Phép lấy mẫu ngược}
+Mô hình SegNet giải quyết bài toán phân vùng ngữ nghĩa (Semantic Segmentation) bằng cấu trúc đối xứng Encoder -- Decoder:
+\begin{itemize}
+\item Nhánh Encoder gồm 5 khối tích chập kết hợp lấy mẫu giảm (\texttt{MaxPool2d}) để thu thập ngữ cảnh toàn cục của hình ảnh, giảm kích thước không gian đi 32 lần ($96\times 96 \rightarrow 3\times 3$).
+\item Nhánh Decoder gồm 5 khối tương ứng có nhiệm vụ khôi phục độ phân giải không gian ban đầu. Trong Keras, thao tác này sử dụng lớp \texttt{UpSampling2D(size=(2, 2))}. Sang PyTorch, nhóm chuyển đổi sang lớp \texttt{nn.Upsample(scale\_factor=2, mode='nearest')}.
+\item Tầng xuất dữ liệu của SegNet tạo ra tensor logits kích thước $(B, K, H, W)$ với $K = 7$ lớp phân vùng. Tensor nhãn phân vùng mặt nạ (ground-truth mask) kích thước $(B, H, W)$ kiểu số nguyên dài được đưa trực tiếp vào \texttt{nn.CrossEntropyLoss}.
+\end{itemize}
+Nhóm lưu ý rằng chỉ số đánh giá Pixel Accuracy phản ánh tỷ lệ pixel phân loại đúng trên toàn ảnh, trong khi Mean IoU (mIoU) đo lường mức độ chồng khớp của từng lớp đối tượng; việc hiểu đúng bản chất metric giúp nhóm đánh giá khách quan kết quả chuyển đổi \cite{badrinarayanan2017segnet}.
+
+\section{Kiến trúc phát hiện vật thể dạng lưới FCN và Bản đồ điểm}
+Mô hình \texttt{FCNObjectDetector} tiếp cận bài toán phát hiện vị trí phương tiện giao thông bằng cách chuyển đổi một mạng tích chập thông thường thành mạng tích chập toàn phần (Fully Convolutional Network):
+\begin{itemize}
+\item Thay vì sử dụng các tầng Dense kết nối toàn bộ ở đầu ra, mô hình sử dụng các lớp tích chập kích thước hạt nhân $8\times 8$ và $1\times 1$. Thiết kế này cho phép mô hình duy trì bản đồ không gian và xuất ra tensor dự đoán dạng lưới điểm (score-map) đại diện cho độ tin cậy và tọa độ bounding box tương đối của vật thể.
+\item Tầng ra của mô hình sử dụng hàm kích hoạt phi tuyến $\tanh$, đưa giá trị dự đoán về khoảng $[-1.0, 1.0]$. Nhãn mục tiêu tương ứng được chuẩn hóa trong khoảng $[-1, 1]$ và mô hình được tối ưu bằng hàm mất mát sai số bình phương trung bình (MSE Loss).
+\item Trong các bài toán Object Detection hiện đại, độ chính xác MSE ở giai đoạn này chỉ có ý nghĩa kiểm tra luồng lan truyền xuôi và hình dạng tensor đầu ra của mạng, chưa thể thay thế cho các chỉ số đánh giá độ bao phủ vật thể chuyên dụng như IoU hay mAP.
+\end{itemize}

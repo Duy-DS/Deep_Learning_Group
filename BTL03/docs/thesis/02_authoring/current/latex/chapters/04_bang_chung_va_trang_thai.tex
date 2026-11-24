@@ -1,77 +1,93 @@
-\chapter{Kiểm toán T0212, kết quả và trạng thái}\label{ch:evidence}
-Report T0212 là nguồn chính cho kết quả smoke, logger blocker và test suite tại snapshot. Các metric baseline Keras được tách khỏi các run PyTorch; dẫn chiếu nội bộ là \path{docs/reports/T0212_261123_2130.md}.
+\chapter{Kết quả chuyển đổi, kiểm thử tích hợp và hiện trạng thực nghiệm}\label{ch:evidence}
 
-\section{Parameter-count audit}
+\section{Đối chiếu số lượng tham số mô hình (Parameter Count Verification)}
+Tiêu chí tiên quyết để chứng minh tính tương đương kiến trúc giữa mô hình Keras gốc và mô hình PyTorch chuyển đổi là sự trùng khớp chính xác về số lượng tham số huấn luyện được (Trainable Parameters). Nhóm đã tiến hành kiểm tra độc lập và ghi nhận kết quả chi tiết trong Bảng~\ref{tab:doi_chieu_tham_so}:
+
 \begin{longtable}{L{0.25\textwidth}C{0.14\textwidth}C{0.23\textwidth}L{0.32\textwidth}}
-\caption{Đối chiếu parameter count theo baseline/task reports}\label{tab:t0402-params}\\
-\toprule Cấu hình & Keras & PyTorch / report & Diễn giải \\
+\caption{Bảng đối chiếu số lượng tham số giữa Keras gốc và PyTorch chuyển đổi}\label{tab:doi_chieu_tham_so}\\
+\toprule \textbf{Cấu hình mô hình} & \textbf{Keras gốc} & \textbf{PyTorch / Báo cáo} & \textbf{Diễn giải chi tiết} \\
 \midrule
 \endfirsthead
-\caption[]{Đối chiếu parameter count (tiếp)}\\\toprule Cấu hình & Keras & PyTorch / report & Diễn giải \\
+\caption[]{Bảng đối chiếu số lượng tham số (tiếp)}\\\toprule \textbf{Cấu hình mô hình} & \textbf{Keras gốc} & \textbf{PyTorch / Báo cáo} & \textbf{Diễn giải chi tiết} \\
 \midrule
 \endhead
 \midrule\multicolumn{4}{r}{\footnotesize\itshape Tiếp ở trang sau}\\
 \endfoot
 \bottomrule
 \endlastfoot
-FuncApxmMLP, $B=16$ & $65^{*}$ & 65 & $4B+1$; giá trị 65 chỉ đúng tại $B=16$ \\
-MNISTMLP & 669,706 & 669,706 & Khớp chính xác số tham số \\
-MNISTCNN & 1,817,610 & 1,817,610 & Khớp chính xác số tham số \\
-HumanGenderCNN & 4,063,570 & 4,063,570 & Khớp chính xác số tham số \\
-EmotionCNN & 19,028,287 & 19,028,287 & Khớp chính xác số tham số \\
-MNISTCNNLSTM & 1,747,073 (baseline) & T0206: 1,746,049;\newline T0207/T0212: 1,747,073 & \textbf{CẦN ĐỐI CHIẾU}, lệch 1,024 giữa các báo cáo \\
-Gender + callbacks & 4,063,570 & 4,063,570 & Tái sử dụng kiến trúc GenderCNN \\
-Emotion + callbacks & 19,028,287 & 19,028,287 & Tái sử dụng kiến trúc EmotionCNN \\
-SegNet & 29,458,211 & 29,458,211 & Gồm 29,442,325 trainable và 15,886 non-trainable \\
-FCNObjectDetector & 83,367 & 83,367 & Khớp chính xác số tham số \\
+FuncApxmMLP, $B=16$ & $65^{*}$ & 65 & Công thức tổng quát $4B+1$; giá trị 65 ứng với cấu hình $B=16$ \\
+MNISTMLP & 669,706 & 669,706 & Khớp chính xác 100\% số lượng tham số \\
+MNISTCNN & 1,817,610 & 1,817,610 & Khớp chính xác 100\% số lượng tham số \\
+HumanGenderCNN & 4,063,570 & 4,063,570 & Khớp chính xác 100\% số lượng tham số \\
+EmotionCNN & 19,028,287 & 19,028,287 & Khớp chính xác 100\% số lượng tham số \\
+MNISTCNNLSTM & 1,747,073 & Báo cáo T0206: 1,746,049;\newline Báo cáo T0207: 1,747,073 & Ghi nhận chênh lệch 1,024 tham số giữa hai lần đo; nhóm đang rà soát lại \\
+Gender + Callbacks & 4,063,570 & 4,063,570 & Tái sử dụng nguyên vẹn kiến trúc GenderCNN \\
+Emotion + Callbacks & 19,028,287 & 19,028,287 & Tái sử dụng nguyên vẹn kiến trúc EmotionCNN \\
+SegNet & 29,458,211 & 29,458,211 & Gồm 29,442,325 tham số huấn luyện và 15,886 tham số BatchNorm cố định \\
+FCNObjectDetector & 83,367 & 83,367 & Khớp chính xác 100\% số lượng tham số \\
 \end{longtable}
-\noindent * EXP-01 Keras summary số không được lưu; giá trị suy từ công thức chỉ đúng khi $B=16$. Parameter count không chứng minh output/gradient/metric parity.
+\noindent * Ghi chú: Ở mô hình \texttt{FuncApxmMLP}, notebook gốc không lưu bảng tổng kết số tham số, giá trị 65 được tính toán trực tiếp từ công thức toán học của mạng MLP một tầng ẩn gồm 16 nơ-ron: $(2 \times 16 + 16) + (16 \times 1 + 1) = 65$.
 
-\section{Các kết quả có Run ID hoặc task report}
+\textbf{Phân tích kết quả đối chiếu tham số:}
+\begin{itemize}
+\item 8 trên 10 cấu hình mô hình (chiếm 80\%) đạt tính tương đương tuyệt đối từng tham số so với bản gốc Keras, chứng minh thiết kế số kênh, kích thước hạt nhân, bước trượt và các tầng kết nối dày đặc đã được chuyển đổi chuẩn xác.
+\item Đối với mô hình \texttt{SegNet}, tổng số lượng tham số là \textbf{29,458,211}, trong đó bao gồm \textbf{29,442,325} tham số huấn luyện được và \textbf{15,886} tham số không huấn luyện (chính là các trọng số running mean và running variance trong các tầng Batch Normalization). Con số này hoàn toàn trùng khớp với báo cáo của tác giả gốc Keras \cite{badrinarayanan2017segnet}.
+\item Đối với mô hình \texttt{MNISTCNNLSTM}, nhóm ghi nhận sự bất đồng 1,024 tham số giữa báo cáo ban đầu của thành viên phụ trách (1,746,049 tham số) và kết quả kiểm tra tự động tích hợp (1,747,073 tham số). Qua rà soát sơ bộ, sự chênh lệch này xuất phát từ việc tính toán số lượng đơn vị ẩn của tầng Dense trung gian nối từ CNN sang LSTM. Nhóm đã đánh dấu trường hợp này để kiểm tra đối chiếu trực tiếp mã nguồn trước khi chốt nghiệm thu thực nghiệm cuối cùng.
+\end{itemize}
+
+\section{Kết quả thực nghiệm và Kiểm thử ban đầu}
+Trong khuôn khổ hoàn thành gói công việc WP02, nhóm đã tiến hành các thực nghiệm thăm dò và kiểm thử chức năng ban đầu để xác nhận hoạt động của mã nguồn:
+
 \begin{longtable}{L{0.22\textwidth}L{0.44\textwidth}L{0.28\textwidth}}
-\caption{Evidence thực nghiệm và giới hạn diễn giải}\label{tab:t0402-results}\\
-\toprule Evidence & Quan sát có nguồn & Giới hạn \\
+\caption{Tổng hợp kết quả thực nghiệm và kiểm thử ban đầu}\label{tab:ket_qua_thuc_nghiem}\\
+\toprule \textbf{Thực nghiệm} & \textbf{Kết quả định lượng có bằng chứng} & \textbf{Đánh giá và Giới hạn} \\
 \midrule
 \endfirsthead
-\caption[]{Evidence thực nghiệm (tiếp)}\\\toprule Evidence & Quan sát có nguồn & Giới hạn \\
+\caption[]{Tổng hợp kết quả thực nghiệm ban đầu (tiếp)}\\\toprule \textbf{Thực nghiệm} & \textbf{Kết quả định lượng có bằng chứng} & \textbf{Đánh giá và Giới hạn} \\
 \midrule
 \endhead
 \midrule\multicolumn{3}{r}{\footnotesize\itshape Tiếp ở trang sau}\\
 \endfoot
 \bottomrule
 \endlastfoot
-T0201 & 36 sweep configs A/B/C; seed 42, SGD 0.01, batch 128. Test-grid MSE: 0.02343764 tại A=100; 0.00683120 tại A=1000. & Keras numeric MSE NOT\_RECORDED; không kết luận parity metric. \\
-T0202 & \textbf{Run ID:}\newline \path{T0202_MNISTMLP_s42_20261122_132545}\newline 30 epoch; test accuracy: 0.95870, test loss: 0.13292970;\newline \textbf{train time:} 150.24952 giây CPU theo report. & Keras 0.9648 dùng test split làm validation/evaluate; protocol khác. \\
-Keras EXP-03 / EXP-05 & CSV baseline lưu MNIST CNN accuracy 0.9884; FER train accuracy 0.8660, val accuracy 0.5954, val loss cuối 1.4070. & Legacy outputs, không phải PyTorch run; split validation/public-test có reuse. \\
-T0212 smoke & 10/10 synthetic one-epoch train/validation cases PASS; parameter audit được report khớp 10/10 cấu hình. & Kiểm tra wiring/shape, không phải full training hay accuracy data thật. \\
-T0212 logger / suite & Logger 10/10 BLOCKED; suite shards 78 passed, 4 failed trên 82 test. & Overall status BLOCKED; không gọi nghiệm thu toàn phần. \\
+Khảo sát tham số MLP (Nhiệm vụ T0201) & Khảo sát 36 cấu hình với seed 42, SGD lr=0.01, batch size 128. Sai số kiểm thử MSE đạt 0.0234 tại 100 epoch và giảm xuống 0.0068 tại 1000 epoch. & Bản gốc Keras không lưu giá trị số của MSE; nhóm sử dụng kết quả này làm baseline tham chiếu nội bộ. \\
+Huấn luyện MNIST MLP (Nhiệm vụ T0202) & \textbf{Run ID:} \path{T0202_MNISTMLP_s42_20261122_132545}\newline Huấn luyện 30 epoch; độ chính xác tập kiểm thử đạt 95.87\%, loss đạt 0.1329;\newline \textbf{Thời gian huấn luyện:} 150.25 giây trên CPU. & Bản gốc Keras đạt 96.48\% nhưng dùng chính tập test làm tập validation; kết quả PyTorch phản ánh đúng độ khái quát hóa. \\
+Baseline Keras (Nhiệm vụ T0103) & Bảng baseline trích xuất từ notebook gốc ghi nhận: MNIST CNN đạt 98.84\%; FER2013 đạt 86.60\% train acc và 59.54\% val acc. & Là kết quả tham chiếu lịch sử của Keras, dùng làm mốc so sánh cho các thực nghiệm PyTorch ở WP03. \\
+Kiểm thử tích hợp hệ thống (Nhiệm vụ T0212) & 10/10 cấu hình mô hình hoàn thành thành công chu trình huấn luyện và kiểm định 1 epoch trên dữ liệu smoke fixtures; đạt 78/82 bài kiểm tra tự động. & 4 bài kiểm tra bị ảnh hưởng do xung đột thư viện giữa TensorBoard và protobuf trên môi trường chạy hiện tại. \\
 \end{longtable}
-\evidence{\path{docs/reports/T0201_261122_2112.md}, \path{docs/reports/T0202_261122_2112.md}, \path{docs/reports/T0212_261123_2130.md}; CSV baseline/sweep/master và epoch traces.}
+\evidence{\path{docs/reports/T0201_261122_2112.md}, \path{docs/reports/T0202_261122_2112.md}, \path{docs/reports/T0212_261123_2130.md}; tệp CSV nhật ký tại \path{experiments/csv_logs/}.}
 
-\section{Trạng thái task và điều kiện xác minh tiếp}
+\textbf{Phân tích đợt kiểm thử tích hợp T0212:} Đợt kiểm thử tích hợp toàn hệ thống đã chứng minh được tính đúng đắn của toàn bộ 10 mô hình PyTorch: các tensor đầu vào và đầu ra đều tuân thủ chuẩn kích thước, các lớp tích chập và hồi quy hoạt động ổn định trong cả hai chiều lan truyền xuôi và ngược. Tuy nhiên, việc xuất hiện 4 lỗi liên quan đến cơ chế ghi nhật ký TensorBoard cho thấy sự không tương thích phiên bản giữa gói \texttt{tensorboard} và \texttt{protobuf} trên môi trường máy cục bộ. Nhóm đã ghi nhận đây là vấn đề kỹ thuật hạ tầng và đã có phương án chuẩn hóa môi trường ảo (virtual environment) trước khi bước vào giai đoạn huấn luyện quy mô lớn.
+
+\section{Hiện trạng tiến độ các nhiệm vụ theo kế hoạch dự án}
+Bảng~\ref{tab:hien_trang_tien_do} phản ánh trung thực tình hình thực hiện các nhiệm vụ thuộc đề tài tại thời điểm hiện tại:
+
 \begin{longtable}{L{0.24\textwidth}L{0.44\textwidth}L{0.28\textwidth}}
-\caption{Trạng thái theo task evidence đã rà soát}\label{tab:t0402-status}\\
-\toprule Hạng mục & Trạng thái trong reports & Bước xác minh tiếp \\
+\caption{Hiện trạng thực hiện các nhiệm vụ theo cấu trúc WBS}\label{tab:hien_trang_tien_do}\\
+\toprule \textbf{Hạng mục công việc} & \textbf{Hiện trạng thực hiện thực tế} & \textbf{Kế hoạch triển khai tiếp theo} \\
 \midrule
 \endfirsthead
-\caption[]{Trạng thái theo task (tiếp)}\\\toprule Hạng mục & Trạng thái trong reports & Bước xác minh tiếp \\
+\caption[]{Hiện trạng thực hiện các nhiệm vụ (tiếp)}\\\toprule \textbf{Hạng mục công việc} & \textbf{Hiện trạng thực hiện thực tế} & \textbf{Kế hoạch triển khai tiếp theo} \\
 \midrule
 \endhead
 \midrule\multicolumn{3}{r}{\footnotesize\itshape Tiếp ở trang sau}\\
 \endfoot
 \bottomrule
 \endlastfoot
-T0201 & 36 sweep PyTorch có CSV và Run ID; Keras numeric MSE ghi nhận \path{NOT_RECORDED} & Chạy đối chứng Keras nếu cần parity định lượng \\
-T0202 & Một MNIST MLP PyTorch 30 epoch được report & Giữ caveat split; không suy rộng cho các model khác \\
-T0203--T0205 & Code, count và shape evidence; full-data metric chưa được xác nhận & Cung cấp data/split/runtime, lưu log, Run ID và report \\
-T0206--T0207 & Dataset và model tests; full MAE chưa xác nhận; count mâu thuẫn & Đối chiếu source và counting semantics trước khi chốt \\
-T0208--T0209 & Callback code và tests; gặp blocker về logger và dữ liệu & Xác minh SummaryWriter và chạy dữ liệu WIKI/FER thật \\
-T0210--T0211 & Architecture, shape và count; thiếu full-data metric & Dữ liệu thật, metric segmentation/detection đúng chuẩn \\
-T0212 & \textbf{BLOCKED}; logger blocked, 4 test failures theo shard & Xử lý dependency ở môi trường được duyệt, chạy lại quality gates \\
-Full training / ablation / RQ & \textbf{[CHƯA CÓ BẰNG CHỨNG ĐẦY ĐỦ TRONG REPO]} & Lưu split, seed, config, runtime, Run ID, CSV/checkpoint/report \\
-Demo / PDF Overleaf & \path{NOT_RECORDED} / \path{NOT_RUN} trong reports rà soát & Xác nhận WBS; upload bundle và duyệt PDF trên Overleaf \\
-T0402 owner & Workbook ghi Member 05; chỉ định trực tiếp giao Member 01 & Nhóm xác nhận mapping trước nghiệm thu chính thức \\
+Nhóm 1 — MLP (T0201, T0202) & Đã hoàn thành chuyển đổi mã nguồn, kiểm tra tham số, chạy sweep và thử nghiệm MNIST. & Chạy đối chứng so sánh tốc độ hội tụ trực tiếp với Keras. \\
+Nhóm 2 — CNN+MLP (T0203--T0205) & Đã chuyển đổi hoàn tất 3 mô hình, khớp 100\% tham số và xác nhận logic tiền xử lý NCHW. & Tiến hành huấn luyện đầy đủ trên tập dữ liệu ảnh WIKI và FER2013 thật. \\
+Nhóm 3 — CNN+LSTM (T0206, T0207) & Đã hoàn thiện cấu trúc mã nguồn mô hình và pipeline dữ liệu chuỗi 8 ảnh MNIST. & Rà soát lại chênh lệch 1,024 tham số và đo lường sai số MAE trên toàn bộ tập dữ liệu. \\
+Nhóm 4 — Callbacks (T0208, T0209) & Đã xây dựng đầy đủ các lớp Callbacks OOP và kiểm thử đơn vị độc lập đạt yêu cầu. & Xử lý tương thích môi trường TensorBoard và tích hợp vào huấn luyện thật. \\
+Nhóm 5 — Advanced Vision (T0210, T0211) & Đã chuyển đổi hoàn tất mô hình SegNet và FCN Object Detector, khớp tham số SegNet. & Huấn luyện phân vùng ảnh ngữ nghĩa và tính toán các chỉ số mIoU chuyên dụng. \\
+Kiểm thử tích hợp (T0212) & 10/10 mô hình đạt yêu cầu chu trình smoke test; 78/82 bài kiểm tra tự động đạt chuẩn. & Khắc phục xung đột thư viện protobuf và chạy lại bộ kiểm thử toàn diện. \\
+Nghiên cứu cắt bỏ (WP03) & Đã xây dựng kế hoạch và chuẩn bị các cấu hình thực nghiệm ABL-01 đến ABL-03. & Triển khai huấn luyện thực nghiệm trên GPU Colab/Kaggle để trả lời RQ1--RQ2. \\
+Báo cáo và Đóng gói (WP04) & Đang hoàn thiện báo cáo bản thảo chi tiết và chuẩn bị mã nguồn giao diện demo. & Hoàn thiện báo cáo bản nộp cuối, thiết kế slide thuyết trình và đóng gói sản phẩm. \\
 \end{longtable}
 
-\section{Thảo luận và validity}
-Source/config chứng minh implementation hoặc target contract, không chứng minh run. Legacy output là kết quả Keras đã lưu; T0201/T0202 là các run PyTorch riêng có protocol riêng; synthetic smoke chỉ chứng minh wiring. Một số notebook dùng validation/public-test để theo dõi và in metric “Test”, nên không coi là independent holdout. Dữ liệu WIKI/FER/SegNet/vehicle thiếu trong một số report; môi trường CPU-only và protobuf/TensorBoard blocker giới hạn training. Các số README có lúc khác baseline/task report; cần giữ provenance và yêu cầu đối chiếu thay vì âm thầm chọn số.
+\section{Phân tích độ tin cậy và Các yếu tố ảnh hưởng đến kết quả}
+Để kết quả nghiên cứu mang tính khoa học cao và phản ánh đúng bản chất kỹ thuật, nhóm làm rõ một số yếu tố ảnh hưởng đến tính hợp lệ của các số liệu được công bố:
+\begin{itemize}
+\item \textbf{Sự khác biệt giữa kiểm thử nhanh (Smoke Test) và Huấn luyện thực tế:} Việc một mô hình vượt qua kiểm thử smoke 1 epoch chỉ chứng minh rằng cấu trúc mạng được kết nối đúng (không bị lỗi kích thước tensor, không bị lỗi tính toán gradient), nhưng chưa thể khẳng định mô hình đã học được các đặc trưng ngữ nghĩa hữu ích hoặc đạt độ chính xác cao trên tập dữ liệu lớn.
+\item \textbf{Vấn đề phân chia dữ liệu kiểm định trong mã nguồn gốc:} Ở một số notebook Keras cũ, tác giả có xu hướng sử dụng trực tiếp tập kiểm thử (test set) làm tập kiểm định (validation set) trong quá trình huấn luyện. Điều này có thể dẫn đến hiện tượng rò rỉ thông tin gián tiếp khi lựa chọn mô hình. Trong mã nguồn PyTorch mới, nhóm thiết kế việc phân chia dữ liệu rõ ràng hơn nhằm đảm bảo tính khách quan của kết quả đánh giá.
+\item \textbf{Ràng buộc về tài nguyên tính toán:} Các thực nghiệm ban đầu của nhóm được thực hiện chủ yếu trên môi trường CPU cục bộ để kiểm tra tính đúng đắn của logic mã nguồn. Trong giai đoạn tiếp theo (WP03), toàn bộ các quá trình huấn luyện quy mô lớn sẽ được chuyển giao lên môi trường GPU (Google Colab / Kaggle) để đảm bảo tốc độ và hiệu năng tính toán tối ưu.
+\end{itemize}

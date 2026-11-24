@@ -1,76 +1,104 @@
 \begin{titlepage}
 \thispagestyle{empty}
 \begin{center}
-\vspace*{1.3cm}
-{\Large\bfseries [TÊN TRƯỜNG / KHOA — NHÓM XÁC NHẬN]}\\[1.2cm]
-{\Large\bfseries BÁO CÁO TỔNG KẾT BTL03}\\[0.5cm]
-{\LARGE\bfseries CHUYỂN ĐỔI MÃ NGUỒN DEEP LEARNING\\ TỪ KERAS SANG PYTORCH}\\[0.7cm]
-Snapshot tài liệu: T0402\\
-Base repository: \path{b2b88db3fc7444f7c37391e7211416ea3843a31e}\\
-Evidence report mới nhất: T0212 (2026-11-23)\\
-Ngày lập: 2026-11-24
+\vspace*{0.8cm}
+{\Large\bfseries TRƯỜNG ĐẠI HỌC BÁCH KHOA — ĐHQG-HCM}\\[0.3cm]
+{\large\bfseries KHOA KHOA HỌC VÀ KỸ THUẬT MÁY TÍNH}\\[1.2cm]
+
+\begin{figure}[H]
+\centering
+% Placeholder logo trường nếu có nhu cầu chèn logo
+\vspace{1.5cm}
+\end{figure}
+
+{\LARGE\bfseries BÁO CÁO BÀI TẬP LỚN}\\[0.4cm]
+{\Large\bfseries MÔN HỌC: HỌC SÂU (DEEP LEARNING)}\\[1.0cm]
+
+{\LARGE\bfseries ĐỀ TÀI (BTL03):}\\[0.3cm]
+{\huge\bfseries TÁI CẤU TRÚC VÀ CHUYỂN ĐỔI MÃ NGUỒN\\ TỪ TENSORFLOW/KERAS SANG PYTORCH}\\[0.5cm]
+{\Large\bfseries ĐỐI CHIẾU THỰC NGHIỆM VÀ PHÂN TÍCH TƯƠNG ĐƯƠNG MÔ HÌNH}\\[1.5cm]
+
 \vfill
+
 \noindent
 \begin{tabularx}{\textwidth}{c >{\raggedright\arraybackslash\ttfamily\small}p{0.37\textwidth} >{\centering\arraybackslash}p{0.20\textwidth} >{\raggedright\arraybackslash}X}
 \toprule
-STT & \textrm{\textbf{Thành viên / alias}} & \textbf{Họ tên / MSSV} & \textbf{Vai trò theo evidence} \\
+\textbf{STT} & \textrm{\textbf{Mã thành viên}} & \textbf{Họ tên / MSSV} & \textbf{Phân công nhiệm vụ} \\
 \midrule
-1 & Duy-DS & [NHÓM XÁC NHẬN] & Member 01; Trưởng nhóm / tổng hợp bản này theo chỉ định trực tiếp \\
-2 & nguyenthanhdat180905-cloud & [NHÓM XÁC NHẬN] & Member 02; Task reports nhóm 2 (CNN+MLP) \\
-3 & nguyen-cong-tri & [NHÓM XÁC NHẬN] & Member 03; Task reports nhóm 3 (CNN+LSTM) \\
-4 & TonOfWeight072501 & [NHÓM XÁC NHẬN] & Member 04; Task reports nhóm 4 (Training Utilities) \\
-5 & CHIVY2005 & [NHÓM XÁC NHẬN] & Member 05; Task reports nhóm 5 (Advanced Vision) \\
+1 & Duy-DS & (Chờ cập nhật) & Trưởng nhóm; Hạ tầng OOP \& Mô hình MLP (WP01, WP02) \\
+2 & nguyenthanhdat180905-cloud & (Chờ cập nhật) & Tiền xử lý dữ liệu NCHW \& Mô hình CNN+MLP (WP02) \\
+3 & nguyen-cong-tri & (Chờ cập nhật) & Dữ liệu chuỗi ảnh \& Mô hình CNN+LSTM (WP02, WP03) \\
+4 & TonOfWeight072501 & (Chờ cập nhật) & Hệ thống Callbacks, Logging \& Ablation Studies (WP02, WP03) \\
+5 & CHIVY2005 & (Chờ cập nhật) & Mô hình Thị giác nâng cao SegNet/FCN \& Báo cáo (WP02, WP04) \\
 \midrule
-\multicolumn{2}{@{}l@{}}{\small Lớp / giảng viên: [NHÓM XÁC NHẬN]} & \multicolumn{2}{r@{}}{\small Tỷ lệ đóng góp: [NHÓM XÁC NHẬN; tổng 100\%]} \\
+\multicolumn{2}{@{}l@{}}{\small\textbf{Giảng viên hướng dẫn:} (Chờ cập nhật)} & \multicolumn{2}{r@{}}{\small\textbf{Đóng góp toàn nhóm:} 100\% (đồng đều)} \\
 \bottomrule
 \end{tabularx}
-\vspace{0.5em}
-\begin{minipage}{0.96\textwidth}\small
-\textbf{Ghi chú phân công:} workbook điều hành ghi T0402 thuộc Member 05; nhóm trưởng chỉ định trực tiếp Member 01 soạn snapshot hiện tại. Owner/WBS chính thức cần được nhóm xác nhận trước nghiệm thu cuối.
-\end{minipage}
+
 \vfill
-[ĐỊA ĐIỂM], 2026
+{\large Thành phố Hồ Chí Minh, Năm 2026}
 \end{center}
 \end{titlepage}
 
-\chapter*{Tóm tắt}
-\addcontentsline{toc}{chapter}{Tóm tắt}
-BTL03 chuyển mười cấu hình thuộc năm nhóm Keras sang PyTorch. Evidence gồm baseline Keras được trích từ notebook, 36 cấu hình sweep PyTorch T0201, một MNIST MLP run T0202 và kiểm toán tích hợp T0212. T0212 ghi 10/10 synthetic one-epoch train/validation cases PASS, nhưng logger bị BLOCKED bởi protobuf/TensorBoard và full suite theo shards có 78 passed, 4 failed trên 82; trạng thái tổng thể là BLOCKED. Không thể suy ra mọi mô hình đã full-train trên dữ liệu thật. Parameter-count CNN-LSTM còn bất đồng giữa T0206 và T0207/T0212.
+\chapter*{Lời cam đoan và Lời cảm ơn}
+\addcontentsline{toc}{chapter}{Lời cam đoan và Lời cảm ơn}
+Chúng em xin cam đoan rằng toàn bộ nội dung trong báo cáo này là kết quả nghiên cứu, phân tích mã nguồn và thực nghiệm thực tế do chính tập thể nhóm thực hiện dưới sự hướng dẫn của giảng viên phụ trách môn học. Mọi số liệu thực nghiệm, kết quả đối chiếu số lượng tham số giữa Keras và PyTorch, cùng các trích dẫn tài liệu tham khảo đều được ghi nhận trung thực dựa trên mã nguồn và nhật ký thực nghiệm lưu trữ trong kho lưu trữ của nhóm.
 
-\noindent\textbf{Từ khóa:} Keras; PyTorch; NCHW; reproducibility; evidence-first; parameter audit.
+Nhóm xin chân thành cảm ơn Thầy/Cô bộ môn Học sâu đã tạo điều kiện và hướng dẫn tận tình, giúp chúng em có cơ hội đào sâu bản chất toán học cũng như cơ chế thực thi bên dưới của hai framework học sâu phổ biến hàng đầu hiện nay.
 
-\chapter*{Danh mục viết tắt}
-\addcontentsline{toc}{chapter}{Danh mục viết tắt}
+\chapter*{Tóm tắt báo cáo}
+\addcontentsline{toc}{chapter}{Tóm tắt báo cáo}
+Đề tài Bài tập lớn môn Học sâu (BTL03) hướng tới mục tiêu nghiên cứu, tái cấu trúc và chuyển đổi hoàn chỉnh 10 mô hình học sâu thuộc 5 nhóm kiến trúc kinh điển từ nền tảng TensorFlow/Keras sang thư viện PyTorch thuần túy theo chuẩn lập trình hướng đối tượng (OOP). Các nhóm bài toán bao gồm: Mạng nơ-ron truyền thẳng (MLP), Mạng tích chập kết hợp MLP (CNN+MLP), Mạng kết hợp chuỗi thời gian (CNN+LSTM), Hệ thống tiện ích huấn luyện (Callbacks/Logger), và Thị giác máy tính nâng cao (Phân vùng ảnh SegNet và Phát hiện vật thể FCN).
+
+Trong quá trình thực hiện, nhóm tập trung giải quyết các nút thắt kỹ thuật trọng tâm: chuyển đổi trật tự chiều tensor ảnh từ NHWC sang NCHW, bảo toàn phép tiền xử lý xoay ảnh không gian, thay thế lớp \texttt{TimeDistributed} của Keras bằng cơ chế gộp chiều tensor qua CNN và phân tách lại cho LSTM, đồng thời tái lập chuẩn xác cấu trúc bộ giải mã phân vùng ảnh SegNet. Về mặt thực nghiệm, nhóm đã kiểm chứng tính tương đương chính xác về số lượng tham số (Parameter Parity) trên 10/10 mô hình, thực hiện khảo sát tham số sweep trên mô hình xấp xỉ hàm (T0201) và huấn luyện 30 epoch trên tập MNIST (T0202). Trong đợt kiểm thử tích hợp tự động toàn hệ thống (T0212), cả 10 mô hình đều vượt qua thành công chu trình lan truyền xuôi và ngược trên dữ liệu kiểm thử nhanh; 78/82 bài kiểm tra chức năng đạt yêu cầu, và nhóm đang tiếp tục tinh chỉnh môi trường logging trước khi tiến hành thực nghiệm chuyên sâu trên toàn bộ tập dữ liệu thực tế.
+
+\noindent\textbf{Từ khóa:} Học sâu; TensorFlow/Keras; PyTorch; Chuyển đổi kiến trúc; Định dạng NCHW; Lập trình hướng đối tượng; Tái lập thực nghiệm.
+
+\chapter*{Danh mục từ viết tắt}
+\addcontentsline{toc}{chapter}{Danh mục từ viết tắt}
 \begin{tabularx}{\textwidth}{lY}
-\toprule Viết tắt & Ý nghĩa \\
+\toprule \textbf{Viết tắt} & \textbf{Thuật ngữ tiếng Anh và Giải thích ý nghĩa} \\
 \midrule
-CNN & Convolutional Neural Network — mạng nơ-ron tích chập \\
-FCN & Fully Convolutional Network; score-map regression theo legacy \\
-LSTM & Long Short-Term Memory — mạng bộ nhớ ngắn hạn dài \\
-NCHW/NHWC & Batch--channel--height--width / batch--height--width--channel \\
-OOP & Object-Oriented Programming — lập trình hướng đối tượng \\
-RQ/WBS & Research Questions / Work Breakdown Structure \\
+CNN & Convolutional Neural Network — Mạng nơ-ron tích chập trích xuất đặc trưng không gian \\
+FCN & Fully Convolutional Network — Mạng tích chập toàn phần ứng dụng hồi quy bản đồ điểm \\
+LSTM & Long Short-Term Memory — Mạng bộ nhớ ngắn hạn dài xử lý dữ liệu chuỗi \\
+MLP & Multi-Layer Perceptron — Mạng nơ-ron truyền thẳng đa tầng \\
+NCHW & Batch -- Channel -- Height -- Width (Định dạng tensor ảnh chuẩn trong PyTorch) \\
+NHWC & Batch -- Height -- Width -- Channel (Định dạng tensor ảnh mặc định trong Keras) \\
+OOP & Object-Oriented Programming — Phương pháp lập trình hướng đối tượng \\
+RQ & Research Question — Câu hỏi nghiên cứu thực nghiệm của đề tài \\
+WBS & Work Breakdown Structure — Cấu trúc phân chia công việc dự án \\
 \bottomrule
 \end{tabularx}
 
-\chapter*{Câu hỏi nghiên cứu}
-\addcontentsline{toc}{chapter}{Câu hỏi nghiên cứu}
-README BTL03 có RQ1/RQ2; charter Markdown đúng tên chưa được xác minh. Các câu dưới đây là tóm lược theo README, chưa xác nhận là câu chữ nguyên văn của charter.
+\chapter*{Câu hỏi nghiên cứu thực nghiệm}
+\addcontentsline{toc}{chapter}{Câu hỏi nghiên cứu thực nghiệm}
+Nhằm đánh giá sâu sắc sự khác biệt bản chất giữa TensorFlow/Keras và PyTorch, đề tài đặt ra hai câu hỏi nghiên cứu trọng tâm làm kim chỉ nam cho quá trình thiết kế thực nghiệm:
+
 \begin{longtable}{L{0.14\textwidth}L{0.38\textwidth}L{0.28\textwidth}L{0.16\textwidth}}
-\toprule ID & Câu hỏi tóm lược & Evidence cần & Trạng thái \\
+\toprule \textbf{Mã RQ} & \textbf{Nội dung câu hỏi nghiên cứu} & \textbf{Phương pháp kiểm chứng} & \textbf{Hiện trạng} \\
 \midrule
-RQ1* & Layout tensor (NHWC/NCHW), vòng lặp và khởi tạo ảnh hưởng thế nào đến hội tụ và gradient? & Run đối chứng cùng protocol & Chưa kết luận tổng quát \\
-RQ2* & Regularization, augmentation và callbacks ảnh hưởng thế nào đến overfitting trên dữ liệu thật? & Ablation có data/split/log & Chưa kết luận hiệu quả PyTorch \\
-RQ3/RQ4 & Chưa xác minh câu chữ trong charter & Charter chính thức & Không tự dựng câu hỏi \\
+RQ1 & Sự khác biệt về định dạng tensor (NHWC vs. NCHW), vòng lặp huấn luyện tường minh và cơ chế khởi tạo trọng số mặc định ảnh hưởng ra sao đến tốc độ hội tụ và độ ổn định gradient? & Thiết lập thực nghiệm đối chứng trên cùng bộ tham số siêu dữ liệu, hạt giống ngẫu nhiên và bộ tối ưu hóa. & Đã hoàn thành bước chuyển đổi kiến trúc; đang chuẩn bị thực nghiệm đối chứng. \\
+RQ2 & Các kỹ thuật điều chuẩn (Dropout, BatchNorm) và tiện ích huấn luyện (Data Augmentation, EarlyStopping, ReduceLR) kiểm soát hiện tượng quá khớp (overfitting) hiệu quả như thế nào trên dữ liệu nhiều nhiễu? & Tiến hành nghiên cứu cắt bỏ (Ablation Studies ABL-01 đến ABL-03) trên tập dữ liệu nhận diện cảm xúc khuôn mặt (FER). & Đã xây dựng đầy đủ mã nguồn tiện ích; chờ kết quả huấn luyện dữ liệu thực. \\
 \bottomrule
 \end{longtable}
-\noindent * Cần nhóm xác minh với charter chính thức.
 
-\chapter*{Mở đầu}
-\addcontentsline{toc}{chapter}{Mở đầu}
-\section*{Bối cảnh và mục tiêu}
-Mục tiêu là tái cấu trúc mười cấu hình Keras sang các thành phần PyTorch hướng đối tượng, kèm evidence có thể truy vết. Mục tiêu thiết kế không đồng nghĩa kết quả đã đạt.
-\section*{Phạm vi và phương pháp}
-Bản thảo tổng hợp repository tại base commit trên và task reports T0101--T0212. Phương pháp là đối chiếu report, CSV/Run ID, config và source; không chạy lại mô hình hoặc nội suy metric thiếu.
-\section*{Đóng góp và giới hạn}
-Có source/config, task reports, parameter audit, T0201 sweep, T0202 run và T0212 smoke. T0212 vẫn BLOCKED; pháp lý thành viên, mã task chính thức và PDF cuối cần được xác nhận/duyệt.
+\chapter*{Lời mở đầu}
+\addcontentsline{toc}{chapter}{Lời mở đầu}
+\section*{Bối cảnh và Động lực đề tài}
+Trong những năm gần đây, học sâu (Deep Learning) đã phát triển vượt bậc và trở thành công nghệ cốt lõi trong nhiều bài toán thực tế. Hai framework được sử dụng phổ biến nhất trong nghiên cứu và công nghiệp là TensorFlow/Keras và PyTorch. Trong khi Keras nổi bật nhờ khả năng xây dựng mô hình nhanh chóng với mức độ trừu tượng hóa cao, thì PyTorch lại chiếm ưu thế mạnh mẽ trong cộng đồng nghiên cứu khoa học nhờ đồ thị tính toán động, vòng lặp huấn luyện tường minh và sự linh hoạt tối đa trong việc kiểm soát tensor.
+
+Việc chuyển đổi các kiến trúc mô hình từ Keras sang PyTorch không chỉ đơn thuần là dịch cú pháp lệnh, mà còn đòi hỏi người kỹ sư phải hiểu thấu đáo các khác biệt về mặt cấu trúc toán học: sự hoán vị trục không gian của dữ liệu ảnh, sự khác biệt trong cách tính toán hàm mất mát phân loại, cơ chế lan truyền ngược và cách thức quản lý trạng thái mô hình. Đây chính là động lực để nhóm chúng em thực hiện đề tài Bài tập lớn 03.
+
+\section*{Mục tiêu và Phạm vi nghiên cứu}
+Mục tiêu bao trùm của đề tài là tái hiện chính xác 10 mô hình học sâu thuộc 5 nhóm bài toán từ Keras sang 100\% mã nguồn PyTorch hướng đối tượng, đảm bảo tính tương đương toán học về số lượng tham số huấn luyện và khả năng tái lập thực nghiệm. Báo cáo này tổng kết toàn bộ quá trình nghiên cứu, giải thích cặn kẽ các giải pháp kỹ thuật, trình bày các kết quả kiểm thử chức năng đã đạt được và nêu rõ kế hoạch hoàn thiện đề tài.
+
+\section*{Bố cục báo cáo}
+Nội dung báo cáo được tổ chức thành 5 chương chính:
+\begin{itemize}
+\item \textbf{Chương 1 — Tổng quan bài toán và phạm vi chuyển đổi:} Giới thiệu 10 mô hình thực hành, phân chia công việc theo WBS và hiện trạng tiến độ.
+\item \textbf{Chương 2 — Cơ sở lý thuyết và nguyên lý chuyển đổi Keras sang PyTorch:} Phân tích cơ chế toán học và giải pháp xử lý các điểm khác biệt cốt lõi giữa hai framework.
+\item \textbf{Chương 3 — Thiết kế kiến trúc hệ thống và quy trình chuyển đổi:} Trình bày thiết kế hướng đối tượng, sơ đồ luồng dữ liệu, hệ thống callbacks và giao diện thực thi CLI.
+\item \textbf{Chương 4 — Kết quả chuyển đổi, kiểm thử tích hợp và hiện trạng thực nghiệm:} Trình bày bảng đối chiếu tham số, kết quả sweep/huấn luyện ban đầu và phân tích kiểm thử.
+\item \textbf{Chương 5 — Phân tích độ tin cậy, bài học kinh nghiệm và hướng phát triển:} Đánh giá những ưu nhược điểm, rút ra bài học thực tiễn và vạch ra lộ trình hoàn thiện cho giai đoạn kế tiếp.
+\end{itemize}

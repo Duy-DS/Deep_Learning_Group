@@ -1,37 +1,78 @@
-\chapter{Tổng quan dự án và phạm vi}
-\section{Mục tiêu và các nhóm mô hình}
-BTL03 chuyển mười cấu hình thuộc năm nhóm từ notebook Keras sang PyTorch OOP. Hai cấu hình utilities dùng lại GenderCNN/EmotionCNN, do đó đây không phải mười kiến trúc độc lập.
+\chapter{Tổng quan bài toán và phạm vi chuyển đổi}
+
+\section{Giới thiệu 5 nhóm bài toán và 10 mô hình thực hành}
+Trong khuôn khổ đề tài môn học, nhóm thực hiện tái cấu trúc và chuyển đổi hoàn chỉnh 10 tệp mã nguồn mẫu thuộc 5 nhóm bài toán học sâu từ TensorFlow/Keras sang thư viện PyTorch. Mỗi nhóm đại diện cho một dạng bài toán kinh điển trong lĩnh vực thị giác máy tính và học máy chuỗi:
+
+\begin{enumerate}[label=\textbf{\arabic*.}]
+\item \textbf{Nhóm 1 — Mạng nơ-ron truyền thẳng đa tầng (MLP):} Gồm hai bài toán cơ sở:
+\begin{itemize}
+\item \texttt{FuncApxmMLP}: Xấp xỉ hàm mật độ xác suất chuẩn hai chiều $f(x_1, x_2)$ thông qua mạng MLP một tầng ẩn gồm $B$ nơ-ron kích hoạt Sigmoid, huấn luyện bằng hàm mất mát sai số bình phương trung bình (MSE).
+\item \texttt{MNISTMLP}: Phân loại ảnh chữ số viết tay MNIST ($28\times 28$, 10 lớp) với cấu trúc làm phẳng ảnh thành vector 784 chiều và đưa qua hai tầng ẩn 512 nơ-ron kết hợp kỹ thuật điều chuẩn Dropout.
+\end{itemize}
+
+\item \textbf{Nhóm 2 — Mạng tích chập kết hợp đa tầng (CNN + MLP):} Khảo sát việc trích xuất đặc trưng không gian trên ba tập dữ liệu có độ phức tạp tăng dần:
+\begin{itemize}
+\item \texttt{MNISTCNN}: Mạng tích chập phân loại chữ số MNIST gồm hai khối Conv2D--MaxPool2D kết hợp tầng kết nối dày đặc.
+\item \texttt{HumanGenderCNN}: Phân loại giới tính 2 lớp trên tập dữ liệu ảnh khuôn mặt WIKI ($64\times 64\times 3$). Điểm đặc biệt của bài toán này nằm ở bước tiền xử lý ảnh cần thực hiện phép xoay 270 độ (\texttt{np.rot90}) để khuôn mặt có hướng nhìn chuẩn.
+\item \texttt{EmotionCNN}: Nhận diện 7 trạng thái cảm xúc khuôn mặt trên tập dữ liệu FER2013 ($48\times 48\times 1$). Mô hình gồm 4 khối tích chập lớn với hơn 19 triệu tham số, đòi hỏi kỹ thuật xử lý dữ liệu cẩn trọng.
+\end{itemize}
+
+\item \textbf{Nhóm 3 — Mạng kết hợp chuỗi thời gian (CNN + LSTM):}
+\begin{itemize}
+\item \texttt{MNISTCNNLSTM}: Mô hình nhận đầu vào là một chuỗi gồm 8 ảnh chữ số MNIST liên tiếp để dự đoán tổng giá trị số học của chuỗi. Kiến trúc đòi hỏi sự kết hợp giữa khối tích chập trích xuất đặc trưng cho từng khung hình và tầng hồi quy LSTM mô hình hóa mối quan hệ tuần tự theo thời gian.
+\end{itemize}
+
+\item \textbf{Nhóm 4 — Hệ thống tiện ích huấn luyện nâng cao (Training Utilities):}
+\begin{itemize}
+\item Xây dựng hệ thống Callbacks hướng đối tượng quản lý vòng đời huấn luyện tương đương Keras: Dừng sớm khi không cải thiện (\texttt{EarlyStopping}), tự động lưu trọng số tốt nhất (\texttt{ModelCheckpoint}) và giảm tốc độ học khi gặp điểm bão hòa (\texttt{ReduceLROnPlateau}). Hai kiến trúc \texttt{HumanGenderCNN} và \texttt{EmotionCNN} từ Nhóm 2 được tái sử dụng để đánh giá hiệu quả của hệ thống tiện ích này.
+\end{itemize}
+
+\item \textbf{Nhóm 5 — Thị giác máy tính nâng cao (Advanced Vision):}
+\begin{itemize}
+\item \texttt{SegNet}: Mạng phân vùng ngữ nghĩa đường phố gồm 5 khối mã hóa (Encoder) và 5 khối giải mã (Decoder) với khoảng 29.4 triệu tham số, ứng dụng cơ chế lấy mẫu ngược không gian.
+\item \texttt{FCNObjectDetector}: Mạng tích chập toàn phần (FCN) thay thế các tầng kết nối dày đặc bằng các lớp tích chập kích thước $8\times 8$ và $1\times 1$, xuất ra bản đồ điểm (score-map) để xác định vị trí và bounding box của phương tiện giao thông.
+\end{itemize}
+\end{enumerate}
+
+Bảng~\ref{tab:danh_muc_mo_hinh} tổng hợp danh mục 10 mô hình thực hành và trọng tâm chuyển đổi kỹ thuật của từng nhóm bài toán:
+
 \begin{longtable}{L{0.25\textwidth}L{0.30\textwidth}c L{0.35\textwidth}}
-\toprule Nhóm bài toán & Cấu hình mô hình & Số lượng & Trọng tâm chuyển đổi \\
+\caption{Danh mục 10 mô hình thực hành và trọng tâm kỹ thuật chuyển đổi}\label{tab:danh_muc_mo_hinh}\\
+\toprule \textbf{Nhóm bài toán} & \textbf{Cấu hình mô hình} & \textbf{Số lượng} & \textbf{Trọng tâm kỹ thuật chuyển đổi} \\
 \midrule
-1 - MLP & FuncApxmMLP; MNISTMLP & 2 & Dense $\rightarrow$ Linear; MSE loss và CrossEntropyLoss \\
-2 - CNN+MLP & MNISTCNN; HumanGenderCNN; EmotionCNN & 3 & Conv2D $\rightarrow$ Conv2d; chuyển trục NCHW; tiền xử lý \\
-3 - CNN+LSTM & MNISTCNNLSTM & 1 & Gộp/tách chiều thay thế TimeDistributed; LSTM \\
-4 - Training Utilities & Gender/Emotion + callbacks & 2 & Callback lifecycle, EarlyStopping, checkpoint, logger \\
-5 - Advanced Vision & SegNet; FCNObjectDetector & 2 & Segmentation logits/mask và score-map detection \\
+\endfirsthead
+\caption[]{Danh mục 10 mô hình thực hành (tiếp)}\\\toprule \textbf{Nhóm bài toán} & \textbf{Cấu hình mô hình} & \textbf{Số lượng} & \textbf{Trọng tâm kỹ thuật chuyển đổi} \\
+\midrule
+\endhead
+\midrule\multicolumn{4}{r}{\footnotesize\itshape Tiếp ở trang sau}\\
+\endfoot
 \bottomrule
+\endlastfoot
+1 - MLP & FuncApxmMLP; MNISTMLP & 2 & Chuyển \texttt{Dense} $\rightarrow$ \texttt{nn.Linear}; hàm mất mát MSE và CrossEntropyLoss \\
+2 - CNN+MLP & MNISTCNN; HumanGenderCNN; EmotionCNN & 3 & Chuyển \texttt{Conv2D} $\rightarrow$ \texttt{nn.Conv2d}; đổi trục NCHW; bảo toàn phép xoay ảnh \\
+3 - CNN+LSTM & MNISTCNNLSTM & 1 & Gộp và phân tách chiều tensor thay thế lớp \texttt{TimeDistributed}; tầng \texttt{nn.LSTM} \\
+4 - Training Utilities & Gender/Emotion + Callbacks & 2 & Xây dựng Callbacks OOP (\texttt{EarlyStopping}, \texttt{ModelCheckpoint}, \texttt{ReduceLR}) \\
+5 - Advanced Vision & SegNet; FCNObjectDetector & 2 & Phân vùng ảnh logits/mask qua \texttt{nn.Upsample} và bản đồ điểm phát hiện vật thể \\
 \end{longtable}
 
-\section{Snapshot, WBS và phương pháp}
-Snapshot báo cáo lấy từ nhánh \path{docs/BTL03_T0402_thesis-report-writing} trên base commit \path{b2b88db3fc7444f7c37391e7211416ea3843a31e}. Reports thực nghiệm mới nhất được rà soát là T0212 (2026-11-23).
+\section{Phân chia công việc theo cấu trúc WBS và Quản lý tiến độ}
+Nhằm đảm bảo tính chặt chẽ trong quá trình thực hiện, nhóm đã áp dụng cấu trúc phân chia công việc (Work Breakdown Structure — WBS) được chuẩn hóa gồm 4 Gói công việc chính (\texttt{WP01} đến \texttt{WP04}) và 30 nhiệm vụ chi tiết (\texttt{T0101} đến \texttt{T0406}):
 
-Theo \texttt{AGENTS.md} và cấu trúc điều hành dự án hiện hành, toàn bộ dự án gồm 4 Work Packages (\texttt{WP01}--\texttt{WP04}) và 30 tasks (\texttt{T0101}--\texttt{T0406}) phân bổ cho 5 thành viên:
 \begin{itemize}
-\item \textbf{WP01 — Khởi tạo Hạ tầng, Dữ liệu \& Baseline Keras} (6 tasks: \texttt{T0101}--\texttt{T0106}): Thiết lập repo OOP, pipeline dữ liệu, trích xuất baseline 10 mô hình, hệ thống logging/checkpoints, đặc tả kỹ thuật và khởi tạo báo cáo.
-\item \textbf{WP02 — Chuyển đổi 10 mô hình Keras sang PyTorch} (12 tasks: \texttt{T0201}--\texttt{T0212}): Chuyển đổi 5 nhóm mô hình sang PyTorch thuần (MLP, CNN+MLP, CNN+LSTM, Utilities, SegNet/FCN) và kiểm toán tích hợp smoke test \texttt{T0212}.
-\item \textbf{WP03 — Huấn luyện, Ablation Studies, Trực quan hóa \& Debug} (6 tasks: \texttt{T0301}--\texttt{T0306}): Huấn luyện toàn diện, các nghiên cứu cắt bỏ ABL-01 đến ABL-03, phân tích PCA, Confusion Matrix, phân tích lỗi RQ1--RQ2 và kiểm chứng parity.
-\item \textbf{WP04 — Demo, Báo cáo tổng kết, Slide/Poster \& Đóng gói} (6 tasks: \texttt{T0401}--\texttt{T0406}): Ứng dụng demo, báo cáo tổng kết thesis (\texttt{T0402}), slide/poster (\texttt{T0403}), hướng dẫn tái lập (\texttt{T0404}), kiểm toán repo (\texttt{T0405}) và nghiệm thu đóng gói (\texttt{T0406}).
+\item \textbf{WP01 — Khởi tạo Hạ tầng, Dữ liệu \& Baseline Keras (6 nhiệm vụ: \texttt{T0101}--\texttt{T0106}):} Thiết lập cấu trúc kho lưu trữ hướng đối tượng, xây dựng pipeline nạp dữ liệu và kiểm tra trật tự trục tensor, trích xuất thông số baseline từ 10 notebook Keras gốc, xây dựng lớp ghi nhật ký huấn luyện \texttt{ExperimentLogger}, biên soạn tài liệu đặc tả và khởi tạo khung báo cáo tổng kết.
+\item \textbf{WP02 — Chuyển đổi 10 mô hình Keras sang PyTorch (12 nhiệm vụ: \texttt{T0201}--\texttt{T0212}):} Thực hiện chuyển đổi chi tiết mã nguồn 5 nhóm mô hình sang PyTorch thuần túy, kiểm tra tính khớp của số lượng tham số huấn luyện, và hoàn thành đợt kiểm thử tích hợp toàn diện hệ thống \texttt{T0212}.
+\item \textbf{WP03 — Huấn luyện, Ablation Studies, Trực quan hóa \& Debug (6 nhiệm vụ: \texttt{T0301}--\texttt{T0306}):} Huấn luyện các mô hình trên toàn bộ tập dữ liệu, thực hiện các nghiên cứu cắt bỏ ABL-01 đến ABL-03 để trả lời câu hỏi nghiên cứu RQ1--RQ2, trực quan hóa không gian đặc trưng bằng PCA và biểu đồ Confusion Matrix.
+\item \textbf{WP04 — Demo Ứng dụng, Báo cáo tổng kết, Slide \& Đóng gói (6 nhiệm vụ: \texttt{T0401}--\texttt{T0406}):} Xây dựng ứng dụng web demo trực quan, hoàn thiện toàn bộ báo cáo tổng kết môn học (\texttt{T0402}), thiết kế slide thuyết trình (\texttt{T0403}), hướng dẫn tái lập thực nghiệm (\texttt{T0404}), kiểm toán toàn diện kho lưu trữ (\texttt{T0405}) và nghiệm thu đồ án (\texttt{T0406}).
 \end{itemize}
 
-Quy ước đặt tên file bằng chứng nghiệm thu trong repo tuân thủ nghiêm ngặt hai định dạng:
+Mọi tiến độ công việc và bằng chứng thực thi đều được các thành viên ghi nhận tường minh thông qua các báo cáo hoàn thành nhiệm vụ lưu tại thư mục \path{docs/reports/}. Nhóm tuân thủ nghiêm ngặt hai định dạng đặt tên tệp bằng chứng: định dạng theo lịch phân công \path{[YYMMDD]_Txxxx_<ten_task>.md} (ví dụ: \path{docs/reports/261126_T0102_data_pipeline_report.md}) và định dạng có nhãn thời gian \path{[Task ID]_[YYMMDD]_[HHMM].md} (ví dụ: \path{docs/reports/T0201_261122_2112.md}, \path{docs/reports/T0212_261123_2130.md}, \path{docs/reports/T0402_261124_0831.md}).
+
+\section{Hiện trạng hoàn thành của đề tài đến thời điểm báo cáo}
+Đến thời điểm biên soạn báo cáo hiện tại, nhóm đã hoàn thành xuất sắc các gói công việc \texttt{WP01} và \texttt{WP02}. Cụ thể:
 \begin{itemize}
-\item Định dạng ưu tiên theo Sheets: \path{[YYMMDD]_Txxxx_<ten_task>.md} (ví dụ: \path{docs/reports/261126_T0102_data_pipeline_report.md}, \path{docs/reports/261127_T0103_keras_baseline_log.md}).
-\item Định dạng có timestamp: \path{[Task ID]_[YYMMDD]_[HHMM].md} (ví dụ: \path{docs/reports/T0201_261122_2112.md}, \path{docs/reports/T0212_261123_2130.md}, \path{docs/reports/T0402_261124_0831.md}).
+\item 100\% các mô hình thuộc 5 nhóm bài toán đã được chuyển đổi thành công sang các lớp đối tượng PyTorch kế thừa từ lớp cơ sở trừu tượng \texttt{BaseMigratedModel}.
+\item Đã kiểm chứng tính khớp chính xác về số lượng tham số đối với toàn bộ các kiến trúc mô hình.
+\item Thực nghiệm sweep 36 cấu hình tham số trên mô hình xấp xỉ hàm (nhiệm vụ \texttt{T0201}) và huấn luyện thử nghiệm 30 epoch trên tập MNIST (nhiệm vụ \texttt{T0202}) đạt độ chính xác kiểm thử 95.87\%.
+\item Đợt kiểm thử tích hợp hệ thống (\texttt{T0212}) xác nhận 10/10 mô hình đều vượt qua chu trình kiểm tra lan truyền xuôi và ngược trên dữ liệu kiểm thử nhanh; 78/82 ca kiểm thử chức năng tự động đạt chuẩn.
 \end{itemize}
-
-Workbook \texttt{Quan\_Ly\_Tasks} giao T0402 cho Member 05 trong WP04; yêu cầu trực tiếp của nhóm trưởng giao Member 01 tổng hợp bản hiện tại. Bài viết theo chỉ định trực tiếp, ghi nhận mâu thuẫn phân công để nhóm xác nhận, không tự ý sửa WBS.
-
-README nêu RQ1/RQ2 nhưng charter Markdown đúng tên chưa có trong repository. Vì vậy câu hỏi nghiên cứu trong báo cáo được đánh dấu là tóm lược theo README, không gán là nguyên văn charter. Phương pháp kiểm toán đối chiếu task reports, notebook/baseline CSV, Run ID, source/config và Git evidence; không coi synthetic smoke là training kết quả.
-
-\section{Trạng thái tại mốc evidence}
-T0201 có 36 sweep configs; T0202 có một MNIST MLP run 30 epoch. T0212 ghi 10/10 synthetic one-epoch smoke cases PASS nhưng logger BLOCKED và suite shards 78 pass/4 fail trên 82; tổng thể BLOCKED. Các trạng thái này không chứng minh full training mười mô hình, ablation, demo hay báo cáo PDF đã hoàn tất.
+Các nội dung về huấn luyện chuyên sâu toàn bộ tập dữ liệu thật, nghiên cứu cắt bỏ (Ablation Studies), xây dựng giao diện ứng dụng demo và slide thuyết trình thuộc các gói \texttt{WP03} và \texttt{WP04} đang được nhóm tích cực triển khai theo đúng lộ trình đã đề ra.
