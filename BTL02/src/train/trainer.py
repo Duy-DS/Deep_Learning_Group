@@ -191,8 +191,24 @@ class Trainer:
         image_size: Optional[int] = None,
         augmentation_mode: Optional[str] = None,
         loss_name: Optional[str] = None,
+        scheduler_name: Optional[str] = None,
     ) -> str:
-        """Tạo tên run khác biệt theo kiến trúc, augmentation và loss khi được cấu hình."""
+        """Tạo tên run phân biệt theo recipe được ablation khi được cấu hình.
+
+        Args:
+            exp_id: Mã thực nghiệm.
+            architecture: Tên kiến trúc mô hình.
+            optimizer: Tên bộ tối ưu.
+            activation: Hàm kích hoạt cho CNN tùy biến.
+            pretrained: Trạng thái pretrained của backbone.
+            image_size: Cạnh ảnh đầu vào.
+            augmentation_mode: Chế độ tăng cường dữ liệu.
+            loss_name: Hậu tố loss tùy chọn.
+            scheduler_name: Hậu tố scheduler tùy chọn để tránh Auto-Skip chéo.
+
+        Returns:
+            Tên MLflow run ổn định, duy nhất cho các biến thể ablation.
+        """
         sota_architectures = {
             "VGG16", "PretrainedVGG16", "ResNet50", "PretrainedResNet50",
             "EfficientNetB0", "PretrainedEfficientNetB0",
@@ -206,6 +222,10 @@ class Trainer:
             base_name = f"{exp_id}_{architecture}_{activation}_{optimizer}"
         if loss_name:
             base_name = f"{base_name}_loss-{loss_name}"
+        if scheduler_name:
+            normalized_scheduler = str(scheduler_name).strip().lower()
+            if normalized_scheduler not in {"", "none", "null"}:
+                base_name = f"{base_name}_sched-{normalized_scheduler}"
         return base_name
 
     def _build_model(self) -> nn.Module:
@@ -284,12 +304,20 @@ class Trainer:
             raise ValueError(f"Không hỗ trợ bộ tối ưu hóa: '{opt_name}'")
 
     def _build_scheduler(self) -> Optional[optim.lr_scheduler.LRScheduler]:
-        """Khởi tạo bộ điều chỉnh learning rate theo cấu hình YAML."""
+        """Khởi tạo scheduler PyTorch, hỗ trợ alias để tương thích YAML cũ.
+
+        Returns:
+            Scheduler theo epoch, hoặc ``None`` nếu cấu hình tắt scheduler.
+
+        Raises:
+            ValueError: Tên scheduler hoặc tham số warmup không hợp lệ.
+        """
         scheduler_name = str(self.config.get("scheduler", "None")).strip().lower()
+        normalized_name = scheduler_name.replace("_", "").replace("-", "").replace("+", "").replace(" ", "")
         scheduler_params = self.config.get("scheduler_params", {}) or {}
-        if scheduler_name in ("none", "null", ""):
+        if normalized_name in ("none", "null", ""):
             return None
-        if scheduler_name == "reducelronplateau":
+        if normalized_name in ("plateau", "reduceonplateau", "reducelronplateau"):
             return optim.lr_scheduler.ReduceLROnPlateau(
                 self.optimizer,
                 mode=str(scheduler_params.get("mode", "min")),
@@ -297,15 +325,44 @@ class Trainer:
                 patience=int(scheduler_params.get("patience", 3)),
                 min_lr=float(scheduler_params.get("min_lr", 1e-6)),
             )
-        if scheduler_name == "cosineannealinglr":
+        if normalized_name in ("step", "steplr"):
+            return optim.lr_scheduler.StepLR(
+                self.optimizer,
+                step_size=int(scheduler_params.get("step_size", 10)),
+                gamma=float(scheduler_params.get("gamma", 0.1)),
+            )
+        if normalized_name in ("cosine", "cosineannealing", "cosineannealinglr"):
             return optim.lr_scheduler.CosineAnnealingLR(
                 self.optimizer,
                 T_max=int(scheduler_params.get("T_max", self.epochs)),
                 eta_min=float(scheduler_params.get("eta_min", 0.0)),
             )
+        if normalized_name in ("warmupcosine", "linearwarmupcosine", "warmupcosineannealing"):
+            warmup_epochs = int(scheduler_params.get("warmup_epochs", 3))
+            start_factor = float(scheduler_params.get("start_factor", 0.2))
+            if warmup_epochs <= 0 or warmup_epochs >= self.epochs:
+                raise ValueError("warmup_epochs phải lớn hơn 0 và nhỏ hơn tổng số epochs.")
+            if not 0.0 < start_factor <= 1.0:
+                raise ValueError("start_factor của warmup phải thuộc (0, 1].")
+            warmup = optim.lr_scheduler.LinearLR(
+                self.optimizer,
+                start_factor=start_factor,
+                end_factor=1.0,
+                total_iters=warmup_epochs,
+            )
+            cosine = optim.lr_scheduler.CosineAnnealingLR(
+                self.optimizer,
+                T_max=int(scheduler_params.get("T_max", self.epochs - warmup_epochs)),
+                eta_min=float(scheduler_params.get("eta_min", 0.0)),
+            )
+            return optim.lr_scheduler.SequentialLR(
+                self.optimizer,
+                schedulers=[warmup, cosine],
+                milestones=[warmup_epochs],
+            )
         raise ValueError(
             f"Scheduler '{self.config.get('scheduler')}' không được hỗ trợ; "
-            "chọn ReduceLROnPlateau, CosineAnnealingLR hoặc None."
+            "chọn StepLR, ReduceLROnPlateau, CosineAnnealingLR, WarmupCosine hoặc None."
         )
 
     def train_one_epoch(self) -> Tuple[float, float]:
@@ -403,6 +460,11 @@ class Trainer:
             image_size=self.image_size,
             augmentation_mode=self.augmentation_mode,
             loss_name=self.loss_name if self.loss_configured else None,
+            scheduler_name=(
+                self.config.get("scheduler")
+                if self.config.get("scheduler_run_suffix", False)
+                else None
+            ),
         )
         print(f"\n{'='*70}")
         print(f"🚀 BẮT ĐẦU THỰC NGHIỆM: {run_name} (Nhóm: {self.exp_group} | Câu hỏi: {self.rq_tag})")

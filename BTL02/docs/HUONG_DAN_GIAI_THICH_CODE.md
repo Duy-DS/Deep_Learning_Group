@@ -283,6 +283,50 @@ Trả lời: Không. Macro-F1 là trung bình F1 của các lớp, nhưng có th
 **Hỏi: Auto-Skip có resume run bị ngắt giữa epoch không?**
 Trả lời: Không. Runner chỉ bỏ qua run MLflow `FINISHED`. Run dở không được coi là hoàn thành; resume giữa epoch cần checkpoint chứa đủ model, optimizer, scheduler và epoch state, hiện không được runner giả định.
 
+## 10. TASK T0403 — ABLATION LEARNING-RATE SCHEDULER (EXP-12, RQ3)
+
+### 10.1. Controlled recipe và cách đặt tên run
+
+- Ba YAML `experiments/ablation/exp12_sched_step_or_plateau.yaml`, `exp12_sched_cosine.yaml`, `exp12_sched_warmup_cosine.yaml` kế thừa recipe EXP-11 trên EfficientNet-B0 pretrained, ảnh RGB 128×128, seed 42, split chuẩn FER2013, augmentation basic chỉ trên Training, AdamW `lr=1e-4`, `weight_decay=1e-4`, batch 32, tối đa 30 epochs, patience 7 và CrossEntropyLoss. Scheduler là biến thí nghiệm.
+- Biến thể đối chứng mang tên file `step_or_plateau` dùng `ReduceLROnPlateau(mode=min)` trên `val_loss`, factor 0.1, patience 3; cosine dùng `CosineAnnealingLR(T_max=30, eta_min=1e-6)`; warmup-cosine dùng `LinearLR` 3 epochs từ 0.2× LR nền tới LR nền rồi `CosineAnnealingLR` 27 epochs.
+- `Trainer._build_scheduler()` chuẩn hóa alias để chấp nhận `step`/`StepLR`, `plateau`/`reduce_on_plateau`/`ReduceLROnPlateau`, `cosine`/`cosine_annealing`/`CosineAnnealingLR` và `WarmupCosine`. YAML cũ vẫn mặc định `None`, còn tên ReduceLROnPlateau/CosineAnnealingLR cũ hoạt động như trước.
+- Scheduler được cập nhật một lần mỗi epoch sau khi tính validation metrics: Plateau nhận `val_loss` nếu `mode=min`, hoặc `val_acc` nếu `mode=max`; scheduler theo lịch gọi `.step()` không đối số. `SequentialLR` ghép warmup/cosine theo milestone epoch. Optimizer update theo batch vẫn diễn ra trước scheduler step của epoch.
+- T0403 thêm hậu tố scheduler vào run name cho ba recipe mới để Auto-Skip không thể nhầm các scheduler cùng EXP/architecture/optimizer. Hậu tố chỉ xuất hiện khi YAML bật `scheduler_run_suffix`; run name của cấu hình cũ không thay đổi.
+- Notebook Colab đặt tracking/checkpoint/log trên SSD trước, atomic-sync artifact ổn định sang Drive sau mỗi run; Kaggle hỗ trợ competition CSV/archive hoặc Secret `KAGGLE_API_TOKEN`, GitHub PAT dạng `x-access-token:...`, và phục hồi các MLflow run `FINISHED` từ dataset backup. Cả hai xuất cùng `MLflowLogger.CSV_COLUMNS` 24 cột.
+
+### 10.2. Giải thích thuật toán và ý nghĩa trong RQ3
+
+- **StepLR:** sau mỗi `step_size` epoch, nhân learning rate hiện tại với `gamma`. Đây là lịch giảm theo mốc cố định, đơn giản và không phản ứng trực tiếp với validation.
+- **ReduceLROnPlateau:** theo dõi metric validation đã chọn; khi metric không cải thiện đủ số epoch theo `patience`, LR nhân `factor` nhưng không thấp hơn `min_lr`. Với `mode=min`, metric là validation loss; với `mode=max`, Trainer dùng validation accuracy.
+- **CosineAnnealingLR:** LR giảm theo nửa chu kỳ cosine từ LR ban đầu tới `eta_min` trong `T_max` epoch. Lịch mượt, không cần metric validation để quyết định thời điểm giảm.
+- **Warmup + Cosine:** `LinearLR` khởi động ở một tỷ lệ LR nhỏ để giảm cập nhật quá lớn lúc đầu; sau số warmup epoch định trước, `SequentialLR` chuyển sang cosine annealing. `warmup_epochs` phải lớn hơn 0 và nhỏ hơn tổng số epoch.
+- Với EfficientNet-B0, logits cho một batch là `[B,7]`; scheduler không thay đổi shape tensor hoặc số tham số mô hình, chỉ cập nhật `optimizer.param_groups[*]['lr']`. PublicTest là validation/model-selection split; PrivateTest chỉ đánh giá checkpoint sau huấn luyện. Eval transforms xác định và không áp dụng augmentation.
+- CSV 24 cột lưu LR tổng kết qua params nhưng không lưu toàn bộ chuỗi learning rate theo epoch dưới một cột riêng. MLflow history ghi `metrics.lr`, `train_loss`, `val_loss`, `train_acc`, `val_acc` tại từng epoch; cần truy vấn history để định lượng độ mượt/quỹ đạo hội tụ. Best Epoch và CSV tổng kết một mình không chứng minh dao động hay kẹt cực tiểu.
+
+### 10.3. Kiểm thử và trạng thái thực nghiệm
+
+- `tests/test_ablation_scheduler.py` kiểm tra lớp scheduler PyTorch, alias cũ/mới, thay đổi LR, warmup rồi cosine giảm, controlled invariants, forward/backward một batch CPU và tính duy nhất của tên run. Chạy targeted suite: **11 passed**.
+- Hai notebook T0403 có JSON hợp lệ, code cell parse được; chưa thực thi trên Colab/Kaggle. Máy phát triển dùng PyTorch CPU-only, `torch.cuda.is_available() == False`; chưa có CSV `outputs/logs/t0403_ablation_scheduler_24col.csv`, do đó chưa có Run ID hay metric thực tế để kết luận chiến lược scheduler tốt nhất.
+- Chưa tuyên bố full test suite pass cho tới khi kết quả chạy toàn bộ `tests/` hoàn tất. Huấn luyện GPU và nghiệm thu số liệu định lượng là bước chờ người dùng chạy runner và cung cấp CSV thực tế.
+
+**Hỏi: Vì sao cần hậu tố scheduler trong tên MLflow run?**
+Trả lời: Nếu identity chỉ gồm EXP-12, kiến trúc và optimizer, ba lịch LR có thể trùng tên; Auto-Skip sẽ bỏ qua sai cấu hình. Hậu tố được bật cho riêng EXP-12 để phân biệt run mà không thay đổi tên các run lịch sử.
+
+**Hỏi: Vì sao gọi ReduceLROnPlateau với validation metric còn CosineAnnealingLR không có đối số?**
+Trả lời: Plateau cần metric để xác định có chững lại hay không; `mode=min` truyền validation loss, `mode=max` truyền validation accuracy. Cosine và StepLR tiến theo lịch epoch định trước nên `.step()` không cần metric.
+
+**Hỏi: Warmup có làm tăng số tham số hoặc đổi kiến trúc không?**
+Trả lời: Không. Warmup chỉ thay learning rate của optimizer qua các epoch; kiến trúc, tensor logits `[B,7]` và số tham số giữ nguyên.
+
+**Hỏi: Có thể nhìn Best Epoch/CSV tổng kết để kết luận scheduler nào hội tụ mượt nhất không?**
+Trả lời: Không. CSV cuối run chỉ lưu điểm tổng kết và Best Epoch, không giữ chuỗi loss/LR. Cần truy vấn per-epoch metrics từ MLflow và vẽ `train_loss`, `val_loss`, `lr`; so sánh nhiều seed nếu muốn đánh giá ổn định.
+
+**Hỏi: Có thể chọn scheduler có PublicTest accuracy cao nhất làm scheduler tốt nhất không?**
+Trả lời: PublicTest được dùng làm validation/model-selection nên không phải holdout độc lập. Cần báo cáo PrivateTest Accuracy/Macro-F1 cùng gap, đồng thời nhiều seed; không suy luận độ mượt chỉ từ accuracy cuối.
+
+**Hỏi: T0403 đã có kết luận thực nghiệm chưa?**
+Trả lời: Chưa ở giai đoạn hạ tầng. Máy local không có CUDA và chưa có CSV GPU; sau khi runner tạo đủ ba run `FINISHED`, mới điền bảng Run ID/Best Epoch/Train Acc/Private Acc/Macro-F1/gap và phân tích history thực tế.
+
 ### 9.4. Kết quả định lượng EXP-11 thực tế (CSV 24 cột)
 
 CSV `outputs/logs/t0402_ablation_imbalance_24col.csv` xác nhận ba cấu hình cùng EfficientNet-B0 pretrained, ảnh RGB 128×128, seed 42, augmentation basic, AdamW, LR 0.0001, batch 32 và scheduler ReduceLROnPlateau; chỉ loss thay đổi. `Best Val Acc` là PublicTest được dùng làm validation/model selection trong pipeline. Generalization gap được tính bằng Train Acc trừ Private Test Acc, đơn vị điểm phần trăm (pp).
