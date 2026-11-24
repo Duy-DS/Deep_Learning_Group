@@ -7,9 +7,19 @@
 - **Đề tài:** Bài tập lớn 03 — Chuyển đổi mã nguồn Deep Learning từ Keras sang PyTorch và phân tích thực nghiệm.
 - **Mã dự án:** `BTL03`.
 - **Người tổng hợp snapshot này:** `Duy-DS` (Member 01; xác nhận trong `.env` và task evidence).
-- **Thành viên/alias trong task reports:** `Duy-DS`, `nguyenthanhdat180905-cloud`, `nguyen-cong-tri`, `TonOfWeight072501`, `CHIVY2005`.
+- **Thành viên / alias trong task reports:** `Duy-DS`, `nguyenthanhdat180905-cloud`, `nguyen-cong-tri`, `TonOfWeight072501`, `CHIVY2005`.
 - **Họ tên pháp lý, MSSV, trường/khoa/lớp, giảng viên, tỷ lệ đóng góp cuối kỳ:** **[NHÓM CẦN XÁC NHẬN; không suy đoán từ alias hoặc mẫu]**.
 - **Phân công T0402:** workbook `Quan_Ly_Tasks` ghi Member 05; chỉ định trực tiếp hiện tại giao Member 01. Bản thảo làm theo chỉ định trực tiếp; không sửa WBS.
+
+| STT | Thành viên / alias | Họ tên / MSSV | Vai trò theo evidence |
+|:---:|---|:---:|---|
+| 1 | `Duy-DS` | [NHÓM XÁC NHẬN] | Member 01; Trưởng nhóm / tổng hợp bản này theo chỉ định trực tiếp |
+| 2 | `nguyenthanhdat180905-cloud` | [NHÓM XÁC NHẬN] | Member 02; Task reports nhóm 2 (CNN+MLP) |
+| 3 | `nguyen-cong-tri` | [NHÓM XÁC NHẬN] | Member 03; Task reports nhóm 3 (CNN+LSTM) |
+| 4 | `TonOfWeight072501` | [NHÓM XÁC NHẬN] | Member 04; Task reports nhóm 4 (Training Utilities) |
+| 5 | `CHIVY2005` | [NHÓM XÁC NHẬN] | Member 05; Task reports nhóm 5 (Advanced Vision) |
+
+*Lớp / giảng viên: [NHÓM XÁC NHẬN] • Tỷ lệ đóng góp: [NHÓM XÁC NHẬN; tổng 100%]*
 
 ## Tóm tắt
 
@@ -66,11 +76,11 @@ Chương 1 nêu phạm vi và cơ cấu WBS 4 Work Packages; Chương 2 giải t
 
 | Nhóm bài toán | Cấu hình mô hình | Số lượng | Trọng tâm chuyển đổi |
 |---|---|:---:|---|
-| 1 — MLP | `FuncApxmMLP`, `MNISTMLP` | 2 | Dense $\rightarrow$ Linear; MSE loss và CrossEntropyLoss |
-| 2 — CNN+MLP | `MNISTCNN`, `HumanGenderCNN`, `EmotionCNN` | 3 | Conv2D $\rightarrow$ Conv2d; chuyển trục NCHW; tiền xử lý |
-| 3 — CNN+LSTM | `MNISTCNNLSTM` | 1 | Gộp/tách chiều thay thế `TimeDistributed`; LSTM |
-| 4 — Training Utilities | Gender + callbacks; Emotion + callbacks | 2 | Callbacks lifecycle, EarlyStopping, checkpoint, logger |
-| 5 — Advanced Vision | `SegNet`, `FCNObjectDetector` | 2 | Segmentation logits/mask và score-map detection |
+| 1 - MLP | `FuncApxmMLP`, `MNISTMLP` | 2 | Dense $\rightarrow$ Linear; MSE loss và CrossEntropyLoss |
+| 2 - CNN+MLP | `MNISTCNN`, `HumanGenderCNN`, `EmotionCNN` | 3 | Conv2D $\rightarrow$ Conv2d; chuyển trục NCHW; tiền xử lý |
+| 3 - CNN+LSTM | `MNISTCNNLSTM` | 1 | Gộp/tách chiều thay thế `TimeDistributed`; LSTM |
+| 4 - Training Utilities | Gender + callbacks; Emotion + callbacks | 2 | Callbacks lifecycle, EarlyStopping, checkpoint, logger |
+| 5 - Advanced Vision | `SegNet`, `FCNObjectDetector` | 2 | Segmentation logits/mask và score-map detection |
 
 Hai cấu hình utilities dùng lại GenderCNN/EmotionCNN; mười cấu hình không có nghĩa mười kiến trúc độc lập.
 
@@ -83,8 +93,8 @@ Theo `AGENTS.md` và `README.md` hiện hành, toàn bộ dự án gồm 4 Work 
 - **WP04 — Demo, Báo cáo tổng kết, Slide/Poster & Đóng gói** (6 tasks: `T0401`–`T0406`): Ứng dụng demo, báo cáo tổng kết thesis (`T0402`), slide/poster (`T0403`), hướng dẫn tái lập (`T0404`), kiểm toán repo (`T0405`) và nghiệm thu đóng gói (`T0406`).
 
 Quy ước đặt tên file bằng chứng nghiệm thu trong `docs/reports/` tuân thủ:
-- **Ưu tiên theo Sheets:** `[YYMMDD]_Txxxx_<ten_task>.md` (ví dụ: `261126_T0102_data_pipeline_report.md`, `261127_T0103_keras_baseline_log.md`, `261127_T0104_mlops_logging_setup.md`, `261128_T0106_core_architecture.md`).
-- **Định dạng có timestamp:** `[Task ID]_[YYMMDD]_[HHMM].md` (ví dụ: `T0201_261122_2112.md`, `T0212_261123_2130.md`, `T0402_261124_0831.md`).
+- **Ưu tiên theo Sheets:** `[YYMMDD]_Txxxx_<ten_task>.md` (ví dụ: `docs/reports/261126_T0102_data_pipeline_report.md`, `docs/reports/261127_T0103_keras_baseline_log.md`).
+- **Định dạng có timestamp:** `[Task ID]_[YYMMDD]_[HHMM].md` (ví dụ: `docs/reports/T0201_261122_2112.md`, `docs/reports/T0212_261123_2130.md`, `docs/reports/T0402_261124_0831.md`).
 
 ## 1.3 Trạng thái theo snapshot
 
@@ -112,7 +122,7 @@ $$
 x_{\text{NCHW}} = \operatorname{permute}(x_{\text{NHWC}}, 0, 3, 1, 2).\operatorname{contiguous}()
 $$
 
-WIKI áp `np.rot90(k=3, axes=(1,2))` trên NHWC trước khi đổi trục. Rotation đổi vị trí pixel; permute chỉ đổi thứ tự chiều. MNIST legacy chia pixel byte cho 255. T0102/T0205 ghi FER legacy không chia `/255` tường minh; giữ `preserve` theo source. FCN detection chuẩn hóa RGB bằng $x / 127.5 - 1.0$.
+Đối với tập dữ liệu WIKI Gender, phép biến đổi `np.rot90(k=3, axes=(1, 2))` được áp dụng trên tensor NHWC trước khi chuyển trục. Rotation đổi vị trí pixel; permute chỉ đổi thứ tự chiều. MNIST legacy chia pixel byte cho 255. T0102/T0205 ghi FER legacy không chia `/255` tường minh; giữ `preserve` theo source. FCN detection chuẩn hóa RGB bằng $x / 127.5 - 1.0$.
 
 ## 2.3 CNN-LSTM thay TimeDistributed
 
@@ -120,11 +130,11 @@ Với chuỗi ảnh $(B, T, C, H, W)$, gộp thành $(B \times T, C, H, W)$ đ�
 
 ## 2.4 SegNet, upsampling và mask loss
 
-Nearest `UpSampling2D` được ánh xạ sang `nn.Upsample(scale_factor=2, mode="nearest")`. SegNet trả logits $(B, K, H, W)$; mask class-index $(B, H, W)$ kiểu `torch.long` dùng với `nn.CrossEntropyLoss`. Pixel accuracy khác mIoU; giữ đúng tên metric legacy.
+Thao tác `UpSampling2D(size=(2, 2))` nearest neighbor trong Keras được ánh xạ sang `nn.Upsample(scale_factor=2, mode='nearest')`. SegNet trả logits $(B, K, H, W)$; mask class-index $(B, H, W)$ kiểu `torch.long` dùng với `nn.CrossEntropyLoss`. Pixel accuracy khác mIoU; giữ đúng tên metric legacy.
 
 ## 2.5 FCN score-map
 
-Notebook detector dùng score $\tanh$, target $\pm 1$ và MSE. Accuracy legacy không phải IoU/mAP. Heatmap từ model chưa huấn luyện chỉ kiểm tra inference/shape, không đo chất lượng detection.
+Mô hình phát hiện vật thể FCN trong notebook legacy sử dụng hàm kích hoạt $\tanh$ ở đầu ra, nhãn mục tiêu trong khoảng $[-1, 1]$ và hàm mất mát MSE. Độ chính xác (Accuracy) của notebook legacy không đồng nghĩa với IoU hay mAP trong các bài toán Object Detection hiện đại; biểu đồ heatmap từ mô hình chưa huấn luyện chỉ có giá trị kiểm thử luồng lan truyền xuôi và kích thước tensor đầu ra, không chứng minh chất lượng phát hiện vật thể.
 
 ---
 
@@ -170,17 +180,17 @@ Keras notebooks / baseline
 ## 4.1 Parameter-count audit
 
 | Cấu hình | Keras params | PyTorch / report | Diễn giải |
-|---|---:|---:|---|
-| `FuncApxmMLP`, B=16 | 65* | 65 | Keras summary số không lưu; 65 suy từ $4B+1$, chỉ tại B=16 |
-| `MNISTMLP` | 669,706 | 669,706 | Count khớp |
-| `MNISTCNN` | 1,817,610 | 1,817,610 | Count khớp |
-| `HumanGenderCNN` | 4,063,570 | 4,063,570 | Count khớp |
-| `EmotionCNN` | 19,028,287 | 19,028,287 | Count khớp |
-| `MNISTCNNLSTM` | 1,747,073 | T0206: 1,746,049;<br>T0207/T0212: 1,747,073 | **CẦN ĐỐI CHIẾU**, lệch report 1,024 |
-| Gender + callbacks | 4,063,570 | 4,063,570 | Tái sử dụng GenderCNN |
-| Emotion + callbacks | 19,028,287 | 19,028,287 | Tái sử dụng EmotionCNN |
-| `SegNet` | 29,458,211 | 29,458,211 | Report ghi 29,442,325 trainable + 15,886 non-trainable |
-| `FCNObjectDetector` | 83,367 | 83,367 | Count khớp |
+|---|:---:|:---:|---|
+| `FuncApxmMLP`, $B=16$ | $65^{*}$ | 65 | $4B+1$; giá trị 65 chỉ đúng tại $B=16$ |
+| `MNISTMLP` | 669,706 | 669,706 | Khớp chính xác số tham số |
+| `MNISTCNN` | 1,817,610 | 1,817,610 | Khớp chính xác số tham số |
+| `HumanGenderCNN` | 4,063,570 | 4,063,570 | Khớp chính xác số tham số |
+| `EmotionCNN` | 19,028,287 | 19,028,287 | Khớp chính xác số tham số |
+| `MNISTCNNLSTM` | 1,747,073 (baseline) | T0206: 1,746,049;<br>T0207/T0212: 1,747,073 | **CẦN ĐỐI CHIẾU**, lệch 1,024 giữa các báo cáo |
+| Gender + callbacks | 4,063,570 | 4,063,570 | Tái sử dụng kiến trúc GenderCNN |
+| Emotion + callbacks | 19,028,287 | 19,028,287 | Tái sử dụng kiến trúc EmotionCNN |
+| `SegNet` | 29,458,211 | 29,458,211 | Gồm 29,442,325 trainable và 15,886 non-trainable |
+| `FCNObjectDetector` | 83,367 | 83,367 | Khớp chính xác số tham số |
 
 `*` Parameter-count không chứng minh output/gradient/metric parity. CNN-LSTM bất đồng nguồn phải được giải quyết bằng source snapshot và counting semantics, không chọn số theo đa số.
 
@@ -189,25 +199,25 @@ Keras notebooks / baseline
 | Nguồn | Quan sát có provenance | Caveat |
 |---|---|---|
 | T0201 sweep | 36 configs A/B/C; seed 42, SGD 0.01, batch 128. Test-grid MSE 0.02343764 tại A=100; 0.00683120 tại A=1000. | Keras numeric MSE `NOT_RECORDED`; không tuyên bố parity định lượng. |
-| T0202 `T0202_MNISTMLP_s42_20261122_132545` | 30 epochs; accuracy 0.95870, loss 0.13292970, 150.24952 giây CPU theo report. | Keras 0.9648 dùng test split cho validation/evaluate; protocol khác. |
-| Keras EXP-03/EXP-05 | CSV baseline lưu MNIST CNN accuracy 0.9884; FER train 0.8660, val 0.5954, val loss cuối 1.4070. | Legacy outputs, không phải PyTorch run; validation/public-test reuse. |
+| T0202 | **Run ID:** `T0202_MNISTMLP_s42_20261122_132545`<br>30 epoch; test accuracy: 0.95870, test loss: 0.13292970;<br>**train time:** 150.24952 giây CPU theo report. | Keras 0.9648 dùng test split cho validation/evaluate; protocol khác. |
+| Keras EXP-03 / EXP-05 | CSV baseline lưu MNIST CNN accuracy 0.9884; FER train 0.8660, val 0.5954, val loss cuối 1.4070. | Legacy outputs, không phải PyTorch run; validation/public-test reuse. |
 | T0212 smoke | 10/10 synthetic one-epoch train/validation cases PASS; parameter audit report khớp 10/10. | Chỉ xác nhận software wiring/shape, không phải kết quả data thật. |
-| T0212 logger/suite | Logger 10/10 BLOCKED; 78 pass, 4 fail trên 82 test theo shards. | T0212 overall `BLOCKED`, không PASS toàn phần. |
+| T0212 logger / suite | Logger 10/10 BLOCKED; 78 pass, 4 fail trên 82 test theo shards. | T0212 overall `BLOCKED`, không PASS toàn phần. |
 
 ## 4.3 Task status tại evidence snapshot
 
-| Hạng mục | Trạng thái trong reports | Điều kiện/bước tiếp |
+| Hạng mục | Trạng thái trong reports | Điều kiện / bước tiếp |
 |---|---|---|
-| T0201 | 36 sweep PyTorch có CSV/Run ID; Keras MSE thiếu | Chạy Keras đối chứng cùng protocol nếu cần parity |
-| T0202 | Một MNIST MLP run 30 epoch | Giữ caveat split; không suy rộng |
-| T0203–T0205 | Code/count/shape evidence; full-data metrics chưa xác nhận | Data thật, split/config/runtime, log/report |
-| T0206–T0207 | Dataset/model tests; full MAE chưa xác nhận, count discrepancy | Audit source/counting semantics rồi chạy đúng protocol |
-| T0208–T0209 | Callback code/tests; logger/data blockers | SummaryWriter tương thích và WIKI/FER thật |
-| T0210–T0211 | Architecture/shape/count; thiếu full-data metrics | Data thật và metric đúng nghĩa |
-| T0212 | **BLOCKED**; logger blocked, 4 suite failures theo shards | Sửa dependency trong môi trường được duyệt, rerun gates |
-| Full training, ablation, RQ, visual analytics | **[CHƯA CÓ BẰNG CHỨNG ĐẦY ĐỦ TRONG REPOSITORY ĐƯỢC KIỂM TRA]** | Run thật, Run ID, split/seed/config/log/checkpoint/report |
-| Demo, PDF và final acceptance | `NOT RECORDED / NOT RUN` trong reports rà soát | WBS/member confirmation và Overleaf review |
-| T0402 ownership | Workbook: Member 05; chỉ định trực tiếp hiện tại: Member 01 | Nhóm xác nhận owner trước nghiệm thu chính thức |
+| T0201 | 36 sweep PyTorch có CSV và Run ID; Keras numeric MSE ghi nhận `NOT_RECORDED` | Chạy đối chứng Keras nếu cần parity định lượng |
+| T0202 | Một MNIST MLP PyTorch 30 epoch được report | Giữ caveat split; không suy rộng cho các model khác |
+| T0203–T0205 | Code, count và shape evidence; full-data metric chưa được xác nhận | Cung cấp data/split/runtime, lưu log, Run ID và report |
+| T0206–T0207 | Dataset và model tests; full MAE chưa xác nhận; count mâu thuẫn | Đối chiếu source và counting semantics trước khi chốt |
+| T0208–T0209 | Callback code và tests; gặp blocker về logger và dữ liệu | Xác minh SummaryWriter và chạy dữ liệu WIKI/FER thật |
+| T0210–T0211 | Architecture, shape và count; thiếu full-data metric | Dữ liệu thật, metric segmentation/detection đúng chuẩn |
+| T0212 | **BLOCKED**; logger blocked, 4 test failures theo shard | Xử lý dependency ở môi trường được duyệt, chạy lại quality gates |
+| Full training / ablation / RQ | **[CHƯA CÓ BẰNG CHỨNG ĐẦY ĐỦ TRONG REPO]** | Lưu split, seed, config, runtime, Run ID, CSV/checkpoint/report |
+| Demo / PDF Overleaf | `NOT_RECORDED` / `NOT_RUN` trong reports rà soát | Xác nhận WBS; upload bundle và duyệt PDF trên Overleaf |
+| T0402 owner | Workbook ghi Member 05; chỉ định trực tiếp giao Member 01 | Nhóm xác nhận mapping trước nghiệm thu chính thức |
 
 ## 4.4 Validity matrix
 
@@ -249,9 +259,9 @@ Repository có code chuyển đổi năm nhóm, task reports, baseline inventory
 
 ## Tài liệu tham khảo
 
-1. Paszke, A., Gross, S., Massa, F., et al. (2019). *PyTorch: An Imperative Style, High-Performance Deep Learning Library*. Advances in Neural Information Processing Systems (NeurIPS 32), pp. 8024–8035. BibTeX: `paszke2019pytorch`.
-2. Badrinarayanan, V., Kendall, A., & Cipolla, C. (2017). *SegNet: A Deep Convolutional Encoder-Decoder Architecture for Image Segmentation*. IEEE Transactions on Pattern Analysis and Machine Intelligence, 39(12), 2481–2495. DOI: 10.1109/TPAMI.2016.2644615. BibTeX: `badrinarayanan2017segnet`.
-3. Nhóm BTL03 (2026). *T0212: WP02 PR review, parameter audit, CLI and smoke-test report*. `docs/reports/T0212_261123_2130.md`, source commit `33dcd74599e86404bbc8128c8057afba82810093`. BibTeX: `btl03_t0212_internal`.
+1. Paszke, A., Gross, S., Massa, F., and others (2019). *PyTorch: An Imperative Style, High-Performance Deep Learning Library*. In Advances in Neural Information Processing Systems (NeurIPS 32), pp. 8024–8035. BibTeX: `paszke2019pytorch`.
+2. Badrinarayanan, V., Kendall, A., & Cipolla, C. (2017). *SegNet: A Deep Convolutional Encoder-Decoder Architecture for Image Segmentation*. In IEEE Transactions on Pattern Analysis and Machine Intelligence (TPAMI), 39(12), pp. 2481–2495. DOI: 10.1109/TPAMI.2016.2644615. BibTeX: `badrinarayanan2017segnet`.
+3. Nhóm BTL03 (2026). *T0212: WP02 PR review, parameter audit, CLI and smoke-test report*. Internal repository report: `docs/reports/T0212_261123_2130.md`, source commit `33dcd74599e86404bbc8128c8057afba82810093`. BibTeX: `btl03_t0212_internal`.
 4. Task reports T0102–T0211, baseline/sweep/master/epoch CSV và `docs/thesis/01_materials/evidence/evidence_sources_manifest.md`.
 
 ## Phụ lục: evidence register

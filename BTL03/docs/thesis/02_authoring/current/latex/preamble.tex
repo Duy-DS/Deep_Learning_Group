@@ -5,6 +5,8 @@
 \setdefaultlanguage{vietnamese}
 \usepackage{amsmath,amssymb,mathtools}
 \usepackage{graphicx,booktabs,longtable,tabularx,array,multirow}
+\usepackage{float}
+\usepackage{url}
 \usepackage{xcolor,listings}
 \usepackage{fancyhdr,caption,enumitem,microtype}
 \usepackage{csquotes}
@@ -25,5 +27,8 @@
 \renewcommand{\arraystretch}{1.18}
 \captionsetup{labelsep=period,justification=centering,font=small}
 \newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\arraybackslash}p{#1}}
 \newcommand{\evidence}[1]{\par\smallskip\noindent\textit{Nguồn:}~#1\par\smallskip}
 \lstdefinestyle{python}{language=Python,basicstyle=\ttfamily\small,breaklines=true,frame=single,showstringspaces=false}

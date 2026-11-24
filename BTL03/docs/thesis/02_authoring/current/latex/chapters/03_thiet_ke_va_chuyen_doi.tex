@@ -6,12 +6,12 @@
 \item \texttt{seed\_everything(42)} và các thiết lập worker/generator cố định tính tái lập (reproducibility). Báo cáo T0106 lưu ý biến môi trường \texttt{PYTHONHASHSEED} cần được thiết lập trước khi khởi tạo tiến trình Python để cố định hash seed.
 \item Hệ thống callbacks hướng đối tượng quản lý trọn vẹn vòng đời huấn luyện: \texttt{EarlyStopping}, \texttt{ModelCheckpoint} và \texttt{ReduceLROnPlateau}.
 \item \texttt{ExperimentLogger} xuất log CSV từng epoch, master CSV 18 cột và TensorBoard (\texttt{SummaryWriter}); \texttt{CheckpointManager} quản lý checkpoint trọng số và mirror lên Google Drive khi đường dẫn mount tồn tại.
-\item Cấu hình YAML và điểm điều phối CLI tập trung qua \texttt{src/train.py}; chế độ \texttt{--smoke-test} sử dụng dữ liệu giả lập (synthetic fixtures), không thay thế huấn luyện chính thức.
+\item Cấu hình YAML và điểm điều phối CLI tập trung qua \path{src/train.py}; chế độ \texttt{--smoke-test} sử dụng dữ liệu giả lập (synthetic fixtures), không thay thế huấn luyện chính thức.
 \end{itemize}
 Báo cáo T0104 ghi nhận logger smoke độc lập PASS, trong khi T0212 ghi nhận \texttt{SummaryWriter} bị BLOCKED do xung đột môi trường protobuf/TensorBoard. Hai kết quả này thuộc các mốc thời gian và môi trường runtime khác nhau, cần được phản ánh độc lập và trung thực.
 
 \section{Sơ đồ pipeline và ranh giới kiểm toán}
-\begin{figure}[htbp]
+\begin{figure}[H]
 \centering
 \begin{tikzpicture}[node distance=8mm and 8mm,every node/.style={draw,rounded corners,align=center,text width=27mm,minimum height=10mm,font=\small}]
 \node (legacy) {Keras legacy\\baseline CSV};
@@ -32,14 +32,14 @@ Báo cáo T0104 ghi nhận logger smoke độc lập PASS, trong khi T0212 ghi n
 Sơ đồ trình bày kiến trúc cần kiểm toán, không khẳng định toàn bộ luồng full-data/logger chạy thành công.
 
 \section{Ma trận chuyển đổi mô hình}
-\begin{longtable}{p{0.08\textwidth}p{0.30\textwidth}p{0.32\textwidth}p{0.24\textwidth}}
+\begin{longtable}{L{0.08\textwidth}L{0.30\textwidth}L{0.32\textwidth}L{0.24\textwidth}}
 \toprule Nhóm & Cấu hình & Kỹ thuật chuyển đổi & Evidence / giới hạn \\
 \midrule
 1 & FuncApxmMLP; MNISTMLP & Linear; logits/loss & T0201 sweep; T0202 một MNIST run \\
 2 & MNISTCNN; HumanGenderCNN; EmotionCNN & Conv2d; NCHW; preprocessing & Count/shape; full metrics thiếu ở nhiều model \\
 3 & MNISTCNNLSTM & Batch-time reshape; LSTM & T0206/T0207 count lệch 1,024 \\
 4 & Gender/Emotion + utilities & Callbacks/logger/checkpoint & Code/tests; full run/logger bị thiếu hoặc blocked \\
-5 & SegNet; FCNObjectDetector & Upsample/mask; tanh score-map & Count/shape; chưa có full-data metric \\
+5 & SegNet; FCNObjectDetector & Upsample/mask; $\tanh$ score-map & Count/shape; chưa có full-data metric \\
 \bottomrule
 \end{longtable}
 

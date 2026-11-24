@@ -1,19 +1,19 @@
 \chapter{Tổng quan dự án và phạm vi}
 \section{Mục tiêu và các nhóm mô hình}
 BTL03 chuyển mười cấu hình thuộc năm nhóm từ notebook Keras sang PyTorch OOP. Hai cấu hình utilities dùng lại GenderCNN/EmotionCNN, do đó đây không phải mười kiến trúc độc lập.
-\begin{longtable}{p{0.22\textwidth}p{0.32\textwidth}c p{0.34\textwidth}}
+\begin{longtable}{L{0.25\textwidth}L{0.30\textwidth}c L{0.35\textwidth}}
 \toprule Nhóm bài toán & Cấu hình mô hình & Số lượng & Trọng tâm chuyển đổi \\
 \midrule
-1 — MLP & FuncApxmMLP; MNISTMLP & 2 & Dense $\rightarrow$ Linear; MSE loss và CrossEntropyLoss \\
-2 — CNN+MLP & MNISTCNN; HumanGenderCNN; EmotionCNN & 3 & Conv2D $\rightarrow$ Conv2d; chuyển trục NCHW; tiền xử lý \\
-3 — CNN+LSTM & MNISTCNNLSTM & 1 & Gộp/tách chiều thay thế TimeDistributed; LSTM \\
-4 — Training Utilities & Gender/Emotion + callbacks & 2 & Callback lifecycle, EarlyStopping, checkpoint, logger \\
-5 — Advanced Vision & SegNet; FCNObjectDetector & 2 & Segmentation logits/mask và score-map detection \\
+1 - MLP & FuncApxmMLP; MNISTMLP & 2 & Dense $\rightarrow$ Linear; MSE loss và CrossEntropyLoss \\
+2 - CNN+MLP & MNISTCNN; HumanGenderCNN; EmotionCNN & 3 & Conv2D $\rightarrow$ Conv2d; chuyển trục NCHW; tiền xử lý \\
+3 - CNN+LSTM & MNISTCNNLSTM & 1 & Gộp/tách chiều thay thế TimeDistributed; LSTM \\
+4 - Training Utilities & Gender/Emotion + callbacks & 2 & Callback lifecycle, EarlyStopping, checkpoint, logger \\
+5 - Advanced Vision & SegNet; FCNObjectDetector & 2 & Segmentation logits/mask và score-map detection \\
 \bottomrule
 \end{longtable}
 
 \section{Snapshot, WBS và phương pháp}
-Snapshot báo cáo lấy từ nhánh \texttt{docs/BTL03\_T0402\_thesis-report-writing} trên base commit \texttt{b2b88db3fc7444f7c37391e7211416ea3843a31e}. Reports thực nghiệm mới nhất được rà soát là T0212 (2026-11-23).
+Snapshot báo cáo lấy từ nhánh \path{docs/BTL03_T0402_thesis-report-writing} trên base commit \path{b2b88db3fc7444f7c37391e7211416ea3843a31e}. Reports thực nghiệm mới nhất được rà soát là T0212 (2026-11-23).
 
 Theo \texttt{AGENTS.md} và cấu trúc điều hành dự án hiện hành, toàn bộ dự án gồm 4 Work Packages (\texttt{WP01}--\texttt{WP04}) và 30 tasks (\texttt{T0101}--\texttt{T0406}) phân bổ cho 5 thành viên:
 \begin{itemize}
@@ -25,8 +25,8 @@ Theo \texttt{AGENTS.md} và cấu trúc điều hành dự án hiện hành, to�
 
 Quy ước đặt tên file bằng chứng nghiệm thu trong repo tuân thủ nghiêm ngặt hai định dạng:
 \begin{itemize}
-\item Định dạng ưu tiên theo Sheets: \texttt{[YYMMDD]\_Txxxx\_<ten\_task>.md} (ví dụ: \texttt{261126\_T0102\_data\_pipeline\_report.md}, \texttt{261127\_T0103\_keras\_baseline\_log.md}).
-\item Định dạng có timestamp: \texttt{[Task ID]\_[YYMMDD]\_[HHMM].md} (ví dụ: \texttt{T0201\_261122\_2112.md}, \texttt{T0212\_261123\_2130.md}, \texttt{T0402\_261124\_0831.md}).
+\item Định dạng ưu tiên theo Sheets: \path{[YYMMDD]_Txxxx_<ten_task>.md} (ví dụ: \path{docs/reports/261126_T0102_data_pipeline_report.md}, \path{docs/reports/261127_T0103_keras_baseline_log.md}).
+\item Định dạng có timestamp: \path{[Task ID]_[YYMMDD]_[HHMM].md} (ví dụ: \path{docs/reports/T0201_261122_2112.md}, \path{docs/reports/T0212_261123_2130.md}, \path{docs/reports/T0402_261124_0831.md}).
 \end{itemize}
 
 Workbook \texttt{Quan\_Ly\_Tasks} giao T0402 cho Member 05 trong WP04; yêu cầu trực tiếp của nhóm trưởng giao Member 01 tổng hợp bản hiện tại. Bài viết theo chỉ định trực tiếp, ghi nhận mâu thuẫn phân công để nhóm xác nhận, không tự ý sửa WBS.

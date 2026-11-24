@@ -6,24 +6,26 @@
 {\Large\bfseries BÁO CÁO TỔNG KẾT BTL03}\\[0.5cm]
 {\LARGE\bfseries CHUYỂN ĐỔI MÃ NGUỒN DEEP LEARNING\\ TỪ KERAS SANG PYTORCH}\\[0.7cm]
 Snapshot tài liệu: T0402\\
-Base repository: \texttt{b2b88db3fc7444f7c37391e7211416ea3843a31e}\\
+Base repository: \path{b2b88db3fc7444f7c37391e7211416ea3843a31e}\\
 Evidence report mới nhất: T0212 (2026-11-23)\\
 Ngày lập: 2026-11-24
 \vfill
-\begin{tabularx}{\textwidth}{c p{0.32\textwidth} p{0.22\textwidth} X}
-\toprule STT & Thành viên / alias & Họ tên / MSSV & Vai trò theo evidence \\
+\noindent
+\begin{tabularx}{\textwidth}{c >{\raggedright\arraybackslash\ttfamily\small}p{0.37\textwidth} >{\centering\arraybackslash}p{0.20\textwidth} >{\raggedright\arraybackslash}X}
+\toprule
+STT & \textrm{\textbf{Thành viên / alias}} & \textbf{Họ tên / MSSV} & \textbf{Vai trò theo evidence} \\
 \midrule
-1 & \texttt{Duy-DS} & [NHÓM XÁC NHẬN] & Member 01; Trưởng nhóm / tổng hợp bản này theo chỉ định trực tiếp \\
-2 & \texttt{nguyenthanhdat180905-cloud} & [NHÓM XÁC NHẬN] & Member 02; Task reports nhóm 2 (CNN+MLP) \\
-3 & \texttt{nguyen-cong-tri} & [NHÓM XÁC NHẬN] & Member 03; Task reports nhóm 3 (CNN+LSTM) \\
-4 & \texttt{TonOfWeight072501} & [NHÓM XÁC NHẬN] & Member 04; Task reports nhóm 4 (Training Utilities) \\
-5 & \texttt{CHIVY2005} & [NHÓM XÁC NHẬN] & Member 05; Task reports nhóm 5 (Advanced Vision) \\
+1 & Duy-DS & [NHÓM XÁC NHẬN] & Member 01; Trưởng nhóm / tổng hợp bản này theo chỉ định trực tiếp \\
+2 & nguyenthanhdat180905-cloud & [NHÓM XÁC NHẬN] & Member 02; Task reports nhóm 2 (CNN+MLP) \\
+3 & nguyen-cong-tri & [NHÓM XÁC NHẬN] & Member 03; Task reports nhóm 3 (CNN+LSTM) \\
+4 & TonOfWeight072501 & [NHÓM XÁC NHẬN] & Member 04; Task reports nhóm 4 (Training Utilities) \\
+5 & CHIVY2005 & [NHÓM XÁC NHẬN] & Member 05; Task reports nhóm 5 (Advanced Vision) \\
 \midrule
-\multicolumn{2}{l}{Lớp/giảng viên: [NHÓM XÁC NHẬN]} & \multicolumn{2}{l}{Tỷ lệ đóng góp: [NHÓM XÁC NHẬN; tổng 100\%]} \\
+\multicolumn{2}{@{}l@{}}{\small Lớp / giảng viên: [NHÓM XÁC NHẬN]} & \multicolumn{2}{r@{}}{\small Tỷ lệ đóng góp: [NHÓM XÁC NHẬN; tổng 100\%]} \\
 \bottomrule
 \end{tabularx}
 \vspace{0.5em}
-\begin{minipage}{0.94\textwidth}\small
+\begin{minipage}{0.96\textwidth}\small
 \textbf{Ghi chú phân công:} workbook điều hành ghi T0402 thuộc Member 05; nhóm trưởng chỉ định trực tiếp Member 01 soạn snapshot hiện tại. Owner/WBS chính thức cần được nhóm xác nhận trước nghiệm thu cuối.
 \end{minipage}
 \vfill
@@ -54,7 +56,7 @@ RQ/WBS & Research Questions / Work Breakdown Structure \\
 \chapter*{Câu hỏi nghiên cứu}
 \addcontentsline{toc}{chapter}{Câu hỏi nghiên cứu}
 README BTL03 có RQ1/RQ2; charter Markdown đúng tên chưa được xác minh. Các câu dưới đây là tóm lược theo README, chưa xác nhận là câu chữ nguyên văn của charter.
-\begin{longtable}{p{0.14\textwidth}p{0.38\textwidth}p{0.26\textwidth}p{0.18\textwidth}}
+\begin{longtable}{L{0.14\textwidth}L{0.38\textwidth}L{0.28\textwidth}L{0.16\textwidth}}
 \toprule ID & Câu hỏi tóm lược & Evidence cần & Trạng thái \\
 \midrule
 RQ1* & Layout tensor (NHWC/NCHW), vòng lặp và khởi tạo ảnh hưởng thế nào đến hội tụ và gradient? & Run đối chứng cùng protocol & Chưa kết luận tổng quát \\

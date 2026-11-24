@@ -1,8 +1,8 @@
 \chapter{Kiểm toán T0212, kết quả và trạng thái}\label{ch:evidence}
-Report T0212 là nguồn chính cho kết quả smoke, logger blocker và test suite tại snapshot. Các metric baseline Keras được tách khỏi các run PyTorch; dẫn chiếu nội bộ là \texttt{docs/reports/T0212\_261123\_2130.md}.
+Report T0212 là nguồn chính cho kết quả smoke, logger blocker và test suite tại snapshot. Các metric baseline Keras được tách khỏi các run PyTorch; dẫn chiếu nội bộ là \path{docs/reports/T0212_261123_2130.md}.
 
 \section{Parameter-count audit}
-\begin{longtable}{p{0.24\textwidth}p{0.18\textwidth}p{0.30\textwidth}p{0.22\textwidth}}
+\begin{longtable}{L{0.25\textwidth}C{0.14\textwidth}C{0.23\textwidth}L{0.32\textwidth}}
 \caption{Đối chiếu parameter count theo baseline/task reports}\label{tab:t0402-params}\\
 \toprule Cấu hình & Keras & PyTorch / report & Diễn giải \\
 \midrule
@@ -14,21 +14,21 @@ Report T0212 là nguồn chính cho kết quả smoke, logger blocker và test s
 \endfoot
 \bottomrule
 \endlastfoot
-FuncApxmMLP, $B=16$ & 65* & 65 & $4B+1$; 65 chỉ tại $B=16$ \\
-MNISTMLP & 669,706 & 669,706 & Count khớp \\
-MNISTCNN & 1,817,610 & 1,817,610 & Count khớp \\
-HumanGenderCNN & 4,063,570 & 4,063,570 & Count khớp \\
-EmotionCNN & 19,028,287 & 19,028,287 & Count khớp \\
-MNISTCNNLSTM & 1,747,073 baseline & T0206: 1,746,049;\newline T0207/T0212: 1,747,073 & \textbf{CẦN ĐỐI CHIẾU}, lệch report 1,024 \\
-Gender + callbacks & 4,063,570 & 4,063,570 & Tái sử dụng GenderCNN \\
-Emotion + callbacks & 19,028,287 & 19,028,287 & Tái sử dụng EmotionCNN \\
-SegNet & 29,458,211 & 29,458,211 & 29,442,325 trainable + 15,886 non-trainable \\
-FCNObjectDetector & 83,367 & 83,367 & Count khớp \\
+FuncApxmMLP, $B=16$ & $65^{*}$ & 65 & $4B+1$; giá trị 65 chỉ đúng tại $B=16$ \\
+MNISTMLP & 669,706 & 669,706 & Khớp chính xác số tham số \\
+MNISTCNN & 1,817,610 & 1,817,610 & Khớp chính xác số tham số \\
+HumanGenderCNN & 4,063,570 & 4,063,570 & Khớp chính xác số tham số \\
+EmotionCNN & 19,028,287 & 19,028,287 & Khớp chính xác số tham số \\
+MNISTCNNLSTM & 1,747,073 (baseline) & T0206: 1,746,049;\newline T0207/T0212: 1,747,073 & \textbf{CẦN ĐỐI CHIẾU}, lệch 1,024 giữa các báo cáo \\
+Gender + callbacks & 4,063,570 & 4,063,570 & Tái sử dụng kiến trúc GenderCNN \\
+Emotion + callbacks & 19,028,287 & 19,028,287 & Tái sử dụng kiến trúc EmotionCNN \\
+SegNet & 29,458,211 & 29,458,211 & Gồm 29,442,325 trainable và 15,886 non-trainable \\
+FCNObjectDetector & 83,367 & 83,367 & Khớp chính xác số tham số \\
 \end{longtable}
 \noindent * EXP-01 Keras summary số không được lưu; giá trị suy từ công thức chỉ đúng khi $B=16$. Parameter count không chứng minh output/gradient/metric parity.
 
 \section{Các kết quả có Run ID hoặc task report}
-\begin{longtable}{p{0.22\textwidth}p{0.42\textwidth}p{0.30\textwidth}}
+\begin{longtable}{L{0.22\textwidth}L{0.44\textwidth}L{0.28\textwidth}}
 \caption{Evidence thực nghiệm và giới hạn diễn giải}\label{tab:t0402-results}\\
 \toprule Evidence & Quan sát có nguồn & Giới hạn \\
 \midrule
@@ -41,15 +41,15 @@ FCNObjectDetector & 83,367 & 83,367 & Count khớp \\
 \bottomrule
 \endlastfoot
 T0201 & 36 sweep configs A/B/C; seed 42, SGD 0.01, batch 128. Test-grid MSE: 0.02343764 tại A=100; 0.00683120 tại A=1000. & Keras numeric MSE NOT\_RECORDED; không kết luận parity metric. \\
-T0202, Run\_ID \texttt{T0202\_MNISTMLP\_s42\_20261122\_132545} & 30 epoch; test accuracy 0.95870, test loss 0.13292970, train time 150.24952 giây CPU theo report. & Keras 0.9648 dùng test split làm validation/evaluate; protocol khác. \\
-Keras EXP-03/EXP-05 & CSV baseline lưu MNIST CNN accuracy 0.9884; FER train accuracy 0.8660, val accuracy 0.5954, val loss cuối 1.4070. & Legacy outputs, không phải PyTorch run; split validation/public-test có reuse. \\
+T0202 & \textbf{Run ID:}\newline \path{T0202_MNISTMLP_s42_20261122_132545}\newline 30 epoch; test accuracy: 0.95870, test loss: 0.13292970;\newline \textbf{train time:} 150.24952 giây CPU theo report. & Keras 0.9648 dùng test split làm validation/evaluate; protocol khác. \\
+Keras EXP-03 / EXP-05 & CSV baseline lưu MNIST CNN accuracy 0.9884; FER train accuracy 0.8660, val accuracy 0.5954, val loss cuối 1.4070. & Legacy outputs, không phải PyTorch run; split validation/public-test có reuse. \\
 T0212 smoke & 10/10 synthetic one-epoch train/validation cases PASS; parameter audit được report khớp 10/10 cấu hình. & Kiểm tra wiring/shape, không phải full training hay accuracy data thật. \\
-T0212 logger/suite & Logger 10/10 BLOCKED; suite shards 78 passed, 4 failed trên 82 test. & Overall status BLOCKED; không gọi nghiệm thu toàn phần. \\
+T0212 logger / suite & Logger 10/10 BLOCKED; suite shards 78 passed, 4 failed trên 82 test. & Overall status BLOCKED; không gọi nghiệm thu toàn phần. \\
 \end{longtable}
-\evidence{\texttt{docs/reports/T0201\_261122\_2112.md}, \texttt{docs/reports/T0202\_261122\_2112.md}, \texttt{docs/reports/T0212\_261123\_2130.md}; CSV baseline/sweep/master và epoch traces.}
+\evidence{\path{docs/reports/T0201_261122_2112.md}, \path{docs/reports/T0202_261122_2112.md}, \path{docs/reports/T0212_261123_2130.md}; CSV baseline/sweep/master và epoch traces.}
 
 \section{Trạng thái task và điều kiện xác minh tiếp}
-\begin{longtable}{p{0.20\textwidth}p{0.42\textwidth}p{0.32\textwidth}}
+\begin{longtable}{L{0.24\textwidth}L{0.44\textwidth}L{0.28\textwidth}}
 \caption{Trạng thái theo task evidence đã rà soát}\label{tab:t0402-status}\\
 \toprule Hạng mục & Trạng thái trong reports & Bước xác minh tiếp \\
 \midrule
@@ -61,16 +61,16 @@ T0212 logger/suite & Logger 10/10 BLOCKED; suite shards 78 passed, 4 failed trê
 \endfoot
 \bottomrule
 \endlastfoot
-T0201 & 36 sweep PyTorch có CSV/Run\_ID; Keras numeric MSE NOT\_RECORDED & Chạy đối chứng Keras nếu cần parity định lượng \\
+T0201 & 36 sweep PyTorch có CSV và Run ID; Keras numeric MSE ghi nhận \path{NOT_RECORDED} & Chạy đối chứng Keras nếu cần parity định lượng \\
 T0202 & Một MNIST MLP PyTorch 30 epoch được report & Giữ caveat split; không suy rộng cho các model khác \\
-T0203--T0205 & Code/count/shape evidence; full-data metric chưa được xác nhận & Cung cấp data/split/runtime, lưu log/Run\_ID/report \\
-T0206--T0207 & Dataset/model tests; full MAE chưa xác nhận; count mâu thuẫn & Đối chiếu source/counting semantics trước khi chốt \\
-T0208--T0209 & Callback code/tests; logger/data blocker & Xác minh SummaryWriter và chạy WIKI/FER thật \\
-T0210--T0211 & Architecture/shape/count; thiếu full-data metric & Data thật, metric segmentation/detection đúng định nghĩa \\
+T0203--T0205 & Code, count và shape evidence; full-data metric chưa được xác nhận & Cung cấp data/split/runtime, lưu log, Run ID và report \\
+T0206--T0207 & Dataset và model tests; full MAE chưa xác nhận; count mâu thuẫn & Đối chiếu source và counting semantics trước khi chốt \\
+T0208--T0209 & Callback code và tests; gặp blocker về logger và dữ liệu & Xác minh SummaryWriter và chạy dữ liệu WIKI/FER thật \\
+T0210--T0211 & Architecture, shape và count; thiếu full-data metric & Dữ liệu thật, metric segmentation/detection đúng chuẩn \\
 T0212 & \textbf{BLOCKED}; logger blocked, 4 test failures theo shard & Xử lý dependency ở môi trường được duyệt, chạy lại quality gates \\
-Full training / ablation / RQ & \textbf{[CHƯA CÓ BẰNG CHỨNG ĐẦY ĐỦ TRONG REPOSITORY ĐƯỢC KIỂM TRA]} & Lưu split, seed, config, runtime, Run\_ID, CSV/checkpoint/report \\
-Demo / PDF Overleaf & NOT RECORDED / NOT RUN trong reports đã rà soát & Xác nhận WBS; upload bundle và duyệt PDF trên Overleaf \\
-T0402 owner & Workbook ghi Member 05; yêu cầu trực tiếp chỉ định Member 01 tổng hợp bản này & Nhóm xác nhận mapping trước nghiệm thu chính thức \\
+Full training / ablation / RQ & \textbf{[CHƯA CÓ BẰNG CHỨNG ĐẦY ĐỦ TRONG REPO]} & Lưu split, seed, config, runtime, Run ID, CSV/checkpoint/report \\
+Demo / PDF Overleaf & \path{NOT_RECORDED} / \path{NOT_RUN} trong reports rà soát & Xác nhận WBS; upload bundle và duyệt PDF trên Overleaf \\
+T0402 owner & Workbook ghi Member 05; chỉ định trực tiếp giao Member 01 & Nhóm xác nhận mapping trước nghiệm thu chính thức \\
 \end{longtable}
 
 \section{Thảo luận và validity}

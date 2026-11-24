@@ -4,7 +4,7 @@ Repository lưu code chuyển đổi cho năm nhóm, task reports, baseline inve
 
 \section{Hạn chế và validity threats}
 \begin{enumerate}
-\item Notebook legacy thiếu metadata phần cứng/seed/checksum hoặc metric số; \texttt{NOT\_RECORDED} không được thay bằng suy đoán.
+\item Notebook legacy thiếu metadata phần cứng/seed/checksum hoặc metric số; \path{NOT_RECORDED} không được thay bằng suy đoán.
 \item Một số validation/public-test split được tái sử dụng; không gọi là independent holdout.
 \item Dữ liệu một số nhóm và PyTorch full-data runs chưa có trong reports; runtime CPU-only và logger dependency blocker giới hạn diễn giải.
 \item Parameter count không chứng minh output/gradient/metric parity; CNN-LSTM reports lệch 1,024 tham số.
@@ -16,7 +16,7 @@ Repository lưu code chuyển đổi cho năm nhóm, task reports, baseline inve
 \section{Bài học và kiến nghị}
 \begin{itemize}
 \item Khóa split, seed, preprocessing, loss/optimizer và runtime trước khi so framework.
-\item Mỗi số liệu phải gắn task, source, Run\_ID, split và caveat; tách rõ legacy output với PyTorch run.
+\item Mỗi số liệu phải gắn task, source, Run ID, split và caveat; tách rõ legacy output với PyTorch run.
 \item Khắc phục TensorBoard/protobuf trong môi trường được duyệt rồi chạy lại logger/full suite; không thay bằng writer giả.
 \item Audit source/counting semantics CNN-LSTM trước khi chốt parity.
 \item Chỉ trả lời RQ và tuyên bố hiệu quả ablation sau các run đối chứng thật; dùng metric segmentation/detection đúng nghĩa.
