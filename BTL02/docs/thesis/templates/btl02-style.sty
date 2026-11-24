@@ -4,16 +4,66 @@
 \RequirePackage{iftex}
 \RequirePackage{ifthen}
 \ifPDFTeX
-  \RequirePackage[T1]{fontenc}
   \RequirePackage[utf8]{inputenc}
+  \RequirePackage[T5]{fontenc}
   \RequirePackage{mathptmx}
+  \RequirePackage{textcomp}
+  \RequirePackage[vietnamese]{babel}
 \else
   \RequirePackage{fontspec}
   \IfFontExistsTF{Times New Roman}{\setmainfont{Times New Roman}}{\setmainfont{Latin Modern Roman}}
+  \RequirePackage[english]{babel}
+  \babelprovide[import,main]{vietnamese}
+  \babelprovide[import]{english}
 \fi
-\RequirePackage[english]{babel}
-\babelprovide[import,main]{vietnamese}
-\babelprovide[import]{english}
+
+\addto\captionsvietnamese{%
+  \renewcommand{\contentsname}{MỤC LỤC}%
+  \renewcommand{\listfigurename}{DANH MỤC HÌNH ẢNH}%
+  \renewcommand{\listtablename}{DANH MỤC BẢNG BIỂU}%
+  \renewcommand{\bibname}{TÀI LIỆU THAM KHẢO}%
+  \renewcommand{\figurename}{Hình}%
+  \renewcommand{\tablename}{Bảng}%
+  \renewcommand{\chaptername}{CHƯƠNG}%
+  \renewcommand{\appendixname}{PHỤ LỤC}%
+}
+
+\ifPDFTeX
+  \DeclareUnicodeCharacter{2013}{\textendash}
+  \DeclareUnicodeCharacter{2014}{\textemdash}
+  \DeclareUnicodeCharacter{201C}{``}
+  \DeclareUnicodeCharacter{201D}{''}
+  \DeclareUnicodeCharacter{2018}{`}
+  \DeclareUnicodeCharacter{2019}{'}
+  \DeclareUnicodeCharacter{2026}{\ldots}
+  \DeclareUnicodeCharacter{00B0}{\textdegree}
+  \DeclareUnicodeCharacter{00D7}{\ensuremath{\times}}
+  \DeclareUnicodeCharacter{00F7}{\ensuremath{\div}}
+  \DeclareUnicodeCharacter{00B1}{\ensuremath{\pm}}
+  \DeclareUnicodeCharacter{2248}{\ensuremath{\approx}}
+  \DeclareUnicodeCharacter{2264}{\ensuremath{\le}}
+  \DeclareUnicodeCharacter{2265}{\ensuremath{\ge}}
+  \DeclareUnicodeCharacter{2260}{\ensuremath{\ne}}
+  \DeclareUnicodeCharacter{00B2}{\textsuperscript{2}}
+  \DeclareUnicodeCharacter{00B3}{\textsuperscript{3}}
+  \DeclareUnicodeCharacter{2192}{\ensuremath{\rightarrow}}
+  \DeclareUnicodeCharacter{2190}{\ensuremath{\leftarrow}}
+  \DeclareUnicodeCharacter{2194}{\ensuremath{\leftrightarrow}}
+  \DeclareUnicodeCharacter{03B1}{\ensuremath{\alpha}}
+  \DeclareUnicodeCharacter{03B2}{\ensuremath{\beta}}
+  \DeclareUnicodeCharacter{03B3}{\ensuremath{\gamma}}
+  \DeclareUnicodeCharacter{0394}{\ensuremath{\Delta}}
+  \DeclareUnicodeCharacter{03A3}{\ensuremath{\Sigma}}
+  \DeclareUnicodeCharacter{03BC}{\ensuremath{\mu}}
+  \DeclareUnicodeCharacter{03C3}{\ensuremath{\sigma}}
+  \DeclareUnicodeCharacter{03C1}{\ensuremath{\rho}}
+  \DeclareUnicodeCharacter{03C4}{\ensuremath{\tau}}
+  \DeclareUnicodeCharacter{221E}{\ensuremath{\infty}}
+  \DeclareUnicodeCharacter{2208}{\ensuremath{\in}}
+  \DeclareUnicodeCharacter{2211}{\ensuremath{\sum}}
+  \DeclareUnicodeCharacter{2202}{\ensuremath{\partial}}
+  \DeclareUnicodeCharacter{221A}{\ensuremath{\sqrt{\vphantom{x}}}}
+\fi
 
 \RequirePackage[a4paper,left=3cm,right=1.5cm,top=2cm,bottom=2cm]{geometry}
 \RequirePackage{setspace}
@@ -33,13 +83,22 @@
 \RequirePackage{caption}
 \RequirePackage{enumitem}
 \RequirePackage{etoolbox}
+\RequirePackage{titlesec}
+\RequirePackage{titletoc}
+
 \onehalfspacing
 \setstretch{1.3}
-% Dùng report chuẩn; cỡ chữ thân bài theo quy định 13pt.
 \AtBeginDocument{\fontsize{13pt}{16.9pt}\selectfont}
 \setlength{\parindent}{1.25cm}
 \setlength{\parskip}{0.25em}
 \hypersetup{colorlinks=true,linkcolor=blue!50!black,citecolor=green!40!black,urlcolor=blue!60!black}
+
+\titlecontents{chapter}[0pt]{\addvspace{5pt}\bfseries}
+  {CHƯƠNG \thecontentslabel:\ }{}{\titlerule*[0.6pc]{.}\contentspage}
+\titlecontents{section}[1.0cm]{}
+  {\contentslabel{1.0cm}}{}{\titlerule*[0.6pc]{.}\contentspage}
+\titlecontents{subsection}[2.2cm]{\small}
+  {\contentslabel{1.2cm}}{}{\titlerule*[0.6pc]{.}\contentspage}
 
 \newcommand{\code}[1]{\texttt{\detokenize{#1}}}
 \newcommand{\todofigure}[1]{%
@@ -71,5 +130,4 @@
   \end{tabular}\\[1.4cm]
   {\large TP. Hồ Chí Minh, #5}\par
   \end{titlepage}}
-
 \endinput

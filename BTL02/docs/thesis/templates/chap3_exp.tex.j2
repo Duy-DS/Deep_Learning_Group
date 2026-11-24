@@ -1,65 +1,73 @@
 \chapter{Thiết lập thực nghiệm và kết quả}
 
 \section{Thiết lập chung và cách đọc số liệu}
-Các YAML khóa seed 42 và split FER2013 chuẩn. Metrics dưới đây lấy từ CSV MLflow 24 cột; mỗi cấu hình có một seed, nên báo cáo số đo của run chứ không tính mean±std. Các trường \code{metrics.train_loss} và \code{metrics.train_acc} là số tổng kết cuối run, còn PublicTest là validation/model selection và PrivateTest là đánh giá cuối với checkpoint được chọn. Hai loại số không nhất thiết thuộc cùng epoch. CSV summary không có loss/accuracy/LR theo epoch, nên không thể dựng training curves có thật từ các file hiện có.
-\todofigure{Training/Validation Loss, Accuracy và Learning Rate theo epoch; cần khôi phục MLflow epoch-history}
+Các file cấu hình YAML khóa seed 42 và sử dụng tập dữ liệu FER2013 với split chuẩn. Các chỉ số thực nghiệm dưới đây được trích xuất trực tiếp từ nhật ký CSV MLflow 24 cột; mỗi cấu hình tương ứng với một seed cố định, do đó báo cáo trình bày số đo thực tế của từng run. Các trường \code{metrics.train_loss} và \code{metrics.train_acc} là số đo tổng kết cuối quá trình huấn luyện, trong khi tập PublicTest được dùng làm tập kiểm định để chọn checkpoint tối ưu và PrivateTest là tập đánh giá độc lập cuối cùng với mô hình được chọn. Do nhật ký CSV summary không lưu vết độ đo theo từng epoch nên đồ thị huấn luyện chi tiết được đánh dấu để bổ sung khi khôi phục lịch sử epoch từ MLflow server.
+\todofigure{Đồ thị Training/Validation Loss, Accuracy và Learning Rate theo từng epoch}
 
 \section{RQ1: Độ sâu Custom CNN}
-Ba run T0203 dùng SmallCNN, MediumCNN và LargeCNN ở 48×48, seed 42. Từ Bảng \ref{tab:rq1-depth}, Small→Medium tăng Private Accuracy từ 51,5464\% lên 63,5553\%, còn Macro-F1 tăng 0,471769 lên 0,625449. Medium→Large tăng Private Accuracy thêm 1,3931 điểm phần trăm và Macro-F1 thêm 0,010197. Public accuracy của Medium/Large gần nhau (63,8061\% và 63,8339\%), nên mức cải thiện ở bước cuối nhỏ hơn rõ rệt so với bước Small→Medium.
+Ba lượt chạy trong thực nghiệm T0203 khảo sát ba kiến trúc SmallCNN, MediumCNN và LargeCNN ở kích thước ảnh $48 \times 48$, seed 42. Từ Bảng \ref{tab:rq1-depth}, việc mở rộng từ SmallCNN sang MediumCNN giúp tăng Private Accuracy từ 51,55\% lên 63,56\% (tăng 12,01 điểm phần trăm), đồng thời Macro-F1 tăng từ 0,4718 lên 0,6254. Khi chuyển tiếp từ MediumCNN sang LargeCNN, Private Accuracy chỉ tăng thêm 1,39 điểm phần trăm (đạt 64,95\%) và Macro-F1 tăng thêm 0,0102 (đạt 0,6356). Độ chính xác trên tập Public giữa MediumCNN và LargeCNN rất sát nhau (63,81\% và 63,83\%), cho thấy mức cải thiện ở bước tăng block cuối cùng nhỏ hơn rõ rệt so với bước Small sang Medium.
 
-Khoảng cách mô tả giữa Train Acc cuối run và Private Acc best checkpoint lần lượt là 10,5735 pp, 25,6780 pp và 27,4546 pp. Đây không phải gap đo đồng thời trên cùng checkpoint; chỉ dùng như chỉ báo mô tả. Các kiến trúc cũng khác channels/BatchNorm/Dropout, do đó so sánh này không cô lập riêng tác động của số block. Kết quả phù hợp với giả thuyết lợi ích biên giảm khi chuyển từ ba sang bốn block trên ảnh nhỏ, nhưng chỉ có một seed.
+Khoảng cách mô tả giữa Train Acc cuối run và Private Acc của checkpoint tối ưu lần lượt là 10,57, 25,68 và 27,45 điểm phần trăm. Đây không phải khoảng cách đo đồng thời trên cùng một thời điểm mà là chỉ báo mô tả xu hướng quá khớp khi tăng độ sâu mạng. Do các kiến trúc cũng đồng thời thay đổi số kênh đặc trưng, BatchNorm và Dropout, so sánh này không cô lập riêng tác động của số lượng block tích chập. Kết quả phù hợp với giả thuyết lợi ích biên giảm dần khi tăng độ sâu mạng trên ảnh độ phân giải thấp ($48 \times 48$), trong điều kiện thử nghiệm một seed.
 
-\begin{center}\textbf{Bảng 3.1. Metrics RQ1 từ CSV T0203 (seed 42)}\end{center}
+\input{generated/tables/rq1_depth.tex}
+
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=0.95\textwidth]{t0602_rq1_metrics.png}
-\caption{PublicTest validation Accuracy, PrivateTest Accuracy và Macro-F1 của ba run RQ1; Macro-F1 được đổi sang phần trăm để cùng trục.}
+\caption{Độ chính xác PublicTest validation, PrivateTest và Macro-F1 của ba mô hình Custom CNN (RQ1); Macro-F1 được đổi sang đơn vị phần trăm để cùng tỷ lệ trục.}
 \label{fig:rq1-metrics}
 \end{figure}
+
 \begin{calloutbox}
-RQ1: Trong run seed 42, Medium cải thiện mạnh so với Small; Large chỉ tăng nhẹ so với Medium trong khi gap mô tả train–private lớn hơn. Kết luận bị giới hạn bởi một seed và việc đồng thời thay đổi độ rộng/regularization.
+RQ1: Trong thử nghiệm cố định seed 42, MediumCNN cải thiện mạnh mẽ so với SmallCNN; LargeCNN chỉ tăng nhẹ so với MediumCNN trong khi khoảng cách Train--Private nới rộng đáng kể. Kết luận chịu giới hạn bởi một seed và sự thay đổi đồng thời giữa độ rộng mạng và các thành phần chuẩn hóa.
 \end{calloutbox}
 
 \section{RQ2: Transfer learning, kích thước ảnh và chi phí}
-Trong ba backbone pretrained ở 128×128, EXP-04 VGG16 có Private Accuracy 71,0226\% và Macro-F1 0,707276; EXP-05 ResNet50 có PublicTest validation accuracy cao nhất trong nhóm (70,4653\%) và Private Accuracy 70,7718\%; EXP-06 EfficientNet-B0 có Private Accuracy 69,8245\% và Macro-F1 0,697549. Đây là các kết quả đơn seed, không có khoảng tin cậy.
+Trong ba kiến trúc backbone tiền huấn luyện trên ImageNet ở kích thước ảnh $128 \times 128$ (Bảng \ref{tab:rq2-transfer}), EXP-04 VGG16 đạt Private Accuracy 71,02\% và Macro-F1 0,7073 (vượt mốc 71\% trên Private Test); EXP-05 ResNet50 đạt Public validation accuracy cao nhất nhóm (70,47\%) và Private Accuracy 70,77\%; EXP-06 EfficientNet-B0 đạt Private Accuracy 69,82\% và Macro-F1 0,6975. Đây là các kết quả trên một seed độc lập.
 
-Các cặp pretrained/scratch cùng backbone ở 128×128 cho thấy Private Accuracy tăng 1,6160 pp với VGG16, 3,0649 pp với ResNet50 và 5,2940 pp với EfficientNet-B0. Khi so pretrained 48×48 với 128×128, 48×48 thấp hơn lần lượt 1,3653, 2,3962 và 4,3188 pp. Kết quả hỗ trợ hướng 128×128 trong các cặp đã chạy; không chứng minh đây là mức tối ưu phổ quát. Resize không tạo thêm thông tin ảnh, dù kích thước đầu vào lớn hơn làm thay đổi kích thước feature map ở các tầng đầu.
+So sánh giữa cấu hình tiền huấn luyện (pretrained) và huấn luyện từ đầu (scratch) ở kích thước $128 \times 128$ cho thấy Private Accuracy tăng 1,62 điểm phần trăm với VGG16, 3,06 điểm phần trăm với ResNet50 và 5,29 điểm phần trăm với EfficientNet-B0. Khi so sánh giữa kích thước $48 \times 48$ và $128 \times 128$ trong chế độ pretrained, kết quả ở $48 \times 48$ thấp hơn lần lượt 1,37, 2,40 và 4,32 điểm phần trăm. Số liệu thực nghiệm ủng hộ phương án nâng kích thước lên $128 \times 128$ và sử dụng trọng số tiền huấn luyện trong các cấu hình đã chạy. Thao tác nâng kích thước không tạo thêm thông tin gốc nhưng mở rộng kích thước bản đồ đặc trưng ở các tầng đầu.
 
-Bảng T0305 trong experience ghi số đo CPU cho sáu cấu hình benchmark: EfficientNet-B0 có MACs thấp hơn VGG16/ResNet50, nhưng timing phụ thuộc máy và không đại diện GPU. Vì file benchmark CSV hiện không có trong outputs, bảng chi phí dưới đây được trích từ experience T0305 đã nghiệm thu; cột Params lấy từ cùng bảng T0305, không được tạo từ CSV summary.
-\begin{center}\textbf{Bảng 3.2. Đối chiếu các run RQ2 pretrained-128}\end{center}
+Bảng \ref{tab:compute-cost} trích xuất từ tài liệu kinh nghiệm T0305 đã nghiệm thu ghi nhận số đo CPU cho sáu cấu hình benchmark: EfficientNet-B0 có FLOPs và số lượng tham số thấp hơn đáng kể so với VGG16 và ResNet50, dù thời gian thực thi phụ thuộc vào môi trường phần cứng máy đo và không đại diện cho hiệu năng trên GPU.
+
 \input{generated/tables/rq2_transfer.tex}
-\begin{center}\textbf{Bảng 3.3. Benchmark chi phí CPU ghi trong experience T0305}\end{center}
+
 \input{generated/tables/compute_cost.tex}
+
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=0.95\textwidth]{t0602_rq2_metrics.png}
-\caption{Public/Private accuracy và Macro-F1 của ba backbone pretrained ở 128×128; một seed cho mỗi run.}
+\caption{Độ chính xác Public/Private và Macro-F1 của ba backbone tiền huấn luyện ở kích thước $128 \times 128$ (seed 42).}
+\label{fig:rq2-metrics}
 \end{figure}
+
 \begin{calloutbox}
-RQ2: Các run có sẵn ủng hộ pretrained và input 128×128 so với các cặp scratch/48×48 đã đo. VGG16 đạt private metrics cao nhất trong pretrained-128; EfficientNet-B0 có chi phí thấp nhất trong benchmark CPU T0305. Không suy rộng timing CPU thành hiệu năng GPU.
+RQ2: Các kết quả thực nghiệm ủng hộ việc sử dụng trọng số ImageNet tiền huấn luyện và kích thước đầu vào $128 \times 128$ so với các cặp huấn luyện từ đầu và kích thước $48 \times 48$. VGG16 đạt độ chính xác Private cao nhất trong nhóm pretrained-128; EfficientNet-B0 có chi phí tính toán thấp nhất trong benchmark CPU T0305.
 \end{calloutbox}
 
 \section{RQ3: Ablation trên các recipe đã chạy}
 \subsection{Activation và optimizer}
-Trong EXP-07, ReLU có Private Accuracy 64,9485\% và Macro-F1 0,635647; GELU có Public validation cao nhất (64,5305\%) nhưng Private Accuracy 64,7813\%. Chênh lệch nhỏ và chỉ một seed. EXP-08 cho thấy AdamW đạt Private Accuracy 64,6977\%/Macro-F1 0,633326; SGD+Nesterov có gap Train−Private nhỏ nhất trong ba recipe nhưng accuracy thấp nhất. LR và weight decay cũng thay đổi giữa recipes, vì vậy đây không phải phép cô lập riêng optimizer.
+Trong EXP-07, hàm kích hoạt ReLU đạt Private Accuracy 64,95\% và Macro-F1 0,6356; GELU có Public validation cao nhất (64,53\%) nhưng Private Accuracy đạt 64,78\%. Sự chênh lệch giữa các hàm kích hoạt là tương đối nhỏ trên một seed. Trong EXP-08, AdamW đạt Private Accuracy 64,70\% và Macro-F1 0,6333; SGD+Nesterov có khoảng cách Train--Private nhỏ nhất nhưng độ chính xác tổng thể thấp hơn. Tốc độ học và weight decay cũng thay đổi theo từng recipe nên đây không phải phép so sánh cô lập riêng lẻ thuật toán tối ưu.
 
 \subsection{Augmentation}
-EXP-09/10 dùng EfficientNet-B0 pretrained. Từ `none` sang `basic`, Private Accuracy tăng từ 68,1527\% lên 70,1310\%, Macro-F1 từ 0,665690 lên 0,700074, còn gap giảm từ 25,1003 xuống 13,3899 pp. `Advanced` với RandomErasing đạt Private Accuracy 70,1867\% nhưng Macro-F1 0,698806, thấp hơn `basic` 0,001269. CSV không có per-class metrics hay ảnh sau RandomErasing; do đó chưa thể kết luận lớp nào hoặc vùng mắt/miệng bị ảnh hưởng.
+EXP-09 và EXP-10 khảo sát trên EfficientNet-B0 pretrained. Khi chuyển từ không tăng cường (\code{none}) sang tăng cường cơ bản (\code{basic}), Private Accuracy tăng từ 68,15\% lên 70,13\%, Macro-F1 tăng từ 0,6657 lên 0,7001 và khoảng cách quá khớp giảm từ 25,10 xuống 13,39 điểm phần trăm. Khi bổ sung RandomErasing (\code{advanced}), Private Accuracy đạt 70,19\% nhưng Macro-F1 giảm nhẹ còn 0,6988. Nhật ký CSV không lưu độ đo theo từng lớp hoặc ảnh sau RandomErasing nên nhóm chưa thể phân tích sâu về tác động cụ thể lên từng vùng biểu cảm.
 
 \subsection{Loss mất cân bằng và scheduler}
-EXP-11 CE đối chứng có Private Accuracy 70,1310\% và Macro-F1 0,700074; Weighted CE và Focal lần lượt thấp hơn ở hai metric tổng này. Không có per-class report trong CSV để nói riêng về Disgust. EXP-12 Plateau có Private Accuracy 70,1310\%/Macro-F1 0,700074, cao hơn nhẹ cosine và warmup-cosine trong run seed 42. Summary không chứa epoch history nên không thể đánh giá độ mượt LR/loss curve.
+Trong EXP-11, cấu hình hàm mất mát CrossEntropy tiêu chuẩn đạt Private Accuracy 70,13\% và Macro-F1 0,7001; Weighted CrossEntropy và Focal Loss cho kết quả thấp hơn ở hai chỉ số tổng quát này. Trong EXP-12, bộ lập lịch ReduceLROnPlateau đạt Private Accuracy 70,13\% và Macro-F1 0,7001, duy trì hiệu năng ổn định hơn so với CosineAnnealing và Warmup-Cosine trong cấu hình thử nghiệm một seed.
 
-\begin{center}\textbf{Bảng 3.4. Các run RQ3 và ablation có trong CSV summary}\end{center}
 \input{generated/tables/rq3_ablation.tex}
+
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=\textwidth]{t0602_rq3_metrics.png}
-\caption{PrivateTest Accuracy và Macro-F1 của các recipe ablation có trong summary; nhóm khác recipe được mô tả theo tag và không xem là một thí nghiệm đơn.}
+\caption{Chỉ số PrivateTest Accuracy và Macro-F1 của các recipe ablation trong summary; các nhóm được phân loại theo tag thực nghiệm.}
+\label{fig:rq3-metrics}
 \end{figure}
+
 \begin{calloutbox}
-RQ3: `basic` tốt hơn `none` ở Private Accuracy/Macro-F1 trong EXP-09/10; RandomErasing chỉ tăng Private Accuracy rất nhỏ so với basic nhưng Macro-F1 thấp hơn. CE và Plateau dẫn đầu các so sánh loss/scheduler được ghi nhận. Đây là các recipe đơn seed, một số nhóm khác nhau nhiều yếu tố và không có per-class report; chưa đủ cơ sở chọn phương án phổ quát hoặc kết luận về Disgust riêng.
+RQ3: Tăng cường dữ liệu cơ bản (\code{basic}) cải thiện rõ rệt hiệu năng so với không tăng cường; RandomErasing chỉ tăng nhẹ độ chính xác Private nhưng giảm nhẹ Macro-F1. CrossEntropy và ReduceLROnPlateau dẫn đầu trong các thử nghiệm hàm mất mát và bộ lập lịch đã ghi nhận.
 \end{calloutbox}
 
 \section{Tổng hợp và giới hạn kết luận}
+Bảng \ref{tab:all-runs} tổng hợp đầy đủ 28 cấu hình thực nghiệm từ CSV MLflow summary sau khi khử trùng các bản ghi trùng lặp. Các bảng biểu liệt kê các chỉ số tổng kết cuối cùng, phản ánh trung thực kết quả của từng lượt chạy độc lập.
+
 \input{generated/tables/all_runs.tex}
-CSV summary có 28 Run ID duy nhất sau khi khử trùng các file export chồng lặp. Bảng liệt kê metrics tổng kết, không chứa epoch history, params đầy đủ hay prediction từng ảnh. Mọi ô cảnh báo biểu thị dữ liệu chưa có, không phải giá trị bằng không.

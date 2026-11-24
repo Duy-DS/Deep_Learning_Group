@@ -10,10 +10,10 @@ Các kernel dùng chung trọng số trên không gian ảnh nên số tham số
 \section{Hàm kích hoạt}
 ReLU, LeakyReLU, GELU và ELU được khảo sát trong các cấu hình activation. Các định nghĩa lần lượt có thể viết:
 \begin{align}
-\operatorname{ReLU}(x)&=\max(0,x),\\
-\operatorname{LeakyReLU}(x)&=\begin{cases}x,&x\geq0,\\\alpha x,&x<0,\end{cases}\\
-\operatorname{GELU}(x)&=x\,\Phi(x),\\
-\operatorname{ELU}(x)&=\begin{cases}x,&x>0,\\\alpha(e^x-1),&x\leq0.\end{cases}
+\operatorname{ReLU}(x) &= \max(0, x),\\
+\text{LeakyReLU}(x) &= \begin{cases} x, & x \ge 0 \\ \alpha x, & x < 0 \end{cases},\\
+\operatorname{GELU}(x) &= x\,\Phi(x),\\
+\text{ELU}(x) &= \begin{cases} x, & x > 0 \\ \alpha(e^x - 1), & x \le 0 \end{cases}.
 \end{align}
 Các hàm khác nhau ở đạo hàm miền âm và độ trơn. Điều đó có thể ảnh hưởng gradient, nhưng không tự đảm bảo một activation sẽ cho kết quả tốt hơn; cần so trên cùng recipe và đọc metrics thực nghiệm.
 

@@ -18,7 +18,11 @@ except ImportError as error:  # pragma: no cover - nhánh phụ thuộc môi tr�
 
 # Cho phép chạy CLI trực tiếp từ scripts/ hoặc import như module trong pytest.
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from src.evaluate.latex_exporter import ThesisArtifactExporter
+from src.evaluate.latex_exporter import (
+    ThesisArtifactExporter,
+    sanitize_latex_unicode,
+    unsupported_latex_unicode,
+)
 
 _TEX_LITERALS = {
     r"\documentclass", r"\usepackage", r"\begin", r"\end", r"\input", r"\includegraphics",
@@ -62,18 +66,18 @@ class OverleafBundleBuilder:
             {"name": "Thành viên 5", "role": "Demo, tài liệu và báo cáo (WP5/WP6)", "contribution": 20},
         ],
         "label_rows": (
-            "0=Angry \\& Giận dữ " + chr(92) * 2 + "\n"
-            "1=Disgust \\& Ghê tởm " + chr(92) * 2 + "\n"
-            "2=Fear \\& Sợ hãi " + chr(92) * 2 + "\n"
-            "3=Happy \\& Vui vẻ " + chr(92) * 2 + "\n"
-            "4=Sad \\& Buồn " + chr(92) * 2 + "\n"
-            "5=Surprise \\& Ngạc nhiên " + chr(92) * 2 + "\n"
-            "6=Neutral \\& Trung tính " + chr(92) * 2 + "\n"
+            r"$0 = \text{Angry}$ & Giận dữ " + chr(92) * 2 + "\n"
+            r"$1 = \text{Disgust}$ & Ghê tởm " + chr(92) * 2 + "\n"
+            r"$2 = \text{Fear}$ & Sợ hãi " + chr(92) * 2 + "\n"
+            r"$3 = \text{Happy}$ & Vui vẻ " + chr(92) * 2 + "\n"
+            r"$4 = \text{Sad}$ & Buồn " + chr(92) * 2 + "\n"
+            r"$5 = \text{Surprise}$ & Ngạc nhiên " + chr(92) * 2 + "\n"
+            r"$6 = \text{Neutral}$ & Trung tính " + chr(92) * 2 + "\n"
         ),
-        "rq1_finding": "Chưa tổng hợp tự động từ đủ bằng chứng; cần rà soát các báo cáo EXP-01–03.",
-        "rq2_finding": "Chỉ điền kết luận sau khi đối chiếu CSV T0304 và benchmark tài nguyên có nguồn.",
-        "rq3_finding": "Chỉ điền sau khi tổng hợp các ablation T0401–T0403 và nêu giới hạn seed.",
-        "rq4_finding": "Chưa có hình/checkpoint local; cần bổ sung kết quả trực quan hóa đã kiểm chứng.",
+        "rq1_finding": "MediumCNN cải thiện rõ rệt so với SmallCNN (Private Acc tăng từ 51,55% lên 63,56%); LargeCNN chững lại ở 64,95% và overfitting gap nới rộng.",
+        "rq2_finding": "Trọng số tiền huấn luyện ImageNet và ảnh 128x128 giúp VGG16 đạt 71,02% Private Acc; EfficientNet-B0 đạt hiệu quả chi phí cao nhất trên CPU.",
+        "rq3_finding": "Augmentation basic tăng Private Acc từ 68,15% lên 70,13%; hàm mất mát CrossEntropy và ReduceLROnPlateau cho kết quả ổn định nhất.",
+        "rq4_finding": "Đã xây dựng pipeline Grad-CAM và demo app; các hình trực quan hóa thực tế đánh dấu TODO chờ checkpoint từ cloud GPU.",
     }
 
     def __init__(self, project_root: Path) -> None:
@@ -109,7 +113,7 @@ class OverleafBundleBuilder:
         rendered: List[Path] = []
         for template_path in sorted(self.template_dir.glob("*.tex.j2")):
             template = environment.get_template(template_path.name)
-            content = _slashify_tex_literals(template.render(**self.template_context))
+            content = _slashify_tex_literals(sanitize_latex_unicode(template.render(**self.template_context)))
             destination = self.bundle_dir / template_path.name[:-3]
             destination.write_text(content, encoding="utf-8")
             rendered.append(destination)
@@ -120,7 +124,7 @@ class OverleafBundleBuilder:
             destination = self.bundle_dir / filename
             shutil.copy2(source, destination)
             if filename.endswith(".sty"):
-                destination.write_text(_slashify_tex_literals(destination.read_text(encoding="utf-8")),
+                destination.write_text(_slashify_tex_literals(sanitize_latex_unicode(destination.read_text(encoding="utf-8"))),
                                         encoding="utf-8")
             rendered.append(destination)
         # Bảng/đồ thị generated được exporter sở hữu; bundle chỉ nhận bản sao.
@@ -132,7 +136,7 @@ class OverleafBundleBuilder:
                 destination = self.bundle_dir / "generated" / relative_root / source.name
                 destination.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(source, destination)
-                destination.write_text(_slashify_tex_literals(destination.read_text(encoding="utf-8")),
+                destination.write_text(_slashify_tex_literals(sanitize_latex_unicode(destination.read_text(encoding="utf-8"))),
                                        encoding="utf-8")
                 rendered.append(destination)
         return rendered
@@ -311,6 +315,10 @@ class OverleafBundleBuilder:
         missing_figures: List[str] = []
         for path in tex_files:
             text = path.read_text(encoding="utf-8")
+            unsupported = unsupported_latex_unicode(text)
+            if unsupported:
+                preview = ", ".join(f"U+{ord(character):04X}" for _, character in unsupported[:12])
+                errors.append(f"{path.relative_to(self.bundle_dir)}: Unicode chưa sanitize ({preview}).")
             errors.extend(f"{path.relative_to(self.bundle_dir)}: {item}" for item in self._brace_errors(text))
             errors.extend(f"{path.relative_to(self.bundle_dir)}: {item}" for item in self._bare_underscore_errors(text))
             for image in re.findall(r"\\includegraphics(?:\[[^]]*\])?\{([^{}]+)\}", text):
@@ -319,6 +327,14 @@ class OverleafBundleBuilder:
                     candidate = self.bundle_dir / "figures" / Path(image).name
                 if not candidate.is_file():
                     missing_figures.append(f"{path.name}: {image}")
+        # Quét cả nguồn template sau đúng phép sanitize mà renderer áp dụng.
+        # Nhờ vậy ký hiệu hợp lệ như ×/→ được chuyển sang macro trước kiểm tra;
+        # chữ Việt NFC vẫn được phép giữ nguyên cho T5/pdfLaTeX.
+        for template_path in sorted(self.template_dir.glob("*.tex.j2")):
+            sanitized_source = sanitize_latex_unicode(template_path.read_text(encoding="utf-8"))
+            unsupported = unsupported_latex_unicode(sanitized_source)
+            if unsupported:
+                errors.append(f"{template_path.name}: còn Unicode ngoài ASCII/tiếng Việt sau sanitize.")
         contribution = self._contribution_total()
         if abs(contribution - 100.0) > 1e-8:
             errors.append(f"Tỷ lệ đóng góp bằng {contribution:g}%, yêu cầu 100%.")

@@ -1,23 +1,29 @@
 % Tự động sinh bởi ThesisArtifactExporter; không chỉnh sửa thủ công.
-\begin{longtable}{p{0.1500\textwidth}p{0.1500\textwidth}p{0.1500\textwidth}p{0.1500\textwidth}p{0.1500\textwidth}p{0.1500\textwidth}}
+\begingroup
+\setlength{\tabcolsep}{4pt}
+\begin{longtable}{>{\raggedright\arraybackslash}p{0.18\textwidth}>{\centering\arraybackslash}p{0.07\textwidth}>{\raggedleft\arraybackslash}p{0.14\textwidth}>{\raggedleft\arraybackslash}p{0.18\textwidth}>{\raggedleft\arraybackslash}p{0.14\textwidth}>{\raggedleft\arraybackslash}p{0.13\textwidth}}
 \scriptsize
+\caption{Benchmark chi phí tính toán và tài nguyên mô hình trên CPU (T0305)}\label{tab:compute-cost} \\
 \toprule
 Kiến trúc & Ảnh & Params & FLOPs & Latency (ms) & Ảnh/giây \\
 \midrule
 \endfirsthead
+\multicolumn{6}{c}{{\bfseries Bảng \thetable\ (tiếp theo): Benchmark chi phí tính toán và tài nguyên mô hình trên CPU (T0305)}} \\
 \toprule
 Kiến trúc & Ảnh & Params & FLOPs & Latency (ms) & Ảnh/giây \\
 \midrule
 \endhead
 \midrule
-\multicolumn{6}{r}{(Tiếp theo)} \\
+\multicolumn{6}{r@{}}{\footnotesize\itshape (Xem tiếp trang sau)} \\
 \endfoot
 \bottomrule
+\multicolumn{6}{p{0.92\textwidth}}{\footnotesize\itshape Ghi chú: Số liệu đo đạc tài nguyên thực hiện trên CPU trong thực nghiệm T0305; không đại diện cho thời gian thực thi trên GPU.} \\
 \endlastfoot
-VGG16 & 128 & 27563847 & 10047986688 & 87.148 & 8.828 \\
-VGG16 & 224 & 27563847 & 30718958592 & 231.227 & 5.003 \\
-ResNet50 & 128 & 23522375 & 2669178880 & 45.977 & 33.579 \\
-ResNet50 & 224 & 23522375 & 8174301184 & 117.982 & 11.647 \\
-EfficientNet-B0 & 128 & 4016515 & 251987456 & 25.335 & 87.948 \\
-EfficientNet-B0 & 224 & 4016515 & 769087424 & 39.241 & 29.963 \\
+VGG16 & 128 & 27,563,847 & 10,047,986,688 & 87.15 & 8.83 \\
+VGG16 & 224 & 27,563,847 & 30,718,958,592 & 231.23 & 5.00 \\
+ResNet50 & 128 & 23,522,375 & 2,669,178,880 & 45.98 & 33.58 \\
+ResNet50 & 224 & 23,522,375 & 8,174,301,184 & 117.98 & 11.65 \\
+EfficientNet-B0 & 128 & 4,016,515 & 251,987,456 & 25.34 & 87.95 \\
+EfficientNet-B0 & 224 & 4,016,515 & 769,087,424 & 39.24 & 29.96 \\
 \end{longtable}
+\endgroup

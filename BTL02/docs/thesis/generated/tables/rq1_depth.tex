@@ -1,20 +1,26 @@
 % Tự động sinh bởi ThesisArtifactExporter; không chỉnh sửa thủ công.
-\begin{longtable}{p{0.1125\textwidth}p{0.1125\textwidth}p{0.1125\textwidth}p{0.1125\textwidth}p{0.1125\textwidth}p{0.1125\textwidth}p{0.1125\textwidth}p{0.1125\textwidth}}
+\begingroup
+\setlength{\tabcolsep}{3.5pt}
+\begin{longtable}{>{\centering\arraybackslash}p{0.09\textwidth}>{\raggedright\arraybackslash}p{0.15\textwidth}>{\raggedright\arraybackslash}p{0.16\textwidth}>{\centering\arraybackslash}p{0.05\textwidth}>{\centering\arraybackslash}p{0.07\textwidth}>{\raggedleft\arraybackslash}p{0.10\textwidth}>{\raggedleft\arraybackslash}p{0.10\textwidth}>{\raggedleft\arraybackslash}p{0.10\textwidth}}
 \scriptsize
+\caption{Các chỉ số thực nghiệm khảo sát độ sâu kiến trúc Custom CNN (RQ1)}\label{tab:rq1-depth} \\
 \toprule
 Run ID & Kiến trúc & RQ/nhóm & Ảnh & Best epoch & Public/Val Acc (\%) & Private Acc (\%) & Macro-F1 \\
 \midrule
 \endfirsthead
+\multicolumn{8}{c}{{\bfseries Bảng \thetable\ (tiếp theo): Các chỉ số thực nghiệm khảo sát độ sâu kiến trúc Custom CNN (RQ1)}} \\
 \toprule
 Run ID & Kiến trúc & RQ/nhóm & Ảnh & Best epoch & Public/Val Acc (\%) & Private Acc (\%) & Macro-F1 \\
 \midrule
 \endhead
 \midrule
-\multicolumn{8}{r}{(Tiếp theo)} \\
+\multicolumn{8}{r@{}}{\footnotesize\itshape (Xem tiếp trang sau)} \\
 \endfoot
 \bottomrule
+\multicolumn{8}{p{0.92\textwidth}}{\footnotesize\itshape Ghi chú: Run ID hiển thị 8 ký tự tiền tố định danh từ MLflow; toàn bộ mã 32 ký tự lưu trong CSV log.} \\
 \endlastfoot
-95f11a8c0fb24a46a3ba7fdcd014c916 & LargeCNN & RQ1 & 48 & 32.0 & 63.83393702981331 & \textbf{64.94845360824742} & \textbf{0.6356466320657798} \\
-2a57e85700534d1da4780d0c8d29e180 & MediumCNN & RQ1 & 48 & 22.0 & 63.80607411535246 & 63.55530788520479 & 0.6254493427465606 \\
-8e46ec648d404b9780a167a0ebc81a9f & SmallCNN & RQ1 & 48 & 24.0 & 53.41320702145445 & 51.546391752577314 & 0.4717686550354919 \\
+\code{95f11a8c} & LargeCNN & RQ1 & 48 & 32 & 63.83 & \textbf{64.95} & \textbf{0.6356} \\
+\code{2a57e857} & MediumCNN & RQ1 & 48 & 22 & 63.81 & 63.56 & 0.6254 \\
+\code{8e46ec64} & SmallCNN & RQ1 & 48 & 24 & 53.41 & 51.55 & 0.4718 \\
 \end{longtable}
+\endgroup

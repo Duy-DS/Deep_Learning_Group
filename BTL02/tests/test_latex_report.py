@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from scripts.build_thesis_bundle import OverleafBundleBuilder
-from src.evaluate.latex_exporter import ThesisArtifactExporter
+from src.evaluate.latex_exporter import ThesisArtifactExporter, sanitize_latex_unicode, unsupported_latex_unicode
 
 
 class ThesisPipelineFixture:
@@ -70,8 +70,8 @@ class TestThesisArtifactExporter:
         result = exporter.export_all()
         all_runs = result["tables"]["all_runs"].read_text(encoding="utf-8")
         assert r"\begin{longtable}" in all_runs
-        assert r"\textbf{68}" in all_runs
-        assert r"\textbf{0.66}" in all_runs
+        assert (r"\textbf{68}" in all_runs or r"\textbf{68.00}" in all_runs)
+        assert (r"\textbf{0.66}" in all_runs or r"\textbf{0.6600}" in all_runs)
         assert result["plot"].is_file()
         plot = result["plot"].read_text(encoding="utf-8")
         assert "xticklabels=" in plot and "(1,64)" in plot and "(2,68)" in plot
@@ -91,6 +91,38 @@ class TestThesisArtifactExporter:
         """Ký tự đặc biệt được escape để tránh lỗi khi compile."""
         escaped = ThesisArtifactExporter.escape_latex("a_b%&$#")
         assert r"a\_b\%\&\$\#" == escaped
+
+    def test_unicode_sanitizer_preserves_vietnamese_and_maps_symbols(self):
+        """Sanitizer chuyển ký hiệu mở rộng sang macro ASCII và giữ chữ Việt NFC."""
+        source = "Nhóm: tiếng Việt 98% → 100%; x≈2, ≤3, ≥1, ±, °, ², α, Σ, 🙂"
+        cleaned = sanitize_latex_unicode(source)
+        assert "Nhóm" in cleaned and "tiếng Việt" in cleaned
+        assert r"\ensuremath{\rightarrow}" in cleaned
+        assert r"\ensuremath{\approx}" in cleaned
+        assert r"\ensuremath{\le}" in cleaned
+        assert r"\ensuremath{\ge}" in cleaned
+        assert r"\ensuremath{\pm}" in cleaned
+        assert r"\textdegree{}" in cleaned
+        assert r"\textsuperscript{2}" in cleaned
+        assert "[U+1F642]" in cleaned
+        assert unsupported_latex_unicode(cleaned) == []
+
+    def test_unicode_sanitizer_normalizes_decomposed_vietnamese(self):
+        """Dấu tiếng Việt dạng combining được chuẩn hóa NFC trước khi ghi TeX."""
+        cleaned = sanitize_latex_unicode("a\u0323")
+        assert cleaned == "ạ"
+        assert unsupported_latex_unicode(cleaned) == []
+
+    def test_unicode_sanitizer_maps_remaining_math_symbols_and_emoji(self):
+        """Đảm bảo emoji/Unicode toán bổ sung không lọt ra TeX cuối."""
+        cleaned = sanitize_latex_unicode("μ σ ρ τ ∞ ∈ ∑ ∂ √ “quoted” … 🙂")
+        assert all(token in cleaned for token in (
+            r"\ensuremath{\mu}", r"\ensuremath{\sigma}", r"\ensuremath{\rho}",
+            r"\ensuremath{\tau}", r"\ensuremath{\infty}", r"\ensuremath{\in}",
+            r"\ensuremath{\sum}", r"\ensuremath{\partial}", r"\ensuremath{\sqrt{\vphantom{x}}}",
+            "``quoted''", r"\ldots{}", "[U+1F642]",
+        ))
+        assert unsupported_latex_unicode(cleaned) == []
 
     def test_comparison_figures_are_grouped_by_research_question(self, tmp_path):
         """Hình PNG chỉ dùng CSV run duy nhất và tag RQ có nghĩa tương ứng."""
@@ -125,7 +157,7 @@ class TestThesisArtifactExporter:
         )
         exporter = ThesisArtifactExporter(tmp_path / "outputs/logs", tmp_path / "generated", evidence_dir=evidence)
         table = exporter.export_compute_table().read_text(encoding="utf-8")
-        assert "VGG16" in table and "2.5" in table and "4000000" in table
+        assert "VGG16" in table and ("2.5" in table or "2.50" in table) and ("4000000" in table or "4,000,000" in table)
 
     def test_full_t0305_experience_table_rows_are_parsed(self, tmp_path):
         """Parser chấp nhận đúng schema 9 cột có trạng thái CPU trong T0305."""
@@ -185,6 +217,17 @@ class TestOverleafBundleBuilder:
         assert OverleafBundleBuilder._bare_underscore_errors("plain_name")
         assert OverleafBundleBuilder._brace_errors("\\textbf{broken")
 
+    def test_quality_gate_rejects_unsanitized_unicode_in_rendered_tex(self, tmp_path):
+        """TeX Unicode mở rộng bị Quality Gate từ chối nếu bypass renderer."""
+        ThesisPipelineFixture(tmp_path).create(with_csv=False)
+        builder = OverleafBundleBuilder(tmp_path)
+        builder.exporter.export_all()
+        builder.render_templates()
+        path = builder.bundle_dir / "main.tex"
+        path.write_text(path.read_text(encoding="utf-8") + "\nUnicode ngoài bảng: 🙂\n", encoding="utf-8")
+        with pytest.raises(RuntimeError, match="Unicode chưa sanitize"):
+            builder.quality_gate()
+
     def test_contribution_gate_uses_readme_distribution(self, tmp_path):
         """Gate đọc phân công thật trong README, không tự lấy tổng từ kỳ vọng."""
         ThesisPipelineFixture(tmp_path).create(with_csv=False)
@@ -208,3 +251,13 @@ class TestOverleafBundleBuilder:
         for path in builder.bundle_dir.glob("chap*.tex"):
             content = path.read_text(encoding="utf-8")
             assert not any(phrase in content for phrase in banned)
+
+    def test_rendered_tex_contains_no_replacement_or_missing_ref_marks(self, tmp_path):
+        """Kiểm tra các file .tex đã render không chứa ký tự lỗi \\ufffd hoặc cụm '??'."""
+        ThesisPipelineFixture(tmp_path).create()
+        builder = OverleafBundleBuilder(tmp_path)
+        builder.build()
+        for path in builder.bundle_dir.rglob("*.tex"):
+            content = path.read_text(encoding="utf-8")
+            assert "\ufffd" not in content, f"Phát hiện ký tự lỗi \\ufffd trong {path.name}"
+            assert "??" not in content, f"Phát hiện cụm '??' trong {path.name}"

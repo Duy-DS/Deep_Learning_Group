@@ -1,20 +1,26 @@
 % Tự động sinh bởi ThesisArtifactExporter; không chỉnh sửa thủ công.
-\begin{longtable}{p{0.1125\textwidth}p{0.1125\textwidth}p{0.1125\textwidth}p{0.1125\textwidth}p{0.1125\textwidth}p{0.1125\textwidth}p{0.1125\textwidth}p{0.1125\textwidth}}
+\begingroup
+\setlength{\tabcolsep}{3.5pt}
+\begin{longtable}{>{\centering\arraybackslash}p{0.09\textwidth}>{\raggedright\arraybackslash}p{0.15\textwidth}>{\raggedright\arraybackslash}p{0.16\textwidth}>{\centering\arraybackslash}p{0.05\textwidth}>{\centering\arraybackslash}p{0.07\textwidth}>{\raggedleft\arraybackslash}p{0.10\textwidth}>{\raggedleft\arraybackslash}p{0.10\textwidth}>{\raggedleft\arraybackslash}p{0.10\textwidth}}
 \scriptsize
+\caption{Đối chiếu hiệu năng các mô hình học chuyển giao tiền huấn luyện ở kích thước 128 \textbackslash{}ensuremath\{\textbackslash{}times\} 128 (RQ2)}\label{tab:rq2-transfer} \\
 \toprule
 Run ID & Kiến trúc & RQ/nhóm & Ảnh & Best epoch & Public/Val Acc (\%) & Private Acc (\%) & Macro-F1 \\
 \midrule
 \endfirsthead
+\multicolumn{8}{c}{{\bfseries Bảng \thetable\ (tiếp theo): Đối chiếu hiệu năng các mô hình học chuyển giao tiền huấn luyện ở kích thước 128 \textbackslash{}ensuremath\{\textbackslash{}times\} 128 (RQ2)}} \\
 \toprule
 Run ID & Kiến trúc & RQ/nhóm & Ảnh & Best epoch & Public/Val Acc (\%) & Private Acc (\%) & Macro-F1 \\
 \midrule
 \endhead
 \midrule
-\multicolumn{8}{r}{(Tiếp theo)} \\
+\multicolumn{8}{r@{}}{\footnotesize\itshape (Xem tiếp trang sau)} \\
 \endfoot
 \bottomrule
+\multicolumn{8}{p{0.92\textwidth}}{\footnotesize\itshape Ghi chú: Run ID hiển thị 8 ký tự tiền tố định danh từ MLflow; toàn bộ mã 32 ký tự lưu trong CSV log.} \\
 \endlastfoot
-626b7aba7f544d778b17ee04eb381d1a & EfficientNetB0 & RQ2\_SOTA\_Pretrained\_128 & 128 & 14.0 & 67.9019225410978 & 69.82446363889663 & 0.6975494753225243 \\
-6d9a2327e0994654ae9d20fde862b562 & ResNet50 & RQ2\_SOTA\_Pretrained\_128 & 128 & 19.0 & 70.46531067149624 & 70.77180273056561 & 0.6935328548641405 \\
-e4b7d06c73074d43b984df1abab1a386 & VGG16 & RQ2\_SOTA\_Pretrained\_128 & 128 & 19.0 & 69.76873780997492 & \textbf{71.0225689607133} & \textbf{0.7072759880251402} \\
+\code{626b7aba} & EfficientNetB0 & RQ2\_SOTA\_Pretrained\_128 & 128 & 14 & 67.90 & 69.82 & 0.6975 \\
+\code{6d9a2327} & ResNet50 & RQ2\_SOTA\_Pretrained\_128 & 128 & 19 & 70.47 & 70.77 & 0.6935 \\
+\code{e4b7d06c} & VGG16 & RQ2\_SOTA\_Pretrained\_128 & 128 & 19 & 69.77 & \textbf{71.02} & \textbf{0.7073} \\
 \end{longtable}
+\endgroup

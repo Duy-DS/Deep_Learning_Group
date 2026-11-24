@@ -1,33 +1,39 @@
 % Tự động sinh bởi ThesisArtifactExporter; không chỉnh sửa thủ công.
-\begin{longtable}{p{0.1125\textwidth}p{0.1125\textwidth}p{0.1125\textwidth}p{0.1125\textwidth}p{0.1125\textwidth}p{0.1125\textwidth}p{0.1125\textwidth}p{0.1125\textwidth}}
+\begingroup
+\setlength{\tabcolsep}{3.5pt}
+\begin{longtable}{>{\centering\arraybackslash}p{0.09\textwidth}>{\raggedright\arraybackslash}p{0.15\textwidth}>{\raggedright\arraybackslash}p{0.16\textwidth}>{\centering\arraybackslash}p{0.05\textwidth}>{\centering\arraybackslash}p{0.07\textwidth}>{\raggedleft\arraybackslash}p{0.10\textwidth}>{\raggedleft\arraybackslash}p{0.10\textwidth}>{\raggedleft\arraybackslash}p{0.10\textwidth}}
 \scriptsize
+\caption{Kết quả các thử nghiệm cắt bỏ thành phần huấn luyện (Ablation Studies - RQ3)}\label{tab:rq3-ablation} \\
 \toprule
 Run ID & Kiến trúc & RQ/nhóm & Ảnh & Best epoch & Public/Val Acc (\%) & Private Acc (\%) & Macro-F1 \\
 \midrule
 \endfirsthead
+\multicolumn{8}{c}{{\bfseries Bảng \thetable\ (tiếp theo): Kết quả các thử nghiệm cắt bỏ thành phần huấn luyện (Ablation Studies - RQ3)}} \\
 \toprule
 Run ID & Kiến trúc & RQ/nhóm & Ảnh & Best epoch & Public/Val Acc (\%) & Private Acc (\%) & Macro-F1 \\
 \midrule
 \endhead
 \midrule
-\multicolumn{8}{r}{(Tiếp theo)} \\
+\multicolumn{8}{r@{}}{\footnotesize\itshape (Xem tiếp trang sau)} \\
 \endfoot
 \bottomrule
+\multicolumn{8}{p{0.92\textwidth}}{\footnotesize\itshape Ghi chú: Run ID hiển thị 8 ký tự tiền tố định danh từ MLflow; toàn bộ mã 32 ký tự lưu trong CSV log.} \\
 \endlastfoot
-62bca24cfc7d4a73aafc482d61c48353 & LargeCNN & RQ1\_Ablation\_Activation & 48 & 19.0 & 61.24268598495403 & 60.016717748676506 & 0.5834271794225057 \\
-fc61d3c45a994e0db9b5283f86b563b2 & LargeCNN & RQ1\_Ablation\_Activation & 48 & 15.0 & 64.53050989133463 & 64.7812761214823 & 0.6305242457188546 \\
-51130a5f0fdb4f39adff237b9c7fae46 & LargeCNN & RQ1\_Ablation\_Activation & 48 & 17.0 & 64.44692114795207 & 63.945388687656724 & 0.6172343471478037 \\
-9d333ee8fa2d43d2a803620e3bd0b667 & LargeCNN & RQ1\_Ablation\_Activation & 48 & 32.0 & 63.83393702981331 & 64.94845360824742 & 0.6356466320657798 \\
-beb401ee33ff4fecbc2583baf8d645e6 & LargeCNN & Ablation\_Optimizer & 48 & 18.0 & 62.66369462245751 & 62.468654221231546 & 0.5937656662316467 \\
-ff50c078e9f04092bd3a0e4cea9f3bdc & LargeCNN & Ablation\_Optimizer & 48 & 26.0 & 64.08470325996099 & 64.69768737809974 & 0.6333258463608215 \\
-bcc134c94a0a4ad4840bd957292fab5b & LargeCNN & Ablation\_Optimizer & 48 & 18.0 & 63.63889662858735 & 63.16522708275285 & 0.6205365132884594 \\
-35093d88d1a44e67b5117d8076f715ec & EfficientNetB0 & RQ3\_Ablation\_Augmentation & 128 & 20.0 & 69.26720534967957 & \textbf{70.18668152688772} & 0.6988056365692834 \\
-622a723ec334441898003282a5d8d725 & EfficientNetB0 & RQ3\_Ablation\_Augmentation & 128 & 16.0 & 69.65728615213152 & 70.130955697966 & \textbf{0.7000742260964127} \\
-7498d3c0b68743a1805ca06826e5c1ea & EfficientNetB0 & RQ3\_Ablation\_Augmentation & 128 & 16.0 & 66.75954304820284 & 68.15268877124548 & 0.6656904960907795 \\
-2f3cd08e2bc145baa0636a9317af3c58 & EfficientNetB0 & RQ3\_Ablation\_ClassImbalance & 128 & 28.0 & 70.07522986904429 & 69.68514906659237 & 0.6953925264717427 \\
-a82a528fa1154003a203021ba8f71c45 & EfficientNetB0 & RQ3\_Ablation\_ClassImbalance & 128 & 16.0 & 68.12482585678462 & 69.4343828364447 & 0.6847857707279034 \\
-382d2ca2a18f4a219c877c7c5d4354c6 & EfficientNetB0 & RQ3\_Ablation\_ClassImbalance & 128 & 16.0 & 69.65728615213152 & 70.130955697966 & \textbf{0.7000742260964127} \\
-a312721f1e884bb7891f464f984e6551 & EfficientNetB0 & RQ3\_Ablation\_LRScheduler & 128 & 22.0 & 69.51797157982725 & 69.93591529674003 & 0.6891521882592769 \\
-7348e1b10b22408fb71dc61920b1ef5c & EfficientNetB0 & RQ3\_Ablation\_LRScheduler & 128 & 28.0 & 69.4901086653664 & 69.96377821120089 & 0.6945983571047741 \\
-f97118d157a04325842acaa091362a03 & EfficientNetB0 & RQ3\_Ablation\_LRScheduler & 128 & 16.0 & 69.65728615213152 & 70.130955697966 & \textbf{0.7000742260964127} \\
+\code{62bca24c} & LargeCNN & RQ1\_Ablation\_Activation & 48 & 19 & 61.24 & 60.02 & 0.5834 \\
+\code{fc61d3c4} & LargeCNN & RQ1\_Ablation\_Activation & 48 & 15 & 64.53 & 64.78 & 0.6305 \\
+\code{51130a5f} & LargeCNN & RQ1\_Ablation\_Activation & 48 & 17 & 64.45 & 63.95 & 0.6172 \\
+\code{9d333ee8} & LargeCNN & RQ1\_Ablation\_Activation & 48 & 32 & 63.83 & 64.95 & 0.6356 \\
+\code{beb401ee} & LargeCNN & Ablation\_Optimizer & 48 & 18 & 62.66 & 62.47 & 0.5938 \\
+\code{ff50c078} & LargeCNN & Ablation\_Optimizer & 48 & 26 & 64.08 & 64.70 & 0.6333 \\
+\code{bcc134c9} & LargeCNN & Ablation\_Optimizer & 48 & 18 & 63.64 & 63.17 & 0.6205 \\
+\code{35093d88} & EfficientNetB0 & RQ3\_Ablation\_Augmentation & 128 & 20 & 69.27 & \textbf{70.19} & 0.6988 \\
+\code{622a723e} & EfficientNetB0 & RQ3\_Ablation\_Augmentation & 128 & 16 & 69.66 & 70.13 & \textbf{0.7001} \\
+\code{7498d3c0} & EfficientNetB0 & RQ3\_Ablation\_Augmentation & 128 & 16 & 66.76 & 68.15 & 0.6657 \\
+\code{2f3cd08e} & EfficientNetB0 & RQ3\_Ablation\_ClassImbalance & 128 & 28 & 70.08 & 69.69 & 0.6954 \\
+\code{a82a528f} & EfficientNetB0 & RQ3\_Ablation\_ClassImbalance & 128 & 16 & 68.12 & 69.43 & 0.6848 \\
+\code{382d2ca2} & EfficientNetB0 & RQ3\_Ablation\_ClassImbalance & 128 & 16 & 69.66 & 70.13 & \textbf{0.7001} \\
+\code{a312721f} & EfficientNetB0 & RQ3\_Ablation\_LRScheduler & 128 & 22 & 69.52 & 69.94 & 0.6892 \\
+\code{7348e1b1} & EfficientNetB0 & RQ3\_Ablation\_LRScheduler & 128 & 28 & 69.49 & 69.96 & 0.6946 \\
+\code{f97118d1} & EfficientNetB0 & RQ3\_Ablation\_LRScheduler & 128 & 16 & 69.66 & 70.13 & \textbf{0.7001} \\
 \end{longtable}
+\endgroup
