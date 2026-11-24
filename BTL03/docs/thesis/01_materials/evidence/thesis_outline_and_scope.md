@@ -17,7 +17,7 @@
 6. WP03 và WP04 chưa nghiệm thu tại snapshot theo report/task workbook: ghi `[CHƯA THỰC HIỆN - DỰ KIẾN Ở GIAI ĐOẠN TIẾP THEO]` cho hạng mục chưa chạy/hoàn tất; tách việc `BLOCKED` và code đã triển khai.
 7. Hạn chế: thiếu dữ liệu WIKI/FER/SegNet/vehicle trong workspace; CPU-only; dependency TensorBoard/protobuf; protocol legacy validation/public-test; thiếu baseline numeric ở một số trường; README không phải nguồn ưu tiên khi mâu thuẫn.
 8. Giữ nguyên bất đồng parameter count CNN-LSTM giữa report T0206 (1,746,049) và T0207/T0212 (1,747,073); đối chiếu source/commit/counting semantics trước khi chốt parity.
-9. Áp dụng chọn lọc pattern cấu trúc từ hai sample LaTeX người dùng cung cấp: front matter, mở đầu có scope/method, mạch nội dung theo pipeline, tách results/discussion/conclusion, phụ lục và tham chiếu chéo. Hai mẫu gốc được giữ nguyên/tracked theo yêu cầu, chỉ tham khảo hình thức; không chép nội dung đề tài khác. Chi tiết tại `source_materials/samples/style_analysis.md`.
+9. Áp dụng chọn lọc pattern cấu trúc từ hai sample LaTeX người dùng cung cấp: front matter, mở đầu có scope/method, mạch nội dung theo pipeline, tách results/discussion/conclusion, phụ lục và tham chiếu chéo. Hai mẫu gốc được giữ nguyên/tracked theo yêu cầu, chỉ tham khảo hình thức; không chép nội dung đề tài khác. Chi tiết tại `01_materials/samples/style_analysis.md`.
 
 ## Không thuộc phạm vi
 

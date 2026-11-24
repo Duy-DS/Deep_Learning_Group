@@ -259,7 +259,7 @@ Dự án áp dụng cơ chế kiểm soát **"Evidence-First & Template-Locked"*
 | **`docs/experiences/`** | **Định dạng:**<br>`[ex ID]_[YYMMDD]_[HHMM].md`<br><br>*Ví dụ:*<br>`docs/experiences/EXP01_261122_2100.md` | `docs/experiences/experiences_template.md` | **Tiêu đề:** `# [EXPERIMENT] <Mã Thí Nghiệm>: <Tiêu đề tóm tắt>`<br>**Metadata Header:** `Mã thực nghiệm (EXP_[ID])`, `Tên file lưu vết`, `Thời gian`, `Người thực hiện: [Tên thành viên, VD: Duy-DS]` *(Cấm ghi AI Agent)*, `Work Package`, `Task ID (BTL03_<Task_ID>)`, `Nhánh Git`, `Trạng thái`.<br>**1. Mục tiêu & Giả thuyết nghiên cứu:** Liên kết `RQ1`–`RQ4` / Đối chiếu Keras vs PyTorch / Ablation.<br>**2. Thiết lập thực nghiệm & Tính tái lập:** Kiến trúc, kích thước tensor, `Seed=42`, siêu tham số, đường dẫn TensorBoard & CSV Log.<br>**3. Lệnh thực thi tái hiện (Reproduction Command):** Lệnh CLI đầy đủ.<br>**4. Bảng kết quả định lượng (Quantitative Results):** So sánh Keras Baseline vs PyTorch & các biến thể.<br>**5. Bằng chứng thực thi & Terminal Logs:** Log terminal & đường dẫn biểu đồ TensorBoard/CSV.<br>**6. Phân tích & Đánh giá kết quả (Discussion & Findings):** Giải thích nguyên nhân thành công/thất bại, hiện tượng Overfitting, chi phí tính toán.<br>**7. Kết luận & Hành động tiếp theo:** Checkbox nghiệm thu. |
 | **`docs/project_charter/`** | Workbook, đề bài, `README_BTL03.md`, `QUY_DINH_SAN_PHAM.txt`, `Yêu cầu.txt`, `examples/`; workbook dự kiến tham chiếu `AGENTS.md`/`Project_Charter_BTL03.md` | Tài liệu đặc tả và nguồn điều hành. Hai file Markdown nêu trên chưa có ở cây hiện tại; chỉ ghi như hiện hữu sau khi được tạo/đưa vào repo. |
 | **`docs/presentation/`** | Slide, poster, kịch bản; workbook dự kiến có `Slide_Poster_BTL03.pdf` | Thư mục/file chưa có trên cây hiện tại; là deliverable WP04, không phải artifact đã nghiệm thu. |
-| **`docs/thesis/`** | `AGENT_THESIS_RULES.md`, `templates/`, `source_materials/`, `md_drafts/`, `tex_source/`, `README.md`; workbook dự kiến `BaoCao_TongKet_BTL03.pdf` và `BienBan_NghiemThu_BTL03.md` | Tuân thủ quy tắc riêng tại `docs/thesis/AGENT_THESIS_RULES.md`; PDF/biên bản workbook chưa có ở cây hiện tại. |
+| **`docs/thesis/`** | `AGENT_THESIS_RULES.md`, `01_materials/`, `02_authoring/`, `03_releases/`, `README.md`; workbook dự kiến PDF và biên bản nghiệm thu | Tầng 1 lưu nguồn/template/evidence map; tầng 2 lưu draft, bundle hiện hành và snapshot; tầng 3 chỉ nhận PDF đã duyệt. PDF/biên bản hiện chưa có. |
 | **`docs/` (root guide)** | `HUONG_DAN_GIAI_THICH_CODE.md` | Tài liệu chuyển giao kiến thức; cấu trúc thực tế hiện nằm tại `docs/HUONG_DAN_GIAI_THICH_CODE.md`. |
 
 **Quy tắc riêng cho `docs/daily_logs/`:** mỗi phiên ghi một file `[YYMMDD]_[HHMM]_<alias>.md`; dùng alias thành viên thật, giữ nguyên đề mục trong template, và tách việc đã làm khỏi Todo/blocker. Không đặt file nhật ký phiên vào `reports/` hoặc `experiences/` để né quy tắc tên riêng.
@@ -278,7 +278,7 @@ BTL03/
 │   ├── fix_logs/                # Evidence sửa lỗi + template
 │   ├── project_charter/         # Workbook, tài liệu đặc tả và examples/
 │   ├── reports/                 # Báo cáo task + template
-│   ├── thesis/                  # AGENT_THESIS_RULES.md, templates/, source_materials/, md_drafts/, tex_source/
+│   ├── thesis/                  # Rules + 01_materials/ → 02_authoring/ → 03_releases/
 │   └── HUONG_DAN_GIAI_THICH_CODE.md
 ├── experiments/                 # Logs và helpers
 │   ├── colab/

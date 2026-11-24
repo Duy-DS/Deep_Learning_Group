@@ -1,6 +1,6 @@
 # BTL03 thesis template — style v2
 
-Đây là template phiên bản mới, dựng từ phân tích cấu trúc/trình bày của `source_materials/samples/sample_1.tex` và `sample_2.tex`. Template cũ và hai file sample vẫn được giữ nguyên READ-ONLY.
+Đây là template phiên bản mới, dựng từ phân tích cấu trúc/trình bày của `01_materials/samples/sample_1.tex` và `sample_2.tex`. Template legacy và hai file sample vẫn được giữ nguyên READ-ONLY.
 
 ## Ý tưởng biên tập
 
@@ -11,7 +11,7 @@
 
 ## Dùng template
 
-1. Sao chép file Markdown vào `docs/thesis/md_drafts/` và bộ `latex_template/` vào một thư mục mới dưới `docs/thesis/tex_source/`.
+1. Sao chép file Markdown vào `docs/thesis/02_authoring/current/report.md` và bộ `latex_template/` vào `docs/thesis/02_authoring/current/latex/`.
 2. Điền snapshot, tác giả thật, evidence paths, metric/run IDs đã xác minh; không sửa số thiếu bằng suy đoán.
-3. Giữ XeLaTeX/Overleaf của BTL03. Nén **nội dung** bundle để `main.tex` nằm ở root ZIP.
+3. Giữ XeLaTeX/Overleaf của BTL03. Nén **nội dung** `02_authoring/current/latex/` để `main.tex` nằm ở root ZIP.
 4. Không sửa hai sample gốc hoặc template gốc `[READ-ONLY]`; không build/test local trong workflow viết luận.

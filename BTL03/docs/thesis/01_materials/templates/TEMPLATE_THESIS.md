@@ -1,6 +1,6 @@
 # B?O C?O T?NG K?T BTL03 ? [M?C SNAPSHOT]
 
-> M?u **READ-ONLY theo quy tr?nh**. Sao ch?p sang `md_drafts/` tr??c khi ?i?n. Ch? d?ng pattern tr?nh b?y trong `source_materials/samples/style_analysis.md`, kh?ng sao ch?p n?i dung sample.
+> Mẫu **READ-ONLY theo quy trình**. Sao chép sang `02_authoring/current/report.md` trước khi điền. Chỉ dùng pattern trình bày trong `01_materials/samples/style_analysis.md`, không sao chép nội dung sample.
 
 ## Th?ng tin ?? t?i v? nh?m (b?a)
 

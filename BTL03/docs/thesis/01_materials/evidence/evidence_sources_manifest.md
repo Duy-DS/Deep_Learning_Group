@@ -22,7 +22,7 @@
 | E-TESTS | `tests/` và report task/T0212 | Test assertions/lần chạy được báo cáo | Đọc test source không đồng nghĩa đã chạy; report T0212 ghi 78 pass/4 fail theo shards |
 | E-FIGURES | `outputs/figures/` | Hiện chỉ `.gitkeep` được Git track ở snapshot khảo sát | Không có hình metric/prediction đã track; không tự tạo thay thế |
 | E-IDENTITY | `BTL03/.env` (chỉ đọc cục bộ, không commit) và report task | Alias/email thành viên được cấu hình; dùng alias public trong tài liệu | Không trích email riêng tư/credential; họ tên/MSSV chưa xác nhận |
-| E-SAMPLE-STYLE | `docs/thesis/source_materials/samples/sample_1.tex`, `sample_2.tex` (do người dùng cung cấp; giữ nguyên/tracked theo yêu cầu); `style_analysis.md` | Chỉ cấu trúc front matter, chương theo pipeline, tham chiếu chéo, bảng/hình, kết luận/phụ lục | Không coi là quy định trường; chỉ tham khảo phong cách, không sao chép nội dung/số liệu/hình/citation/PII đề tài khác vào BTL03 |
+| E-SAMPLE-STYLE | `docs/thesis/01_materials/samples/sample_1.tex`, `sample_2.tex` (do người dùng cung cấp; giữ nguyên/tracked theo yêu cầu); `style_analysis.md` | Chỉ cấu trúc front matter, chương theo pipeline, tham chiếu chéo, bảng/hình, kết luận/phụ lục | Không coi là quy định trường; chỉ tham khảo phong cách, không sao chép nội dung/số liệu/hình/citation/PII đề tài khác vào BTL03 |
 
 ## Quy tắc trích dẫn evidence
 

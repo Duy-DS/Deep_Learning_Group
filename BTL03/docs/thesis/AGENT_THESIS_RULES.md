@@ -1,6 +1,6 @@
 # Quy tắc biên soạn báo cáo BTL03
 
-Áp dụng cho mọi thay đổi trong `docs/thesis/`. Template trong `templates/` là bản gốc **READ-ONLY theo quy trình**: chỉ đọc/sao chép; viết nội dung vào `md_drafts/` và `tex_source/`.
+Áp dụng cho mọi thay đổi trong `docs/thesis/`. Hệ thống chia ba tầng: `01_materials/` (nguyên liệu), `02_authoring/` (biên soạn/snapshot), `03_releases/<version>/` (thành phẩm đã duyệt). Template trong `01_materials/templates/` là bản gốc **READ-ONLY theo quy trình**: chỉ đọc/sao chép; nội dung hiện hành nằm ở `02_authoring/current/`, snapshot lịch sử ở `02_authoring/snapshots/<SNAPSHOT>/`, còn PDF cuối chỉ ở release version sau khi đã duyệt.
 
 ## 1. Trung thực và bằng chứng
 
@@ -28,9 +28,9 @@
 ## 4. Đồng bộ `.md` ↔ `.tex` và Overleaf
 
 - Mọi thay đổi snapshot cập nhật đồng thời Markdown và LaTeX: số, bảng, trạng thái, tên metric, caveat, tác giả, evidence IDs và citations phải khớp.
-- Nguồn LaTeX dùng đường dẫn tương đối; asset phải nằm trong ZIP hoặc được ghi rõ chưa có. Không dùng đường dẫn máy/ổ đĩa.
+- Nguồn LaTeX trong `02_authoring/current/latex/` dùng đường dẫn tương đối; asset phải nằm trong bundle hoặc ghi rõ chưa có. Không dùng đường dẫn máy/ổ đĩa.
 - Compiler chuẩn là XeLaTeX Unicode, có font tiếng Việt; chú thích tiếng Việt rõ. Tránh shell-escape và dependency không cần thiết.
-- `main.tex` ở gốc `tex_source/`, chương tách file, bibliography được cấu hình. **Không kiểm thử/biên dịch trên máy local**; người dùng đưa ZIP lên Overleaf để biên dịch.
+- Bundle `02_authoring/current/latex/` phải tự chứa: `main.tex` ở bundle root, chương tách file và bibliography. **Không kiểm thử/biên dịch trên máy local**; người dùng đưa nội dung bundle lên Overleaf để biên dịch.
 
 ## 5. Giới hạn thao tác môi trường (bắt buộc)
 
@@ -43,11 +43,11 @@
 
 ## 6. Hướng dẫn phong cách rút ra từ hai mẫu được cung cấp
 
-Đọc `source_materials/samples/style_analysis.md` khi tạo/cập nhật chương. Chỉ học **quy ước cấu trúc/trình bày**: bìa/front matter, tóm tắt/từ khóa, mở đầu có mục tiêu/phạm vi/phương pháp/đóng góp, chương nền tảng → phương pháp/hệ thống → kiểm toán/kết quả → thảo luận → kết luận/kiến nghị, phụ lục, mục lục/danh mục, nhãn tham chiếu chéo và phân tích pipeline/đối tượng sử dụng khi phù hợp.
+Đọc `01_materials/samples/style_analysis.md` khi tạo/cập nhật chương. Chỉ học **quy ước cấu trúc/trình bày**: bìa/front matter, tóm tắt/từ khóa, mở đầu có mục tiêu/phạm vi/phương pháp/đóng góp, chương nền tảng → phương pháp/hệ thống → kiểm toán/kết quả → thảo luận → kết luận/kiến nghị, phụ lục, mục lục/danh mục, nhãn tham chiếu chéo và phân tích pipeline/đối tượng sử dụng khi phù hợp.
 
 - Đây là lựa chọn biên tập tham khảo, không phải quy định hình thức chính thức của trường. Không suy ra lề/font/cỡ chữ bắt buộc từ mẫu.
 - Khi dùng bìa/thành viên, lấy họ tên/MSSV/giảng viên từ danh sách nhóm được duyệt. Alias Git chứng minh alias/task provenance, không thay thế danh tính pháp lý. Vai trò/đóng góp phải theo task report/WBS đã xác nhận; không suy ra phần trăm từ số commit hoặc ví dụ trong mẫu.
-- Không lấy văn bản, số liệu, tên/MSSV, hình, citation, URL, macro riêng hoặc kết luận thuộc đề tài khác. Hai file mẫu gốc có thể được lưu/tracked trong `source_materials/samples/` theo yêu cầu người dùng, nhưng không nhập nội dung của chúng vào báo cáo BTL03. Không nhập trực tiếp preamble/package chuyên biệt của sample.
+- Hai file mẫu gốc được lưu nguyên trạng trong `01_materials/samples/`; không nhập nội dung của chúng vào báo cáo BTL03. Không nhập trực tiếp preamble/package chuyên biệt của sample.
 - Giữ compiler/package stack riêng của BTL03; lấy cấu trúc front matter và cách giải thích kết quả, không buộc gộp hai mẫu thành một khuôn.
 - Hình/sơ đồ/bảng chỉ đưa vào chương khi có asset và provenance; ghi ID/nguồn, caption và tham chiếu. Nếu thiếu, để placeholder có nhãn, không dựng số hoặc hình giả.
 - Phân biệt tóm tắt, kết luận, thảo luận, khuyến nghị và phụ lục; mỗi phần có mục tiêu riêng và giữ nguyên caveat T0212.
@@ -55,7 +55,7 @@
 ## 7. Checklist trước khi hoàn tất
 
 1. Kiểm tra snapshot, working tree và evidence mới.
-2. Giữ templates không sửa; nội dung đi vào drafts/source.
+2. Giữ `01_materials/templates/` không sửa; biên soạn trong `02_authoring/current/` và giữ snapshot cũ trong `02_authoring/snapshots/`.
 3. So khớp Markdown–LaTeX, citation, liên kết, bảng và trạng thái; chạy kiểm tra văn bản tĩnh/`git diff --check`. Không build/test local.
 4. Stage tệp đã xem xét; không stage `.env`, dữ liệu, weights, event logs, output runtime hay build tạm.
 5. Ghi report theo template repository, mang tên thành viên thật. Không sửa code mô hình hoặc legacy trong task tài liệu.

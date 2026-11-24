@@ -234,7 +234,7 @@ Repository có code chuyển đổi năm nhóm, task reports, baseline inventory
 1. Paszke, A., Gross, S., Massa, F., et al. (2019). *PyTorch: An Imperative Style, High-Performance Deep Learning Library*. NeurIPS 32. BibTeX: `paszke2019pytorch`.
 2. Badrinarayanan, V., Kendall, A., & Cipolla, C. (2017). *SegNet: A Deep Convolutional Encoder-Decoder Architecture for Image Segmentation*. IEEE TPAMI, 39(12), 2481–2495. DOI: 10.1109/TPAMI.2016.2644615. BibTeX: `badrinarayanan2017segnet`.
 3. Nhóm BTL03 (2026). *T0212: WP02 PR review, parameter audit, CLI and smoke-test report*. `docs/reports/T0212_261123_2130.md`, source commit `33dcd74599e86404bbc8128c8057afba82810093`. BibTeX: `btl03_t0212_internal`.
-4. Task reports T0102–T0211, baseline/sweep/master/epoch CSV và `docs/thesis/source_materials/evidence_sources_manifest.md`.
+4. Task reports T0102–T0211, baseline/sweep/master/epoch CSV và `docs/thesis/01_materials/evidence/evidence_sources_manifest.md`.
 
 ## Phụ lục: evidence register
 

@@ -1,42 +1,58 @@
-# Hệ thống viết báo cáo tổng kết BTL03
+# Hệ thống báo cáo tổng kết BTL03 — tổ chức 3 tầng
 
-Thư mục này quản lý song song bản thảo Markdown và nguồn LaTeX cho báo cáo chuyển đổi Keras sang PyTorch. Snapshot ban đầu mô tả bằng chứng trong repository tại commit T0212, không phải xác nhận nghiệm thu toàn bộ dự án. Report T0212 ghi trạng thái `BLOCKED` cho logger/full-suite; không được tuyên bố toàn bộ WP02 đã nghiệm thu.
+`docs/thesis/` quản lý vòng đời báo cáo theo ba tầng: **Nguyên liệu → Biên soạn → Thành phẩm**. Markdown và LaTeX là hai dạng đồng bộ của cùng snapshot. PDF chỉ được coi là release sau khi biên dịch và được nhóm duyệt trên Overleaf.
 
-## Cấu trúc
+## Cây thư mục hiện hành
 
-- `AGENT_THESIS_RULES.md`: quy tắc biên soạn, provenance và kiểm tra.
-- `templates/`: khung Markdown/LaTeX gốc, bảo vệ theo quy trình; chỉ sao chép để viết.
-- `templates/sample_style_v2/`: bộ template mới tham khảo cấu trúc sample 1/2; tách biệt và không thay thế template gốc READ-ONLY.
-- `source_materials/`: phạm vi snapshot, manifest nguồn và hướng dẫn lưu mẫu.
-- `source_materials/samples/`: hai mẫu `.tex` do người dùng cung cấp (được giữ nguyên trong Git theo yêu cầu) và `style_analysis.md`; phân tích chỉ về cấu trúc/trình bày, không chép nội dung đề tài mẫu vào BTL03.
-- `md_drafts/`: Markdown để đọc nhanh và review trên Git.
-- `tex_source/`: nguồn đồng bộ, nén để upload Overleaf.
-- `BaoCao_TongKet_BTL03.pdf`: vị trí PDF cuối đã biên dịch/duyệt; không có trong snapshot T0212.
+```text
+docs/thesis/
+├── AGENT_THESIS_RULES.md
+├── README.md
+├── 01_materials/                         # Nguyên liệu
+│   ├── samples/                          # sample_1.tex, sample_2.tex, analysis
+│   ├── templates/                        # legacy và sample_style_v2
+│   └── evidence/                         # manifest và outline
+├── 02_authoring/                         # Biên soạn
+│   ├── current/
+│   │   ├── report.md
+│   │   └── latex/                        # bundle tự chứa cho Overleaf
+│   └── snapshots/
+│       └── T0212/                        # snapshot lịch sử, không ghi đè
+└── 03_releases/                          # Chỉ PDF đã duyệt + release notes
+    └── README.md
+```
 
-Tên họ và MSSV, người chủ trì báo cáo và tỷ lệ đóng góp cuối kỳ chưa được xác nhận đầy đủ. Dùng alias thành viên có bằng chứng và giữ placeholder cho trường còn thiếu; không suy đoán.
+Không tạo `guidelines/` hoặc `styles/` rỗng. Nếu sau này có tài liệu/quy định hoặc cấu hình phong cách thực tế, có thể thêm thành thư mục con của `01_materials/` và cập nhật README.
 
-## Đồng bộ Markdown và LaTeX
+## Trách nhiệm từng tầng
 
-2. Đọc `AGENT_THESIS_RULES.md`, đề cương, manifest và `source_materials/samples/style_analysis.md`; nếu cần dùng format mới thì sao chép `templates/sample_style_v2/`, không sửa template gốc.
-2. Kiểm tra nguồn trước khi ghi mỗi số liệu/trạng thái; không sửa mẫu để che thiếu sót.
-3. Giữ nguyên snapshot T0212. Với mốc mới, tạo/cập nhật draft mang snapshot/task tương ứng và bundle LaTeX riêng (ví dụ `tex_source/T0402/`); đồng bộ bảng, trạng thái, tác giả, caveat, evidence IDs và citations giữa Markdown/LaTeX.
-4. Kiểm tra Git diff và cấu trúc/include/citation bằng kiểm tra văn bản tĩnh. Không chạy compiler/test/training trên local; Overleaf là nơi biên dịch PDF.
-5. Khi có task mới, giữ snapshot T0212 nguyên trạng; tạo snapshot/mốc mới với commit, ngày và evidence riêng. Không hồi tố kết quả WP03/WP04 vào T0212. Template mới theo sample style lưu riêng ở `templates/sample_style_v2/`; không sửa template gốc READ-ONLY.
+1. **`01_materials/` — Nguyên liệu:** chứa sample gốc, phân tích phong cách, template và manifest/outline evidence. Sample gốc và template `[READ-ONLY]` phải giữ nguyên; không nhân bản dataset/checkpoint hoặc PII.
+2. **`02_authoring/` — Biên soạn:** `current/report.md` và `current/latex/` là tài liệu đang làm. Mỗi mốc cũ được lưu riêng trong `snapshots/<SNAPSHOT>/`; không ghi đè snapshot T0212. LaTeX là source thực sự, không phải file tạm được sinh tự động từ Markdown.
+3. **`03_releases/` — Thành phẩm:** chỉ lưu PDF đã biên dịch trên Overleaf và được duyệt, cùng `release_notes.md` ghi source commit/snapshot, ngày, người duyệt và giới hạn. Hiện chưa có PDF release; không tạo file giả hoặc coi bản nháp là thành phẩm.
 
-### Quy ước trình bày tham khảo
+## Quy trình cập nhật và xuất bản
 
-Áp dụng có chọn lọc các pattern trong `source_materials/samples/style_analysis.md`: bìa/front matter, tóm tắt và từ khóa, mở đầu nêu vấn đề–mục tiêu–phạm vi–phương pháp, thân bài theo pipeline, kết quả tách khỏi thảo luận, kết luận/kiến nghị/phụ lục và tham chiếu chéo. Không sao chép nội dung, thông tin cá nhân hoặc format đặc thù trường từ mẫu; hình/bảng phải có evidence thật.
+1. Đọc `AGENT_THESIS_RULES.md`, material liên quan và evidence mới nhất.
+2. Cập nhật Markdown và LaTeX trong `02_authoring/current/` cùng snapshot; đối chiếu số liệu, bảng, citation, trạng thái và caveat.
+3. Chỉ kiểm tra văn bản tĩnh/Git diff tại local. Không cài TeX, không chạy test, training hoặc compiler local theo quy tắc thesis.
+4. Nén **nội dung bên trong** `02_authoring/current/latex/` để `main.tex` ở gốc ZIP; upload lên Overleaf, dùng XeLaTeX/Biber theo bundle, compile và kiểm tra log/PDF.
+5. Sau khi nhóm duyệt, lưu PDF vào `03_releases/<version>/BaoCao_TongKet_BTL03.pdf` kèm release notes. Không lưu `.aux`, `.log`, `.fls`, `.fdb_latexmk`, `.synctex.gz` hoặc PDF build chưa duyệt.
 
-## Upload Overleaf và lưu PDF
+## Snapshot và trạng thái
 
-1. Nén **nội dung bên trong** `tex_source/` để `main.tex` nằm ở cấp gốc ZIP; upload ZIP lên một dự án Overleaf.
-2. Chọn `main.tex`, đặt compiler **XeLaTeX** và biên dịch trực tiếp trên Overleaf. Nếu có lỗi, tải/copy build log và cung cấp để sửa source; không cần cài TeX local.
-3. Kiểm tra PDF trên Overleaf, tải về và lưu thành `docs/thesis/BaoCao_TongKet_BTL03.pdf`. Không commit file phụ trợ build (`.aux`, `.log`, `.fls`, `.fdb_latexmk`) hoặc PDF build tạm.
+- `02_authoring/current/` hiện chứa bản T0402; owner trong workbook là Member 05, còn nhóm trưởng chỉ định trực tiếp Member 01 soạn snapshot này. Cần nhóm xác nhận mapping trước nghiệm thu.
+- `02_authoring/snapshots/T0212/` giữ Markdown/LaTeX T0212; report nguồn ghi overall `BLOCKED`, không được hồi tố kết quả mới vào đó.
+- `03_releases/` hiện chưa có PDF được duyệt.
+- Họ tên pháp lý/MSSV/giảng viên/tỷ lệ đóng góp cuối kỳ cần nhóm xác nhận; không suy từ alias.
 
-Không chạy lệnh XeLaTeX/latexmk hoặc build cục bộ trong workflow này. Chỉ chuẩn bị nguồn và để Overleaf biên dịch.
+## Đường dẫn chính
 
-Khi cần hình nguồn thật, thêm asset được duyệt vào `tex_source/figures/` (đường dẫn tương đối), ghi evidence/source ID trong caption/manifest, rồi cập nhật `.md` và `.tex` cùng lúc. Hai `sample_*.tex` trong `source_materials/samples/` được lưu nguyên trạng theo yêu cầu để tham khảo; không đưa chúng vào ZIP Overleaf như chương/asset của báo cáo.
+- Current Markdown: `02_authoring/current/report.md`.
+- Current Overleaf bundle: `02_authoring/current/latex/main.tex`.
+- Snapshot T0212 Markdown/LaTeX: `02_authoring/snapshots/T0212/report.md` và `02_authoring/snapshots/T0212/latex/main.tex`.
+- Samples/style analysis: `01_materials/samples/sample_1.tex`, `sample_2.tex`, `style_analysis.md`.
+- Templates: `01_materials/templates/TEMPLATE_THESIS.md`, `latex_template/`, `sample_style_v2/`.
+- Evidence manifest/outline: `01_materials/evidence/evidence_sources_manifest.md`, `thesis_outline_and_scope.md`.
+- Releases: `03_releases/<version>/BaoCao_TongKet_BTL03.pdf` chỉ sau khi duyệt.
 
-## Cập nhật từ T0212 sang giai đoạn tiếp theo
-
-Tại mốc mới, đối chiếu lại trạng thái logger/test, dữ liệu/split, full training từng model, checkpoint/log, metric đúng nghĩa, parity, ablation, trực quan hóa, phân tích RQ và demo. Ghi `NOT_RECORDED`, `BLOCKED`, `NOT RUN` hoặc `[CHƯA THỰC HIỆN - DỰ KIẾN Ở GIAI ĐOẠN TIẾP THEO]` tùy bằng chứng. Không sao chép số T0212 như kết quả mới.
+Bundle Overleaf phải tự chứa; không để `main.tex` hoặc chương dùng `\input`/asset bên ngoài bundle qua `../`. README và Markdown sibling không cần nén vào LaTeX ZIP.
