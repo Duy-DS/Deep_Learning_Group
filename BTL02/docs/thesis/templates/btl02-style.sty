@@ -75,6 +75,18 @@
 \RequirePackage{makecell}
 \RequirePackage[most]{tcolorbox}
 \RequirePackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric,calc}
+
+% ---------------------------- Khung bìa ------------------------------
+\newcommand{\coverframe}{%
+  \begin{tikzpicture}[remember picture,overlay]
+    \draw[line width=2.4pt]
+      ($(current page.north west)+(2.2cm,-1.3cm)$) rectangle
+      ($(current page.south east)+(-1.0cm,1.3cm)$);
+    \draw[line width=0.7pt]
+      ($(current page.north west)+(2.42cm,-1.52cm)$) rectangle
+      ($(current page.south east)+(-1.22cm,1.52cm)$);
+  \end{tikzpicture}}
 \RequirePackage{pgfplots}
 \pgfplotsset{compat=1.18}
 \RequirePackage{listings}
