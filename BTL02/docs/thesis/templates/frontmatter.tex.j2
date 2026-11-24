@@ -1,0 +1,46 @@
+\makecover{Nhận diện cảm xúc khuôn mặt trên FER2013}{BTL02 -- Facial Expression Recognition}{\VAR{instructor}}{\VAR{member_cover}}{2026}
+\makecover{BÁO CÁO TỔNG KẾT}{Nhận diện cảm xúc khuôn mặt trên FER2013}{\VAR{instructor}}{\VAR{member_cover}}{2026}
+
+\pagenumbering{roman}
+\chapter*{Bảng phân công và tỷ lệ đóng góp}
+Tỷ lệ dưới đây là phân bổ theo bảng WBS/README hiện có; cần nhóm xác nhận trước bản nộp cuối.
+\begin{center}
+\begin{tabularx}{\textwidth}{cXr}
+\toprule
+Thành viên & Phạm vi công việc theo WBS & Tỷ lệ \\
+\midrule
+\BLOCK{ for member in members }
+\VAR{member.name} & \VAR{member.role} & \VAR{member.contribution}\% \\
+\BLOCK{ endfor }
+\midrule
+\textbf{Tổng} & \textbf{Phân bổ theo WBS} & \textbf{\VAR{contribution_total}\%} \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\chapter*{Lời cảm ơn}
+Nhóm xin chân thành cảm ơn giảng viên hướng dẫn và các thành viên đã đóng góp cho dự án. Nội dung cụ thể sẽ được nhóm rà soát trước khi nộp.
+\tableofcontents
+\listoffigures
+\listoftables
+
+\chapter*{Danh mục ký hiệu, thuật ngữ và quy ước nhãn}
+\begin{longtable}{p{0.25\textwidth}p{0.68\textwidth}}
+\toprule
+Ký hiệu/thuật ngữ & Giải thích \\
+\midrule
+\endfirsthead
+\toprule Ký hiệu/thuật ngữ & Giải thích \\
+\midrule
+\endhead
+CNN & Mạng nơ-ron tích chập (Convolutional Neural Network). \\
+FER2013 & Bộ dữ liệu nhận diện biểu cảm khuôn mặt gồm bảy lớp. \\
+RQ1--RQ4 & Bốn câu hỏi nghiên cứu được đặt trong phạm vi dự án. \\
+\VAR{label_rows}
+\bottomrule
+\end{longtable}
+
+\chapter*{Tóm tắt}
+Đề tài khảo sát pipeline PyTorch nhận diện bảy cảm xúc khuôn mặt trên FER2013, từ CNN cơ sở và transfer learning đến ablation, trực quan hóa và phân tích lỗi. Dữ liệu được chia theo split chuẩn 28.709/3.589/3.589; augmentation chỉ áp dụng trong huấn luyện. Các số liệu kết quả phải được điền từ CSV 24 cột và báo cáo bằng chứng đã kiểm chứng; nội dung này không tự suy diễn chỉ số còn thiếu.
+
+\noindent\textbf{Từ khóa:} FER2013, CNN, transfer learning, Grad-CAM, PyTorch.

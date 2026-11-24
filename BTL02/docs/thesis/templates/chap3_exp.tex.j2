@@ -1,0 +1,29 @@
+\chapter{Thiết lập thực nghiệm và kết quả}
+\section{Thiết lập chung}
+Seed chuẩn là 42; cấu hình kiến trúc, optimizer, loss, kích thước ảnh và scheduler lấy từ YAML của từng thí nghiệm. PublicTest được Trainer dùng validation/model selection; PrivateTest là kết quả cuối theo pipeline.
+
+\section{RQ1: Độ sâu CNN}
+So sánh SmallCNN, MediumCNN và LargeCNN theo log/báo cáo thực nghiệm tương ứng. Tăng depth làm tăng receptive field và khả năng biểu diễn, đồng thời tăng nguy cơ overfitting/chi phí; kết luận cần dựa trên cùng điều kiện và metrics có nguồn.
+\input{generated/tables/rq1_depth.tex}
+\input{generated/plots/private_macro_comparison.tex}
+\begin{calloutbox}RQ1: \VAR{rq1_finding}\end{calloutbox}
+
+\section{RQ2: Transfer learning và chi phí tính toán}
+Đối chiếu VGG16, ResNet50, EfficientNet-B0 giữa pretrained/scratch và kích thước ảnh chỉ khi cấu hình/CSV tương ứng tồn tại. FLOPs/params được lấy từ benchmark riêng nếu có, không suy ra từ summary CSV.
+\input{generated/tables/rq2_transfer.tex}
+\input{generated/tables/compute_cost.tex}
+\begin{calloutbox}RQ2: \VAR{rq2_finding}\end{calloutbox}
+
+\section{RQ3: Ablation studies}
+\subsection{Augmentation và regularization}
+Phân tích recipe none/basic/advanced và giới hạn của thiết kế ablation; không quy kết tác động nhân quả nếu nhiều yếu tố cùng thay đổi.
+\subsection{Activation và optimizer}
+Đối chiếu activation/optimizer theo run và seed đã xác nhận; mô tả giới hạn một seed nếu phù hợp.
+\subsection{Mất cân bằng lớp và learning-rate scheduler}
+Đánh giá Weighted Cross-Entropy/Focal Loss cho Disgust và scheduler; cần per-class support/recall để đánh giá lỗi lớp thiểu số.
+\input{generated/tables/rq3_ablation.tex}
+\begin{calloutbox}RQ3: \VAR{rq3_finding}\end{calloutbox}
+
+\section{Tổng hợp kết quả}
+\input{generated/tables/all_runs.tex}
+Các ô cảnh báo trong bảng chỉ ra dữ liệu chưa có, không phải số đo bằng không.

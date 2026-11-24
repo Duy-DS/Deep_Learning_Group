@@ -1,0 +1,21 @@
+\chapter*{Mở đầu}
+\addcontentsline{toc}{chapter}{Mở đầu}
+\section{Lý do chọn đề tài}
+Nhận diện biểu cảm khuôn mặt là bài toán phân loại thị giác có ứng dụng trong tương tác người--máy. FER2013 là benchmark có ảnh xám nhỏ, biểu cảm không đồng nhất và phân bố lớp lệch \citep{goodfellow2013fer}, phù hợp khảo sát giới hạn dữ liệu và mô hình.
+
+\section{Lịch sử nghiên cứu và bối cảnh}
+CNN học đặc trưng phân cấp từ pixel; transfer learning tận dụng biểu diễn thị giác đã học trên tập quy mô lớn. Dự án đối chiếu baseline CNN, CNN sâu và backbone VGG16, ResNet50, EfficientNet-B0; không coi kết quả từ các báo cáo khác là số liệu của thí nghiệm này.
+
+\section{Mục tiêu và câu hỏi nghiên cứu}
+\begin{itemize}
+\item \textbf{RQ1:} Độ sâu/thiết kế CNN tác động thế nào đến hiệu năng FER2013?
+\item \textbf{RQ2:} Transfer learning và kích thước ảnh ảnh hưởng ra sao tới chất lượng và chi phí tính toán?
+\item \textbf{RQ3:} Augmentation, hàm mất mát xử lý mất cân bằng, activation, optimizer và regularization ảnh hưởng thế nào?
+\item \textbf{RQ4:} Có thể giải thích và phân tích lỗi dự đoán bằng Grad-CAM, confusion matrix và true/fail cases ra sao?
+\end{itemize}
+
+\section{Đối tượng, phạm vi và phương pháp}
+Phạm vi là 35.887 ảnh, chia chuẩn 28.709 Training, 3.589 PublicTest (validation/model selection) và 3.589 PrivateTest. Pipeline đánh giá không sử dụng augmentation ngẫu nhiên. Hệ thống được triển khai bằng PyTorch, cấu hình YAML, ghi nhận MLflow và kiểm thử bằng unit tests.
+
+\section{Cấu trúc báo cáo}
+Chương 1 trình bày lý thuyết; Chương 2 mô tả dữ liệu/hệ thống; Chương 3 trình bày thiết lập và kết quả có bằng chứng; Chương 4 phân tích trực quan hóa, lỗi và demo; cuối cùng là kết luận và hướng phát triển.

@@ -1,0 +1,17 @@
+\chapter{Trực quan hóa, phân tích lỗi và ứng dụng demo}
+\section{RQ4: Bộ lọc tích chập và Grad-CAM}
+Trực quan hóa bộ lọc mô tả kernel đã học; Grad-CAM gắn với logit lớp cần giải thích. Nếu chưa có hình thực nghiệm, macro TODO báo rõ asset phải bổ sung, không tạo đường dẫn ảnh giả.
+\todofigure{Bộ lọc Conv đầu/cuối từ checkpoint được chọn}
+\todofigure{Grad-CAM phủ khuôn mặt cho các lớp cảm xúc}
+
+\section{True/Fail cases và cặp nhầm lẫn}
+Phân tích top-3 và cặp Fear/Sad/Angry chỉ khi prediction-level artifact có sẵn. Các nguyên nhân che khuất, góc/ánh sáng, nhãn nhiễu và mất cân bằng là giả thuyết cần kiểm tra thủ công, không suy ra chỉ từ confusion matrix.
+\todofigure{Lưới true/fail cases kèm top-3 probabilities}
+
+\section{Ứng dụng demo}
+Ứng dụng trong \code{demo/app.py} là giao diện tương tác; mô tả chức năng đã xác minh từ mã nguồn. Chưa có screenshot runtime thì để TODO.
+\todofigure{Ảnh chụp giao diện demo sau khi chạy với checkpoint đã xác minh}
+
+\begin{calloutbox}
+RQ4 cần kết hợp metrics, hình giải thích và rà soát mẫu sai; heatmap/top-3 không thay thế kiểm định định lượng hay chuyên gia gán nhãn.
+\end{calloutbox}

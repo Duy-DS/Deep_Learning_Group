@@ -1,0 +1,36 @@
+\chapter{Dữ liệu FER2013 và kiến trúc hệ thống PyTorch}
+\section{Dữ liệu và phân bố lớp}
+FER2013 gồm 35.887 ảnh xám kích thước gốc $48\times48$, nhãn 0--6 lần lượt là Angry, Disgust, Fear, Happy, Sad, Surprise, Neutral. Theo EDA/bằng chứng dự án, lớp Happy có 8.989 ảnh và Disgust có 547 ảnh; độ lệch lớp khiến accuracy đơn lẻ chưa đủ mô tả hiệu năng.
+
+\section{Phân chia và chống rò rỉ dữ liệu}
+\begin{longtable}{lrr}
+\toprule Split & Vai trò & Số ảnh \\
+\midrule
+\endfirsthead\toprule Split & Vai trò & Số ảnh \\
+\midrule\endhead
+Training & Tối ưu tham số; chỉ split được augmentation & 28.709 \\
+PublicTest & Validation/model selection; transform xác định & 3.589 \\
+PrivateTest & Đánh giá cuối; transform xác định & 3.589 \\
+\bottomrule
+\end{longtable}
+
+\section{Kiến trúc phần mềm hướng đối tượng}
+\begin{center}
+\begin{tikzpicture}[node distance=1.8cm, every node/.style={draw,rounded corners,align=center,minimum width=2.7cm,minimum height=0.8cm}]
+\node (data) {FER2013 Dataset\\transforms};
+\node (train) [right of=data,xshift=2.0cm] {Trainer\\PyTorch};
+\node (models) [right of=train,xshift=2.0cm] {CNN / SOTA\\models};
+\node (eval) [below of=train] {Evaluation\\metrics / XAI};
+\node (mlflow) [below of=models] {MLflow\\24-column summary};
+\draw[->] (data)--(train); \draw[->] (train)--(models);
+\draw[->] (models)--(eval); \draw[->] (train)--(mlflow);
+\draw[->] (eval)--(mlflow);
+\end{tikzpicture}
+\end{center}
+
+\section{Theo dõi thí nghiệm}
+MLflow ghi cấu hình và metrics; CSV summary 24 cột phục vụ đối chiếu run. Summary không chứa epoch history hay toàn bộ Params/FLOPs; các số liệu này chỉ được điền nếu có artifact nguồn phù hợp. Việc chuẩn hóa theo batch có nền tảng từ Batch Normalization \citep{ioffe2015batchnorm}; regularization/optimizer phải được mô tả đúng theo từng YAML \citep{loschchilov2019adamw}.
+
+\begin{calloutbox}
+Split cố định, eval transform không augmentation và truy vết cấu hình là các điều kiện nền để diễn giải công bằng kết quả.
+\end{calloutbox}

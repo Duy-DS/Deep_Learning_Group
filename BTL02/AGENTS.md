@@ -379,6 +379,9 @@ python -m src.evaluate.metrics --config experiments/sota/exp05_resnet50.yaml --c
 streamlit run demo/app.py
 ```
 
+### Quy định bổ sung cho báo cáo LaTeX WP6 (T0602)
+Mọi tác vụ biên soạn báo cáo LaTeX/Overleaf phải tuân thủ hiến pháp phụ `docs/thesis/AGENTS_THESIS.md`, bao gồm ranh giới READ-ONLY của samples, nguồn số liệu, chất lượng biên dịch và cách đóng gói.
+
 **Checklist bắt buộc của Agent trước khi báo cáo hoàn thành bất kỳ yêu cầu nào:**
 1. [ ] **Kiểm tra Branch:** Đã đứng đúng nhánh `[chức năng]/BTL02_[Task ID]_[tên công việc]` chưa?
 2. [ ] **Kiểm tra PyTorch, OOP & Tiếng Việt:** Mã nguồn viết 100% bằng PyTorch (không dùng Keras/TF), tuân thủ OOP và có đầy đủ Docstring + Comment bằng Tiếng Việt chưa?

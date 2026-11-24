@@ -1,0 +1,19 @@
+\chapter{Cơ sở lý thuyết và tổng quan phương pháp}
+\section{Mạng nơ-ron tích chập}
+Tích chập dùng kernel có trọng số dùng chung để trích xuất mẫu cục bộ. Qua các tầng, receptive field tăng, cho phép biểu diễn cấu trúc từ cạnh/texture đến tổ hợp đặc trưng; pooling giảm độ phân giải không gian.
+
+\section{Batch Normalization, Dropout và tối ưu hóa}
+BatchNorm chuẩn hóa activation theo mini-batch và có tham số học được. Dropout ngẫu nhiên hóa nút trong huấn luyện nhằm regularization; khi đánh giá, chế độ eval tắt dropout. Gradient của loss truyền ngược qua các tầng để cập nhật tham số.
+
+\section{Transfer learning: VGG16, ResNet50, EfficientNet-B0}
+VGG16 dùng các khối convolution/pooling tuần tự \citep{simonyan2014vgg}; ResNet dùng residual connection để hỗ trợ tối ưu mạng sâu \citep{he2016resnet}; EfficientNet cân bằng scaling chiều sâu, chiều rộng và độ phân giải \citep{tan2019efficientnet}. Thí nghiệm dự án dùng cấu hình thực tế trong YAML; không mặc định mọi biến thể có cùng input hoặc cùng số tham số.
+
+\section{Weighted Cross-Entropy và Focal Loss}
+Weighted Cross-Entropy gán trọng số lớp trong loss để phản ánh mất cân bằng. Focal Loss giảm trọng số mẫu dễ, tăng tập trung vào ví dụ khó \citep{lin2017focal}. Các phương pháp cần đánh giá bằng macro-F1/per-class metrics bên cạnh accuracy, đặc biệt với lớp Disgust.
+
+\section{Grad-CAM}
+Grad-CAM lấy trung bình gradient của logit lớp theo activation map để tạo trọng số kênh; tổng có trọng số qua kênh và ReLU tạo bản đồ vùng đóng góp \citep{selvaraju2017gradcam}. Bản đồ là công cụ diễn giải, không chứng minh quan hệ nhân quả.
+
+\begin{calloutbox}
+Các khái niệm trên tạo cơ sở để đối chiếu RQ1--RQ4; mọi nhận định định lượng ở chương kết quả phải truy vết được tới artifact thực tế.
+\end{calloutbox}
