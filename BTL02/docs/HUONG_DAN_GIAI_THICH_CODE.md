@@ -306,8 +306,35 @@ Trả lời: Không. Runner chỉ bỏ qua run MLflow `FINISHED`. Run dở khôn
 ### 10.3. Kiểm thử và trạng thái thực nghiệm
 
 - `tests/test_ablation_scheduler.py` kiểm tra lớp scheduler PyTorch, alias cũ/mới, thay đổi LR, warmup rồi cosine giảm, controlled invariants, forward/backward một batch CPU và tính duy nhất của tên run. Chạy targeted suite: **11 passed**.
-- Hai notebook T0403 có JSON hợp lệ, code cell parse được; chưa thực thi trên Colab/Kaggle. Máy phát triển dùng PyTorch CPU-only, `torch.cuda.is_available() == False`; chưa có CSV `outputs/logs/t0403_ablation_scheduler_24col.csv`, do đó chưa có Run ID hay metric thực tế để kết luận chiến lược scheduler tốt nhất.
-- Chưa tuyên bố full test suite pass cho tới khi kết quả chạy toàn bộ `tests/` hoàn tất. Huấn luyện GPU và nghiệm thu số liệu định lượng là bước chờ người dùng chạy runner và cung cấp CSV thực tế.
+- Hai notebook T0403 có JSON hợp lệ, code cell parse được; chưa thực thi trên Colab/Kaggle trong phiên nghiệm thu. Máy phát triển dùng PyTorch CPU-only, `torch.cuda.is_available() == False`.
+- CSV thực tế `outputs/logs/t0403_ablation_scheduler_24col.csv` có đúng 24 cột, ba run `FINISHED`, seed 42. Bảng metric và diễn giải bên dưới là quan sát của một run mỗi scheduler; không có per-epoch history kèm theo CSV.
+- Full test suite đã hoàn tất: **152 passed**, 2 warning, 298.84s; targeted scheduler tests **11 passed**.
+
+### 10.4. Kết quả thực nghiệm EXP-12 thực tế
+
+| Scheduler | MLflow Run ID | Best Epoch | Train Loss | Train Acc | Best Val / Public Acc | Private Test Acc | Macro-F1 | Train−Private Gap |
+| :--- | :--- | :---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| ReduceLROnPlateau (đối chứng) | `f97118d157a04325842acaa091362a03` | 16 | 0.455350 | 83.520847% | 69.657286% | **70.130956%** | **0.700074** | **13.389891 pp** |
+| CosineAnnealingLR | `7348e1b10b22408fb71dc61920b1ef5c` | 28 | 0.247717 | 91.187433% | 69.490109% | 69.963778% | 0.694598 | 21.223654 pp |
+| Linear Warmup + Cosine | `a312721f1e884bb7891f464f984e6551` | 22 | 0.264893 | 90.682364% | 69.517972% | 69.935915% | 0.689152 | 20.746449 pp |
+
+- Trong seed 42, Plateau cao hơn cosine **0.167177 điểm phần trăm Private Acc** và **0.005476 Macro-F1**; cao hơn warmup-cosine lần lượt **0.195040 điểm** và **0.010922 Macro-F1**. Gap của cosine và warmup-cosine lần lượt lớn hơn Plateau **7.833763 pp** và **7.356558 pp**.
+- Cosine đạt Train Loss nhỏ nhất (0.247717) và Train Acc cao nhất (91.187433%), nhưng Private Acc/Macro-F1 thấp hơn Plateau. Điều này minh họa rằng metric train hoặc loss cuối không tự động đồng nghĩa tổng quát hóa tốt hơn.
+- Best Epoch lần lượt 16/28/22; Duration CSV lần lượt 1,988.973/2,561.110/2,608.358 giây (~33.15/42.69/43.47 phút; Plateau/Cosine/WarmupCosine). Best Epoch là epoch đạt validation accuracy cao nhất; duration run đơn không cô lập chi phí scheduler vì throughput có thể biến thiên.
+- **Giới hạn trajectory:** CSV 24 cột không lưu per-epoch history và không có VRAM. Best Epoch/Duration không đủ để khẳng định scheduler nào mượt, ít dao động hoặc tránh kẹt cực tiểu tốt hơn. Cần MLflow history của `metrics.lr`, `train_loss`, `val_loss` và nhiều seed.
+- **Kết luận có điều kiện:** Plateau là tốt nhất về Private Acc, Macro-F1 và gap trong ba lần chạy được cung cấp; với một seed, không tuyên bố đây là scheduler tối ưu phổ quát hoặc kết quả có ý nghĩa thống kê.
+
+**Hỏi: Scheduler nào thắng EXP-12 theo số liệu hiện có?**
+Trả lời: ReduceLROnPlateau đạt Private Acc 70.130956%, Macro-F1 0.700074 và gap 13.389891 pp, tốt nhất trong ba run seed 42. Cosine và warmup-cosine có Private Acc/Macro-F1 thấp hơn; kết luận chỉ áp dụng cho các run này.
+
+**Hỏi: Vì sao cosine có Train Loss thấp nhất nhưng không thắng trên PrivateTest?**
+Trả lời: Train Loss phản ánh tối ưu trên tập train, còn PrivateTest đo khả năng tổng quát hóa. Cosine có Train Acc 91.187433% nhưng gap 21.223654 pp và Private Acc 69.963778%, thấp hơn Plateau; chỉ nhìn train loss sẽ bỏ qua khoảng cách tổng quát hóa.
+
+**Hỏi: Best Epoch 28 của cosine chứng minh hội tụ chậm hoặc mượt hơn không?**
+Trả lời: Không. Best Epoch chỉ cho biết epoch có validation accuracy tốt nhất, không mô tả các epoch trước/sau. Muốn đánh giá tốc độ và độ mượt cần chuỗi `lr`, train/validation loss/accuracy theo epoch.
+
+**Hỏi: Đã chứng minh Plateau là scheduler tốt nhất cho FER2013 chưa?**
+Trả lời: Chưa. Mỗi scheduler chỉ có một seed; chưa có mean±std hoặc kiểm định. Có thể nói Plateau tốt nhất theo ba run được ghi nhận, nhưng cần lặp nhiều seed để kết luận ổn định.
 
 **Hỏi: Vì sao cần hậu tố scheduler trong tên MLflow run?**
 Trả lời: Nếu identity chỉ gồm EXP-12, kiến trúc và optimizer, ba lịch LR có thể trùng tên; Auto-Skip sẽ bỏ qua sai cấu hình. Hậu tố được bật cho riêng EXP-12 để phân biệt run mà không thay đổi tên các run lịch sử.
@@ -325,7 +352,7 @@ Trả lời: Không. CSV cuối run chỉ lưu điểm tổng kết và Best Epo
 Trả lời: PublicTest được dùng làm validation/model-selection nên không phải holdout độc lập. Cần báo cáo PrivateTest Accuracy/Macro-F1 cùng gap, đồng thời nhiều seed; không suy luận độ mượt chỉ từ accuracy cuối.
 
 **Hỏi: T0403 đã có kết luận thực nghiệm chưa?**
-Trả lời: Chưa ở giai đoạn hạ tầng. Máy local không có CUDA và chưa có CSV GPU; sau khi runner tạo đủ ba run `FINISHED`, mới điền bảng Run ID/Best Epoch/Train Acc/Private Acc/Macro-F1/gap và phân tích history thực tế.
+Trả lời: Đã có CSV gồm ba run `FINISHED`; trong seed 42, Plateau dẫn đầu Private Acc/Macro-F1 và có gap thấp nhất. Tuy nhiên chưa có epoch history và chỉ có một seed, nên chưa thể đánh giá độ mượt hoặc kết luận scheduler tối ưu phổ quát.
 
 ### 9.4. Kết quả định lượng EXP-11 thực tế (CSV 24 cột)
 
