@@ -113,25 +113,31 @@
   title={#1},fonttitle=\bfseries,arc=1mm,boxrule=0.7pt}
 
 \newcommand{\makecover}[5]{%
-  \begin{titlepage}\centering
-  \begin{tikzpicture}[remember picture,overlay]
-    \draw[line width=1.2pt] ([xshift=1.15cm,yshift=-1.15cm]current page.north west)
-      rectangle ([xshift=-1.15cm,yshift=1.15cm]current page.south east);
-    \draw[line width=0.45pt] ([xshift=1.28cm,yshift=-1.28cm]current page.north west)
-      rectangle ([xshift=-1.28cm,yshift=1.28cm]current page.south east);
-  \end{tikzpicture}
-  {\large\textbf{TRƯỜNG ĐẠI HỌC SÀI GÒN}}\\[0.25em]
-  {\large\textbf{KHOA TOÁN - ỨNG DỤNG}}\\[1.4cm]
-  {\Large\textbf{BÁO CÁO BÀI TẬP LỚN}}\\[0.35em]
-  {\large MÔN HỌC SÂU (DEEP LEARNING)}\\[1.6cm]
-  {\LARGE\bfseries #1\par}\\[0.6cm]
-  {\Large #2\par}\\[1.4cm]
-  \begin{tabular}{rl}
-    \textbf{Lớp:} & DDU1231\\
-    \textbf{Giảng viên hướng dẫn:} & #3\\
-    \textbf{Nhóm thực hiện:} & Nhóm 5\\
-    \textbf{Thành viên:} & #4\\
-  \end{tabular}\\[1.4cm]
-  {\large TP. Hồ Chí Minh, #5}\par
-  \end{titlepage}}
+  \begin{titlepage}
+    \coverframe
+    \setstretch{1.15}
+    \centering
+    {\fontsize{14}{18}\selectfont\bfseries TRƯỜNG ĐẠI HỌC SÀI GÒN\par
+     KHOA TOÁN - ỨNG DỤNG\par}
+    \vspace{2pt}
+    \rule{4.2cm}{0.8pt}\par
+    \vspace{0.9cm}
+    \IfFileExists{logo_sgu.jpg}{\includegraphics[width=3.4cm]{logo_sgu.jpg}\par\vspace{0.8cm}}{}
+    {\fontsize{16}{21}\selectfont\bfseries #1\par
+     MÔN HỌC SÂU (DEEP LEARNING)\par}
+    \vspace{1.0cm}
+    {\fontsize{15}{22}\selectfont\bfseries #2\par}
+    \vfill
+    {\fontsize{13}{18}\selectfont
+    \begin{tabular}{@{}l@{\hspace{8pt}}l@{}}
+      \textbf{Lớp:}                   & DDU1231\\
+      \textbf{Giảng viên hướng dẫn:}  & #3\\
+      \textbf{Nhóm thực hiện:}        & Nhóm 5\\
+      \textbf{Sinh viên thực hiện:}   & #4\\
+    \end{tabular}\par}
+    \vfill
+    {\itshape\bfseries Thành phố Hồ Chí Minh, #5\par}
+    \vspace{0.4cm}
+  \end{titlepage}%
+}
 \endinput

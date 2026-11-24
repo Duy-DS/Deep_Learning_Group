@@ -1,19 +1,39 @@
-\makecover{Nhận diện cảm xúc khuôn mặt trên tập FER2013 bằng mạng nơ-ron tích chập và học chuyển giao}{Bài tập lớn 02 -- Học phần Học sâu (Deep Learning)}{\VAR{instructor}}{\VAR{member_cover}}{2026}
-\makecover{BÁO CÁO TỔNG KẾT ĐỒ ÁN}{Nhận diện cảm xúc khuôn mặt trên tập FER2013 bằng mạng nơ-ron tích chập và học chuyển giao}{\VAR{instructor}}{\VAR{member_cover}}{2026}
+\makecover
+  {BÁO CÁO BÀI TẬP LỚN}
+  {Nhận diện cảm xúc khuôn mặt trên tập FER2013\\ bằng mạng nơ-ron tích chập và học chuyển giao}
+  {TS. Đỗ Như Tài}
+  {3123580008 -- Nguyễn Tấn Duy\\
+   & 3123580009 -- Nguyễn Thành Đạt\\
+   & 3123580056 -- Nguyễn Công Trí\\
+   & 3123580054 -- Đinh Thái Toàn\\
+   & 3123580065 -- Trần Chí Vỹ}
+  {2026}
+
+\makecover
+  {BÁO CÁO TỔNG KẾT ĐỒ ÁN}
+  {Nhận diện cảm xúc khuôn mặt trên tập FER2013\\ bằng mạng nơ-ron tích chập và học chuyển giao}
+  {TS. Đỗ Như Tài}
+  {3123580008 -- Nguyễn Tấn Duy\\
+   & 3123580009 -- Nguyễn Thành Đạt\\
+   & 3123580056 -- Nguyễn Công Trí\\
+   & 3123580054 -- Đinh Thái Toàn\\
+   & 3123580065 -- Trần Chí Vỹ}
+  {2026}
 
 \pagenumbering{roman}
 \chapter*{Bảng phân công nhiệm vụ và tỷ lệ đóng góp}
-Tỷ lệ dưới đây lấy theo bảng phân công/WBS hiện được ghi trong README của dự án; nhóm cần xác nhận lại trước bản nộp cuối.
 \begin{center}
 \begin{tabularx}{\textwidth}{cXr}
 \toprule
-Thành viên & Phạm vi công việc theo WBS & Tỷ lệ \\
+MSSV -- Họ và tên & Phạm vi công việc theo WBS & Tỷ lệ \\
 \midrule
-\BLOCK{ for member in members }
-\VAR{member.name} & \VAR{member.role} & \VAR{member.contribution}\% \\
-\BLOCK{ endfor }
+3123580008 -- Nguyễn Tấn Duy & Lead ML \& Hạ tầng Dữ liệu (WP1, WP6): Khởi tạo Repo, MLflow 24 cột, FER2013Dataset, Baseline CNN, rà soát PR \& đóng gói. & 20.0\% \\
+3123580009 -- Nguyễn Thành Đạt & Kiến trúc Custom CNN \& Tối ưu (WP2, WP4): Thiết kế MediumCNN, LargeCNN; thực nghiệm RQ1 (độ sâu mạng), Ablation Activation, Optimizer \& Regularization. & 20.0\% \\
+3123580056 -- Nguyễn Công Trí & Transfer Learning \& SOTA Models (WP3): Pipeline 128$\times$128$\times$3, Fine-tuning VGG16, ResNet50, EfficientNet-B0; thực nghiệm RQ2 và tối ưu LR Scheduler. & 20.0\% \\
+3123580054 -- Đinh Thái Toàn & Ablation Studies \& Giải thích Mô hình (WP4, WP5): Thực nghiệm RQ3 (Augmentation, Class Weights, Focal Loss); vẽ Confusion Matrix, Grad-CAM (RQ4) \& phân tích lỗi. & 20.0\% \\
+3123580065 -- Trần Chí Vỹ & Web Demo, Tài liệu \& Báo cáo (WP5, WP6): Đóng gói EmotionPredictor, ứng dụng Streamlit/Gradio, biên soạn README, Báo cáo in LaTeX, Slide \& Poster. & 20.0\% \\
 \midrule
-\textbf{Tổng} & \textbf{Phân bổ theo WBS hiện hành} & \textbf{\VAR{contribution_total}\%} \\
+\textbf{Tổng} & \textbf{Phân bổ theo WBS hiện hành (WP1--WP6)} & \textbf{\VAR{contribution_total}\%} \\
 \bottomrule
 \end{tabularx}
 \end{center}
