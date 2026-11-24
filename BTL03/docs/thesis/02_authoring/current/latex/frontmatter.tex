@@ -10,14 +10,14 @@ Base repository: \texttt{b2b88db3fc7444f7c37391e7211416ea3843a31e}\\
 Evidence report mới nhất: T0212 (2026-11-23)\\
 Ngày lập: 2026-11-24
 \vfill
-\begin{tabularx}{\textwidth}{c p{0.27\textwidth} p{0.25\textwidth} X}
+\begin{tabularx}{\textwidth}{c p{0.32\textwidth} p{0.22\textwidth} X}
 \toprule STT & Thành viên / alias & Họ tên / MSSV & Vai trò theo evidence \\
 \midrule
-1 & Duy-DS & [NHÓM XÁC NHẬN] & Member 01; người tổng hợp bản này theo chỉ định trực tiếp \\
-2 & nguyenthanhdat180905-cloud & [NHÓM XÁC NHẬN] & Task reports nhóm 2 \\
-3 & nguyen-cong-tri & [NHÓM XÁC NHẬN] & Task reports nhóm 3 \\
-4 & TonOfWeight072501 & [NHÓM XÁC NHẬN] & Task reports utilities \\
-5 & CHIVY2005 & [NHÓM XÁC NHẬN] & Task reports nhóm 5 \\
+1 & \texttt{Duy-DS} & [NHÓM XÁC NHẬN] & Member 01; Trưởng nhóm / tổng hợp bản này theo chỉ định trực tiếp \\
+2 & \texttt{nguyenthanhdat180905-cloud} & [NHÓM XÁC NHẬN] & Member 02; Task reports nhóm 2 (CNN+MLP) \\
+3 & \texttt{nguyen-cong-tri} & [NHÓM XÁC NHẬN] & Member 03; Task reports nhóm 3 (CNN+LSTM) \\
+4 & \texttt{TonOfWeight072501} & [NHÓM XÁC NHẬN] & Member 04; Task reports nhóm 4 (Training Utilities) \\
+5 & \texttt{CHIVY2005} & [NHÓM XÁC NHẬN] & Member 05; Task reports nhóm 5 (Advanced Vision) \\
 \midrule
 \multicolumn{2}{l}{Lớp/giảng viên: [NHÓM XÁC NHẬN]} & \multicolumn{2}{l}{Tỷ lệ đóng góp: [NHÓM XÁC NHẬN; tổng 100\%]} \\
 \bottomrule
@@ -42,22 +42,22 @@ BTL03 chuyển mười cấu hình thuộc năm nhóm Keras sang PyTorch. Eviden
 \begin{tabularx}{\textwidth}{lY}
 \toprule Viết tắt & Ý nghĩa \\
 \midrule
-CNN & Convolutional Neural Network \\
-FCN & Score-map regression theo legacy; không mặc nhiên là IoU/mAP detector \\
-LSTM & Long Short-Term Memory \\
+CNN & Convolutional Neural Network — mạng nơ-ron tích chập \\
+FCN & Fully Convolutional Network; score-map regression theo legacy \\
+LSTM & Long Short-Term Memory — mạng bộ nhớ ngắn hạn dài \\
 NCHW/NHWC & Batch--channel--height--width / batch--height--width--channel \\
-OOP & Lập trình hướng đối tượng \\
-RQ/WBS & Câu hỏi nghiên cứu / cấu trúc phân rã công việc \\
+OOP & Object-Oriented Programming — lập trình hướng đối tượng \\
+RQ/WBS & Research Questions / Work Breakdown Structure \\
 \bottomrule
 \end{tabularx}
 
 \chapter*{Câu hỏi nghiên cứu}
 \addcontentsline{toc}{chapter}{Câu hỏi nghiên cứu}
 README BTL03 có RQ1/RQ2; charter Markdown đúng tên chưa được xác minh. Các câu dưới đây là tóm lược theo README, chưa xác nhận là câu chữ nguyên văn của charter.
-\begin{longtable}{p{0.10\textwidth}p{0.43\textwidth}p{0.25\textwidth}p{0.14\textwidth}}
+\begin{longtable}{p{0.14\textwidth}p{0.38\textwidth}p{0.26\textwidth}p{0.18\textwidth}}
 \toprule ID & Câu hỏi tóm lược & Evidence cần & Trạng thái \\
 \midrule
-RQ1* & Layout, training loop và khởi tạo ảnh hưởng thế nào đến hội tụ/gradient? & Run đối chứng cùng protocol & Chưa kết luận tổng quát \\
+RQ1* & Layout tensor (NHWC/NCHW), vòng lặp và khởi tạo ảnh hưởng thế nào đến hội tụ và gradient? & Run đối chứng cùng protocol & Chưa kết luận tổng quát \\
 RQ2* & Regularization, augmentation và callbacks ảnh hưởng thế nào đến overfitting trên dữ liệu thật? & Ablation có data/split/log & Chưa kết luận hiệu quả PyTorch \\
 RQ3/RQ4 & Chưa xác minh câu chữ trong charter & Charter chính thức & Không tự dựng câu hỏi \\
 \bottomrule

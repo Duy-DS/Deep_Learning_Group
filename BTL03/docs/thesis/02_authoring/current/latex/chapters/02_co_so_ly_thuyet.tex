@@ -1,19 +1,19 @@
 \chapter{Cơ sở lý thuyết và hợp đồng chuyển đổi}
 \section{Vòng lặp, logits và hàm mất mát}
-PyTorch biểu diễn vòng lặp \texttt{zero\_grad} → forward → loss → backward → optimizer step; validation đặt model ở \texttt{eval()} và inference/no-gradient mode. Phân loại nhận logits và class-index \texttt{torch.long} qua \texttt{CrossEntropyLoss}; không áp softmax trước loss. Parameter count khớp không chứng minh output, gradient hay metric parity \cite{paszke2019pytorch}.
+PyTorch biểu diễn vòng lặp \texttt{zero\_grad()} $\rightarrow$ forward $\rightarrow$ loss $\rightarrow$ backward $\rightarrow$ optimizer step; validation đặt model ở chế độ \texttt{eval()} và chế độ không tính đạo hàm (\texttt{torch.no\_grad()}). Bài toán phân loại nhận logits thô và nhãn chỉ số lớp \texttt{torch.long} thông qua \texttt{nn.CrossEntropyLoss}; tuyệt đối không áp dụng hàm softmax trước loss. Việc số lượng tham số (parameter count) trùng khớp không đồng nghĩa với tính tương đương về đầu ra, gradient hay các chỉ số đánh giá (metrics) \cite{paszke2019pytorch}.
 
 \section{Layout ảnh, rotation và normalization}
-Keras ảnh thường có shape $(N,H,W,C)$, PyTorch convolution nhận $(N,C,H,W)$:
+Dữ liệu ảnh trong Keras thường có định dạng NHWC $(N, H, W, C)$, trong khi các lớp tích chập PyTorch (\texttt{nn.Conv2d}) yêu cầu định dạng NCHW $(N, C, H, W)$:
 \[
-x_{NCHW}=\operatorname{permute}(x_{NHWC},0,3,1,2).\operatorname{contiguous}().
+x_{\text{NCHW}} = \operatorname{permute}(x_{\text{NHWC}}, 0, 3, 1, 2).\operatorname{contiguous}()
 \]
-WIKI áp dụng \texttt{np.rot90(k=3, axes=(1,2))} trên NHWC trước khi đổi trục; rotation đổi tọa độ pixel, permute chỉ đổi thứ tự chiều. MNIST legacy chia byte pixel cho 255. T0102/T0205 báo FER legacy không có phép chia `/255` tường minh; cấu hình preserve cần được giữ theo nguồn. FCN detection chuẩn hóa RGB theo $x/127.5-1.0$.
+Đối với tập dữ liệu WIKI Gender, phép biến đổi \texttt{np.rot90(k=3, axes=(1,2))} được áp dụng trên tensor NHWC trước khi chuyển trục; phép xoay thay đổi vị trí không gian của pixel, trong khi phép hoán vị trục chỉ đổi thứ tự các chiều tensor. Dữ liệu MNIST legacy chia giá trị byte pixel cho 255. Báo cáo T0102/T0205 ghi nhận mô hình FER legacy không có phép chia `/255` tường minh; cấu hình \texttt{preserve} cần được bảo toàn theo đúng mã nguồn gốc. Mô hình phát hiện vật thể FCN chuẩn hóa dữ liệu ảnh RGB theo công thức $x / 127.5 - 1.0$.
 
-\section{CNN-LSTM và TimeDistributed}
-Tensor chuỗi $(B,T,C,H,W)$ được reshape thành $(BT,C,H,W)$ để CNN xử lý từng frame; vector đặc trưng $(BT,F)$ được khôi phục thành $(B,T,F)$ theo đúng thứ tự trước khi đưa vào LSTM. Đây là hợp đồng shape tương ứng TimeDistributed, không tự chứng minh weight/metric parity.
+\section{CNN-LSTM và thay thế TimeDistributed}
+Đối với chuỗi ảnh đầu vào có kích thước $(B, T, C, H, W)$, tensor được gộp hai chiều đầu thành $(B \times T, C, H, W)$ để mạng CNN trích xuất đặc trưng cho từng khung hình độc lập; sau đó vector đặc trưng $(B \times T, F)$ được tái cấu trúc trở lại thành $(B, T, F)$ theo đúng thứ tự thời gian trước khi truyền vào tầng \texttt{nn.LSTM}. Đây là hợp đồng cấu trúc shape thay thế hoàn toàn lớp \texttt{TimeDistributed} của Keras, tuy nhiên không tự động đảm bảo tính tương đương về trọng số hay sai số dự đoán.
 
-\section{SegNet và CrossEntropy mask}
-Nearest UpSampling2D được ánh xạ sang \texttt{nn.Upsample(scale\_factor=2, mode=nearest)}. SegNet trả logits $(B,K,H,W)$; mask class-index $(B,H,W)$ kiểu long dùng cho cross-entropy. Pixel accuracy khác mIoU; giữ nguyên tên metric legacy \cite{badrinarayanan2017segnet}.
+\section{SegNet và hàm mất mát phân vùng}
+Thao tác \texttt{UpSampling2D(size=(2,2))} phương pháp nearest-neighbor trong Keras được ánh xạ sang \texttt{nn.Upsample(scale\_factor=2, mode='nearest')}. Mô hình SegNet trả về logits kích thước $(B, K, H, W)$; tensor nhãn phân vùng lớp $(B, H, W)$ kiểu \texttt{torch.long} được đưa trực tiếp vào \texttt{nn.CrossEntropyLoss}. Cần phân biệt rõ Pixel Accuracy với Mean IoU (mIoU); báo cáo giữ nguyên tên metric theo đúng mã nguồn legacy \cite{badrinarayanan2017segnet}.
 
-\section{FCN score-map}
-Notebook detector dùng score tanh, target $\pm1$ và MSE. Accuracy legacy không đồng nghĩa IoU/mAP; heatmap từ model chưa huấn luyện chỉ kiểm tra đường đi shape/inference, không chứng minh detection quality.
+\section{FCN score-map và ngưỡng phát hiện}
+Mô hình phát hiện vật thể FCN trong notebook legacy sử dụng hàm kích hoạt $\tanh$ ở đầu ra, nhãn mục tiêu trong khoảng $[-1, 1]$ và hàm mất mát MSE. Độ chính xác (Accuracy) của notebook legacy không đồng nghĩa với IoU hay mAP trong các bài toán Object Detection hiện đại; biểu đồ heatmap từ mô hình chưa huấn luyện chỉ có giá trị kiểm thử luồng lan truyền xuôi và kích thước tensor đầu ra, không chứng minh chất lượng phát hiện vật thể.

@@ -1,16 +1,16 @@
 \chapter{Thiết kế hệ thống và chuyển đổi PyTorch}
-\section{Kiến trúc OOP}
+\section{Kiến trúc hướng đối tượng (OOP)}
 \begin{itemize}
-\item \texttt{BaseMigratedModel}: forward contract, kiểm tra NCHW, parameter counters và feature hooks.
-\item \texttt{BaseTrainer}: train/validation, callbacks, logger, checkpoint; validation dùng inference mode.
-\item \texttt{seed\_everything(42)} và worker/generator helpers hỗ trợ reproducibility. T0106 lưu ý PYTHONHASHSEED cần đặt trước khi khởi tạo process để tác động hash seed của process hiện tại.
-\item Callbacks có lifecycle, EarlyStopping, ModelCheckpoint và ReduceLROnPlateau.
-\item \texttt{ExperimentLogger} ghi epoch CSV, master CSV 18 cột và SummaryWriter; \texttt{CheckpointManager} lưu state/metadata, mirror Drive chỉ khi mount root tồn tại.
-\item YAML/runners/\texttt{src/train.py} cung cấp CLI dispatch; `--task all --smoke-test` là synthetic harness, không phải full training.
+\item \texttt{BaseMigratedModel}: Lớp cơ sở trừu tượng quy định hợp đồng forward, kiểm tra định dạng NCHW, đếm tham số huấn luyện (\texttt{count\_parameters}) và hook trích xuất đặc trưng (\texttt{extract\_features}).
+\item \texttt{BaseTrainer}: Đóng gói vòng lặp huấn luyện/kiểm định, tích hợp callbacks, logger và checkpoint; pha validation chạy ở chế độ inference không tính gradient.
+\item \texttt{seed\_everything(42)} và các thiết lập worker/generator cố định tính tái lập (reproducibility). Báo cáo T0106 lưu ý biến môi trường \texttt{PYTHONHASHSEED} cần được thiết lập trước khi khởi tạo tiến trình Python để cố định hash seed.
+\item Hệ thống callbacks hướng đối tượng quản lý trọn vẹn vòng đời huấn luyện: \texttt{EarlyStopping}, \texttt{ModelCheckpoint} và \texttt{ReduceLROnPlateau}.
+\item \texttt{ExperimentLogger} xuất log CSV từng epoch, master CSV 18 cột và TensorBoard (\texttt{SummaryWriter}); \texttt{CheckpointManager} quản lý checkpoint trọng số và mirror lên Google Drive khi đường dẫn mount tồn tại.
+\item Cấu hình YAML và điểm điều phối CLI tập trung qua \texttt{src/train.py}; chế độ \texttt{--smoke-test} sử dụng dữ liệu giả lập (synthetic fixtures), không thay thế huấn luyện chính thức.
 \end{itemize}
-T0104 ghi logger smoke độc lập PASS; T0212 ghi SummaryWriter BLOCKED bởi protobuf/TensorBoard. Hai kết quả thuộc các runtime/mốc khác nhau, cần nêu đúng phạm vi.
+Báo cáo T0104 ghi nhận logger smoke độc lập PASS, trong khi T0212 ghi nhận \texttt{SummaryWriter} bị BLOCKED do xung đột môi trường protobuf/TensorBoard. Hai kết quả này thuộc các mốc thời gian và môi trường runtime khác nhau, cần được phản ánh độc lập và trung thực.
 
-\section{Pipeline và ranh giới bằng chứng}
+\section{Sơ đồ pipeline và ranh giới kiểm toán}
 \begin{figure}[htbp]
 \centering
 \begin{tikzpicture}[node distance=8mm and 8mm,every node/.style={draw,rounded corners,align=center,text width=27mm,minimum height=10mm,font=\small}]
@@ -31,9 +31,9 @@ T0104 ghi logger smoke độc lập PASS; T0212 ghi SummaryWriter BLOCKED bởi 
 \end{figure}
 Sơ đồ trình bày kiến trúc cần kiểm toán, không khẳng định toàn bộ luồng full-data/logger chạy thành công.
 
-\section{Ma trận chuyển đổi}
-\begin{longtable}{p{0.12\textwidth}p{0.29\textwidth}p{0.28\textwidth}p{0.23\textwidth}}
-\toprule Nhóm & Cấu hình & Kỹ thuật & Evidence/giới hạn \\
+\section{Ma trận chuyển đổi mô hình}
+\begin{longtable}{p{0.08\textwidth}p{0.30\textwidth}p{0.32\textwidth}p{0.24\textwidth}}
+\toprule Nhóm & Cấu hình & Kỹ thuật chuyển đổi & Evidence / giới hạn \\
 \midrule
 1 & FuncApxmMLP; MNISTMLP & Linear; logits/loss & T0201 sweep; T0202 một MNIST run \\
 2 & MNISTCNN; HumanGenderCNN; EmotionCNN & Conv2d; NCHW; preprocessing & Count/shape; full metrics thiếu ở nhiều model \\

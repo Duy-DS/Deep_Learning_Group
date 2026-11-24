@@ -21,22 +21,22 @@ BTL03 chuyển mười cấu hình thuộc năm nhóm bài toán từ notebook K
 
 | Viết tắt | Ý nghĩa |
 |---|---|
-| CNN | Convolutional Neural Network — mạng tích chập |
-| FCN | Score-map regression theo legacy; không mặc nhiên là detector có IoU/mAP |
-| LSTM | Long Short-Term Memory |
+| CNN | Convolutional Neural Network — mạng nơ-ron tích chập |
+| FCN | Fully Convolutional Network; score-map regression theo legacy |
+| LSTM | Long Short-Term Memory — mạng bộ nhớ ngắn hạn dài |
 | NCHW / NHWC | Batch–channel–height–width / batch–height–width–channel |
-| OOP | Lập trình hướng đối tượng |
-| RQ / WBS | Câu hỏi nghiên cứu / cấu trúc phân rã công việc |
+| OOP | Object-Oriented Programming — lập trình hướng đối tượng |
+| RQ / WBS | Research Questions / Work Breakdown Structure |
 
 ## Câu hỏi nghiên cứu
 
-README BTL03 nêu RQ1/RQ2 nhưng `Project_Charter_BTL03.md` đúng tên chưa có trong repository. Bảng này là tóm lược theo README, chưa xác nhận câu chữ nguyên văn charter; không tự tạo RQ3/RQ4.
+README BTL03 nêu RQ1/RQ2; charter Markdown đúng tên chưa có trong repository. Bảng này là tóm lược theo README, chưa xác nhận câu chữ nguyên văn charter; không tự tạo RQ3/RQ4.
 
 | ID | Câu hỏi tóm lược | Evidence cần | Trạng thái |
 |---|---|---|---|
-| RQ1* | NHWC/NCHW, vòng lặp và khởi tạo ảnh ảnh hưởng thế nào đến hội tụ/gradient? | Đối chứng cùng split, seed, initializer, optimizer và runtime | Chưa kết luận tổng quát |
-| RQ2* | Regularization, augmentation và callbacks ảnh hưởng ra sao đến overfitting trên dữ liệu thật? | Ablation đối chứng có dữ liệu, split, Run ID và log | Chưa kết luận hiệu quả PyTorch |
-| RQ3/RQ4 | Chưa xác minh câu chữ charter | Charter chính thức | Không tự dựng câu hỏi |
+| RQ1* | Layout tensor (NHWC/NCHW), vòng lặp huấn luyện và khởi tạo trọng số ảnh hưởng thế nào đến hội tụ và gradient? | Run đối chứng cùng split, seed, initializer, optimizer và runtime | Chưa kết luận tổng quát |
+| RQ2* | Regularization (Dropout, BatchNorm), augmentation và callbacks ảnh hưởng ra sao đến overfitting trên dữ liệu thật? | Ablation đối chứng có dữ liệu, split, Run ID và log | Chưa kết luận hiệu quả PyTorch |
+| RQ3/RQ4 | Chưa xác minh câu chữ trong charter | Charter chính thức | Không tự dựng câu hỏi |
 
 \* Cần nhóm xác minh với charter chính thức.
 
@@ -56,23 +56,37 @@ Repository có code chuyển đổi, baseline inventory, task reports, T0201 swe
 
 ### Cấu trúc báo cáo
 
-Chương 1 nêu phạm vi; Chương 2 giải thích hợp đồng Keras–PyTorch; Chương 3 trình bày pipeline và OOP; Chương 4 tổng hợp parameter/results/status; Chương 5 bàn về validity, hạn chế và hướng tiếp theo; phụ lục dẫn provenance.
+Chương 1 nêu phạm vi và cơ cấu WBS 4 Work Packages; Chương 2 giải thích hợp đồng Keras–PyTorch; Chương 3 trình bày pipeline và OOP; Chương 4 tổng hợp parameter/results/status; Chương 5 bàn về validity, hạn chế và hướng tiếp theo; phụ lục dẫn provenance.
+
+---
 
 # 1. Tổng quan dự án và phạm vi
 
 ## 1.1 Năm nhóm, mười cấu hình
 
-| Nhóm | Cấu hình | Số cấu hình | Trọng tâm chuyển đổi |
-|---|---|---:|---|
-| 1 — MLP | `FuncApxmMLP`, `MNISTMLP` | 2 | Dense→Linear; MSE và logits classification |
-| 2 — CNN+MLP | `MNISTCNN`, `HumanGenderCNN`, `EmotionCNN` | 3 | Conv2D→Conv2d; layout/preprocessing/pooling |
-| 3 — CNN+LSTM | `MNISTCNNLSTM` | 1 | Reshape thay `TimeDistributed` |
-| 4 — Training Utilities | Gender + callbacks; Emotion + callbacks | 2 | Callbacks/checkpoint/logger; dùng lại model nhóm 2 |
-| 5 — Advanced Vision | `SegNet`, `FCNObjectDetector` | 2 | Segmentation logits/mask và score-map |
+| Nhóm bài toán | Cấu hình mô hình | Số lượng | Trọng tâm chuyển đổi |
+|---|---|:---:|---|
+| 1 — MLP | `FuncApxmMLP`, `MNISTMLP` | 2 | Dense $\rightarrow$ Linear; MSE loss và CrossEntropyLoss |
+| 2 — CNN+MLP | `MNISTCNN`, `HumanGenderCNN`, `EmotionCNN` | 3 | Conv2D $\rightarrow$ Conv2d; chuyển trục NCHW; tiền xử lý |
+| 3 — CNN+LSTM | `MNISTCNNLSTM` | 1 | Gộp/tách chiều thay thế `TimeDistributed`; LSTM |
+| 4 — Training Utilities | Gender + callbacks; Emotion + callbacks | 2 | Callbacks lifecycle, EarlyStopping, checkpoint, logger |
+| 5 — Advanced Vision | `SegNet`, `FCNObjectDetector` | 2 | Segmentation logits/mask và score-map detection |
 
 Hai cấu hình utilities dùng lại GenderCNN/EmotionCNN; mười cấu hình không có nghĩa mười kiến trúc độc lập.
 
-## 1.2 Trạng thái theo snapshot
+## 1.2 Snapshot, WBS và quy chuẩn bằng chứng
+
+Theo `AGENTS.md` và `README.md` hiện hành, toàn bộ dự án gồm 4 Work Packages (`WP01`–`WP04`) và 30 nhiệm vụ (`T0101`–`T0406`) phân bổ cho 5 thành viên:
+- **WP01 — Khởi tạo Hạ tầng, Dữ liệu & Baseline Keras** (6 tasks: `T0101`–`T0106`): Repo/OOP/seed, data pipeline, baseline inventory, logger/checkpoints, đặc tả kỹ thuật và khởi tạo báo cáo.
+- **WP02 — Chuyển đổi 10 mô hình Keras sang PyTorch** (12 tasks: `T0201`–`T0212`): Chuyển đổi 5 nhóm mô hình sang PyTorch thuần (MLP, CNN+MLP, CNN+LSTM, Utilities, SegNet/FCN) và kiểm toán tích hợp smoke test `T0212`.
+- **WP03 — Huấn luyện, Ablation Studies, Trực quan hóa & Debug** (6 tasks: `T0301`–`T0306`): Huấn luyện toàn diện, các nghiên cứu cắt bỏ ABL-01 đến ABL-03, phân tích PCA, Confusion Matrix, phân tích lỗi RQ1–RQ2 và kiểm chứng parity.
+- **WP04 — Demo, Báo cáo tổng kết, Slide/Poster & Đóng gói** (6 tasks: `T0401`–`T0406`): Ứng dụng demo, báo cáo tổng kết thesis (`T0402`), slide/poster (`T0403`), hướng dẫn tái lập (`T0404`), kiểm toán repo (`T0405`) và nghiệm thu đóng gói (`T0406`).
+
+Quy ước đặt tên file bằng chứng nghiệm thu trong `docs/reports/` tuân thủ:
+- **Ưu tiên theo Sheets:** `[YYMMDD]_Txxxx_<ten_task>.md` (ví dụ: `261126_T0102_data_pipeline_report.md`, `261127_T0103_keras_baseline_log.md`, `261127_T0104_mlops_logging_setup.md`, `261128_T0106_core_architecture.md`).
+- **Định dạng có timestamp:** `[Task ID]_[YYMMDD]_[HHMM].md` (ví dụ: `T0201_261122_2112.md`, `T0212_261123_2130.md`, `T0402_261124_0831.md`).
+
+## 1.3 Trạng thái theo snapshot
 
 - T0101 xây dựng hệ thống Markdown/LaTeX; PDF Overleaf cuối chưa có evidence được duyệt.
 - T0102–T0106 có reports về pipeline, baseline, logger và core OOP; từng report nêu giới hạn runtime/data.
@@ -82,44 +96,48 @@ Hai cấu hình utilities dùng lại GenderCNN/EmotionCNN; mười cấu hình 
 - T0212 có 10/10 synthetic one-epoch smoke cases PASS, logger BLOCKED và 78/4 test result theo shards trên 82; overall `BLOCKED`.
 - Trong reports đã rà soát chưa có bằng chứng nghiệm thu full training mọi model, ablation hoàn chỉnh, demo cuối hoặc PDF. Ghi trạng thái là **chưa có evidence trong repository đã kiểm tra**, không suy diễn hoạt động ngoài repository.
 
+---
+
 # 2. Cơ sở lý thuyết và hợp đồng chuyển đổi
 
 ## 2.1 Vòng lặp, logits và loss
 
-Keras thường dùng `model.fit`; PyTorch thể hiện `zero_grad → forward → loss → backward → optimizer.step`. Validation dùng `eval()` và inference/no-gradient mode. Classification đưa logits thô cùng nhãn class-index `torch.long` vào `CrossEntropyLoss`, không áp softmax trước loss. Parameter count khớp không chứng minh output/gradient/metric parity.
+Keras thường dùng `model.fit`; PyTorch thể hiện `zero_grad() → forward → loss → backward → optimizer.step`. Validation dùng `eval()` và chế độ không tính gradient (`torch.no_grad()`). Classification đưa logits thô cùng nhãn class-index `torch.long` vào `nn.CrossEntropyLoss`, không áp softmax trước loss. Parameter count khớp không chứng minh output/gradient/metric parity.
 
 ## 2.2 NHWC/NCHW, WIKI rotation và normalization
 
-Keras ảnh thường có shape `(N,H,W,C)`, PyTorch convolution nhận `(N,C,H,W)`:
+Keras ảnh thường có shape `(N, H, W, C)`, PyTorch convolution nhận `(N, C, H, W)`:
 
-\[
-x_{NCHW}=\operatorname{permute}(x_{NHWC},0,3,1,2).\operatorname{contiguous}().
-\]
+$$
+x_{\text{NCHW}} = \operatorname{permute}(x_{\text{NHWC}}, 0, 3, 1, 2).\operatorname{contiguous}()
+$$
 
-WIKI áp `np.rot90(k=3, axes=(1,2))` trên NHWC trước khi đổi trục. Rotation đổi vị trí pixel; permute chỉ đổi thứ tự chiều. MNIST legacy chia pixel byte cho 255. T0102/T0205 ghi FER legacy không chia `/255` tường minh; giữ `preserve` theo source. FCN detection chuẩn hóa RGB bằng `x/127.5 - 1.0`.
+WIKI áp `np.rot90(k=3, axes=(1,2))` trên NHWC trước khi đổi trục. Rotation đổi vị trí pixel; permute chỉ đổi thứ tự chiều. MNIST legacy chia pixel byte cho 255. T0102/T0205 ghi FER legacy không chia `/255` tường minh; giữ `preserve` theo source. FCN detection chuẩn hóa RGB bằng $x / 127.5 - 1.0$.
 
 ## 2.3 CNN-LSTM thay TimeDistributed
 
-Với tensor `(B,T,C,H,W)`, gộp `(B,T)` thành `(BT,C,H,W)` để CNN xử lý từng frame; vector `(BT,F)` được khôi phục về `(B,T,F)` đúng thứ tự trước LSTM. Đây là hợp đồng shape tương ứng `TimeDistributed(CNN)`, không tự chứng minh weight hay metric parity.
+Với chuỗi ảnh $(B, T, C, H, W)$, gộp thành $(B \times T, C, H, W)$ để CNN xử lý từng frame; vector đặc trưng $(B \times T, F)$ được khôi phục về $(B, T, F)$ đúng thứ tự thời gian trước LSTM. Đây là hợp đồng shape tương ứng `TimeDistributed(CNN)`, không tự chứng minh weight hay metric parity.
 
 ## 2.4 SegNet, upsampling và mask loss
 
-Nearest `UpSampling2D` được ánh xạ sang `nn.Upsample(scale_factor=2, mode="nearest")`. SegNet trả logits `(B,K,H,W)`; mask class-index `(B,H,W)` kiểu `long` dùng với cross-entropy. Pixel accuracy khác mIoU; giữ đúng tên metric legacy.
+Nearest `UpSampling2D` được ánh xạ sang `nn.Upsample(scale_factor=2, mode="nearest")`. SegNet trả logits $(B, K, H, W)$; mask class-index $(B, H, W)$ kiểu `torch.long` dùng với `nn.CrossEntropyLoss`. Pixel accuracy khác mIoU; giữ đúng tên metric legacy.
 
 ## 2.5 FCN score-map
 
-Notebook detector dùng score `tanh`, target ±1 và MSE. Accuracy legacy không phải IoU/mAP. Heatmap từ model chưa huấn luyện chỉ kiểm tra inference/shape, không đo chất lượng detection.
+Notebook detector dùng score $\tanh$, target $\pm 1$ và MSE. Accuracy legacy không phải IoU/mAP. Heatmap từ model chưa huấn luyện chỉ kiểm tra inference/shape, không đo chất lượng detection.
+
+---
 
 # 3. Thiết kế hệ thống và phương pháp chuyển đổi
 
 ## 3.1 Kiến trúc OOP
 
-- `BaseMigratedModel`: forward contract, NCHW validation, parameter counters và feature hooks.
+- `BaseMigratedModel`: forward contract, NCHW validation, parameter counters (`count_parameters`) và feature hooks (`extract_features`).
 - `BaseTrainer`: train/validation, callbacks, logger/checkpoint; validation chạy inference mode.
 - `seed_everything(42)` và worker/generator helpers hỗ trợ reproducibility; `PYTHONHASHSEED` cần đặt trước khi khởi chạy process nếu cần cố định hash seed của process hiện tại.
 - `src/engine/callbacks.py`: lifecycle, EarlyStopping, ModelCheckpoint, ReduceLROnPlateau.
 - `ExperimentLogger`: epoch CSV, master CSV 18 cột, TensorBoard; `CheckpointManager`: state/metadata và mirror Drive khi mount root có thật.
-- YAML/runners/`src/train.py` dispatch CLI. `--task all --smoke-test` là synthetic harness, không phải full training.
+- YAML/runners/`src/train.py` dispatch CLI. `--smoke-test` là synthetic harness, không phải full training.
 
 T0104 report ghi logger smoke độc lập PASS; T0212 ghi SummaryWriter BLOCKED bởi protobuf/TensorBoard. Hai trạng thái thuộc hai mốc/runtime khác nhau, không triệt tiêu nhau.
 
@@ -127,8 +145,8 @@ T0104 report ghi logger smoke độc lập PASS; T0212 ghi SummaryWriter BLOCKED
 
 ```text
 Keras notebooks / baseline
-  → Dataset & preprocessing (NHWC, normalization, labels)
-  → PyTorch models (5 nhóm / 10 cấu hình)
+  → Dataset & preprocessing (NHWC ➔ NCHW, normalization, labels)
+  → PyTorch models (5 nhóm / 10 cấu hình kế thừa BaseMigratedModel)
   → BaseTrainer / callbacks / logger / checkpoint
   → YAML / CLI / tests / reports
 ```
@@ -137,32 +155,30 @@ Keras notebooks / baseline
 
 ## 3.3 Ma trận model/component
 
-| Nhóm/cấu hình | Kỹ thuật | Evidence | Giới hạn |
-|---|---|---|---|
-| `FuncApxmMLP` | `Linear(2,B)→Sigmoid→Linear(B,1)→Sigmoid`; `4B+1` | T0201, 36 sweep | Keras numeric MSE thiếu |
-| `MNISTMLP` | Flatten 784, Dense 512×2, 10 logits | T0202, 669,706 params, 30 epochs | Một run; split khác legacy |
-| `MNISTCNN` | Conv/pool, Flatten 2304, Dense 512×2 | 1,817,610 params | Full PyTorch metric chưa xác nhận |
-| `HumanGenderCNN` | 5 block; WIKI rotation trước NCHW | 4,063,570 params | WIKI thật/PyTorch full metric chưa có report |
-| `EmotionCNN` | FER 48×48, 7 logits, legacy preprocessing | 19,028,287 params | FER thật/PyTorch full metric chưa có report |
-| `MNISTCNNLSTM` | Gộp/tách batch-time; 2 LSTM | T0206/T0207 count lệch 1,024 | Full MNIST MAE chưa xác nhận |
-| Gender/Emotion callbacks | Callback lifecycle/checkpoint/logging | Code/tests reports T0208–T0209 | Full run/logger blocked hoặc thiếu data |
-| `SegNet` | 5-stage encoder/decoder; nearest upsample | 29,458,211 tổng | Chưa full train data thật |
-| `FCNObjectDetector` | `tanh` score-map, Conv 8×8/1×1 | 83,367 params | Chưa có metric vehicle data thật |
+| Nhóm | Cấu hình | Kỹ thuật chuyển đổi | Evidence / giới hạn |
+|:---:|---|---|---|
+| 1 | `FuncApxmMLP`, `MNISTMLP` | Linear; logits/loss | T0201 36 sweep; T0202 một MNIST run |
+| 2 | `MNISTCNN`, `HumanGenderCNN`, `EmotionCNN` | Conv2d; NCHW; preprocessing | Count/shape; full metrics thiếu ở nhiều model |
+| 3 | `MNISTCNNLSTM` | Gộp/tách batch-time; 2 LSTM | T0206/T0207 count lệch 1,024 |
+| 4 | Gender/Emotion callbacks | Callback lifecycle/checkpoint/logging | Code/tests reports T0208–T0209; full run/logger blocked |
+| 5 | `SegNet`, `FCNObjectDetector` | Upsample/mask; $\tanh$ score-map | Count/shape; chưa có full-data metric |
+
+---
 
 # 4. Thực nghiệm, kiểm toán và thảo luận
 
 ## 4.1 Parameter-count audit
 
-| Cấu hình | Keras params | PyTorch/report | Diễn giải |
+| Cấu hình | Keras params | PyTorch / report | Diễn giải |
 |---|---:|---:|---|
-| `FuncApxmMLP`, B=16 | 65* | 65 | Keras summary số không lưu; 65 suy từ `4B+1`, chỉ tại B=16 |
+| `FuncApxmMLP`, B=16 | 65* | 65 | Keras summary số không lưu; 65 suy từ $4B+1$, chỉ tại B=16 |
 | `MNISTMLP` | 669,706 | 669,706 | Count khớp |
 | `MNISTCNN` | 1,817,610 | 1,817,610 | Count khớp |
 | `HumanGenderCNN` | 4,063,570 | 4,063,570 | Count khớp |
 | `EmotionCNN` | 19,028,287 | 19,028,287 | Count khớp |
-| `MNISTCNNLSTM` | 1,747,073 | T0206: 1,746,049; T0207/T0212: 1,747,073 | **CẦN ĐỐI CHIẾU**, lệch 1,024 |
-| Gender + callbacks | 4,063,570 | 4,063,570 | Model nhóm 2 dùng lại |
-| Emotion + callbacks | 19,028,287 | 19,028,287 | Model nhóm 2 dùng lại |
+| `MNISTCNNLSTM` | 1,747,073 | T0206: 1,746,049;<br>T0207/T0212: 1,747,073 | **CẦN ĐỐI CHIẾU**, lệch report 1,024 |
+| Gender + callbacks | 4,063,570 | 4,063,570 | Tái sử dụng GenderCNN |
+| Emotion + callbacks | 19,028,287 | 19,028,287 | Tái sử dụng EmotionCNN |
 | `SegNet` | 29,458,211 | 29,458,211 | Report ghi 29,442,325 trainable + 15,886 non-trainable |
 | `FCNObjectDetector` | 83,367 | 83,367 | Count khớp |
 
@@ -189,7 +205,7 @@ Keras notebooks / baseline
 | T0208–T0209 | Callback code/tests; logger/data blockers | SummaryWriter tương thích và WIKI/FER thật |
 | T0210–T0211 | Architecture/shape/count; thiếu full-data metrics | Data thật và metric đúng nghĩa |
 | T0212 | **BLOCKED**; logger blocked, 4 suite failures theo shards | Sửa dependency trong môi trường được duyệt, rerun gates |
-| Full training, ablation, RQ, visual analytics | **[CHƯA CÓ BẰNG CHỨNG ĐẦY ĐỦ TRONG REPOSITORY ĐÃ KIỂM TRA]** | Run thật, Run ID, split/seed/config/log/checkpoint/report |
+| Full training, ablation, RQ, visual analytics | **[CHƯA CÓ BẰNG CHỨNG ĐẦY ĐỦ TRONG REPOSITORY ĐƯỢC KIỂM TRA]** | Run thật, Run ID, split/seed/config/log/checkpoint/report |
 | Demo, PDF và final acceptance | `NOT RECORDED / NOT RUN` trong reports rà soát | WBS/member confirmation và Overleaf review |
 | T0402 ownership | Workbook: Member 05; chỉ định trực tiếp hiện tại: Member 01 | Nhóm xác nhận owner trước nghiệm thu chính thức |
 
@@ -204,13 +220,15 @@ Keras notebooks / baseline
 | T0201/T0202 | Kết quả ở Run ID/config cụ thể | Benchmark đồng nhất mười cấu hình |
 | T0212 test/logger | 78/4 theo shards; logger blocked | Overall PASS/acceptance |
 
-## 5. Kết luận, validity threats và kiến nghị
+---
 
-### 5.1 Kết luận trong phạm vi snapshot
+# 5. Kết luận, validity threats và kiến nghị
+
+## 5.1 Kết luận trong phạm vi snapshot
 
 Repository có code chuyển đổi năm nhóm, task reports, baseline inventory, T0201 sweep, T0202 run và T0212 audit/smoke. Evidence này cho phép mô tả kiến trúc, parameter audit và một phần wiring; không chứng minh cả mười cấu hình full-train hoặc đạt baseline. T0212 vẫn `BLOCKED`; full training, ablation/RQ, demo cuối và PDF Overleaf chưa có evidence hoàn tất trong reports được rà soát.
 
-### 5.2 Hạn chế và validity threats
+## 5.2 Hạn chế và validity threats
 
 1. Notebook legacy thiếu hardware/seed/checksum hoặc metric số; `NOT_RECORDED` không được thay bằng suy đoán.
 2. Một số validation/public-test split được tái sử dụng; không gọi là independent holdout.
@@ -220,7 +238,7 @@ Repository có code chuyển đổi năm nhóm, task reports, baseline inventory
 6. Workbook giao T0402 cho Member 05, còn chỉ định trực tiếp giao Member 01 soạn bản này; nhóm cần xác nhận trước bản cuối.
 7. Họ tên/MSSV/giảng viên/tỷ lệ và RQ nguyên văn charter chưa được xác nhận.
 
-### 5.3 Bài học và khuyến nghị
+## 5.3 Bài học và khuyến nghị
 
 - Khóa split, seed, preprocessing, loss, optimizer và runtime trước khi so sánh framework.
 - Gắn mỗi metric với task, source, Run ID, split và caveat; phân biệt legacy output/PyTorch run.
@@ -231,8 +249,8 @@ Repository có code chuyển đổi năm nhóm, task reports, baseline inventory
 
 ## Tài liệu tham khảo
 
-1. Paszke, A., Gross, S., Massa, F., et al. (2019). *PyTorch: An Imperative Style, High-Performance Deep Learning Library*. NeurIPS 32. BibTeX: `paszke2019pytorch`.
-2. Badrinarayanan, V., Kendall, A., & Cipolla, C. (2017). *SegNet: A Deep Convolutional Encoder-Decoder Architecture for Image Segmentation*. IEEE TPAMI, 39(12), 2481–2495. DOI: 10.1109/TPAMI.2016.2644615. BibTeX: `badrinarayanan2017segnet`.
+1. Paszke, A., Gross, S., Massa, F., et al. (2019). *PyTorch: An Imperative Style, High-Performance Deep Learning Library*. Advances in Neural Information Processing Systems (NeurIPS 32), pp. 8024–8035. BibTeX: `paszke2019pytorch`.
+2. Badrinarayanan, V., Kendall, A., & Cipolla, C. (2017). *SegNet: A Deep Convolutional Encoder-Decoder Architecture for Image Segmentation*. IEEE Transactions on Pattern Analysis and Machine Intelligence, 39(12), 2481–2495. DOI: 10.1109/TPAMI.2016.2644615. BibTeX: `badrinarayanan2017segnet`.
 3. Nhóm BTL03 (2026). *T0212: WP02 PR review, parameter audit, CLI and smoke-test report*. `docs/reports/T0212_261123_2130.md`, source commit `33dcd74599e86404bbc8128c8057afba82810093`. BibTeX: `btl03_t0212_internal`.
 4. Task reports T0102–T0211, baseline/sweep/master/epoch CSV và `docs/thesis/01_materials/evidence/evidence_sources_manifest.md`.
 
@@ -244,3 +262,4 @@ Repository có code chuyển đổi năm nhóm, task reports, baseline inventory
 - T0202: `docs/reports/T0202_261122_2112.md`, Run ID `T0202_MNISTMLP_s42_20261122_132545`.
 - T0212: `docs/reports/T0212_261123_2130.md`.
 - Source contract: `src/models/`, `src/engine/`, `src/logger.py`, `src/datasets/`, `configs/`.
+- Manifest evidence: `docs/thesis/01_materials/evidence/evidence_sources_manifest.md`.

@@ -4,14 +4,14 @@
 \usepackage{polyglossia}
 \setdefaultlanguage{vietnamese}
 \usepackage{amsmath,amssymb,mathtools}
-\usepackage{graphicx,booktabs,longtable,tabularx,array}
+\usepackage{graphicx,booktabs,longtable,tabularx,array,multirow}
 \usepackage{xcolor,listings}
-\usepackage{fancyhdr}
-\usepackage{caption}
-\usepackage{enumitem}
-\usepackage{microtype}
+\usepackage{fancyhdr,caption,enumitem,microtype}
 \usepackage{csquotes}
-\usepackage[backend=biber,style=numeric,sorting=none]{biblatex}
+\DeclareQuoteAlias{english}{vietnamese}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric,fit,calc}
+\usepackage[backend=biber,style=numeric,sorting=none,autostyle=true]{biblatex}
 \usepackage{hyperref}
 \hypersetup{unicode=true,colorlinks=true,linkcolor=blue!50!black,citecolor=blue!50!black,urlcolor=blue!50!black,pdftitle={Báo cáo tổng kết BTL03 — T0402}}
 \pagestyle{fancy}
@@ -22,6 +22,8 @@
 \setlength{\parindent}{1.2cm}
 \setlength{\parskip}{0.25em}
 \setlist{nosep,leftmargin=1.3cm}
-\renewcommand{\arraystretch}{1.16}
+\renewcommand{\arraystretch}{1.18}
 \captionsetup{labelsep=period,justification=centering,font=small}
 \newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\newcommand{\evidence}[1]{\par\smallskip\noindent\textit{Nguồn:}~#1\par\smallskip}
+\lstdefinestyle{python}{language=Python,basicstyle=\ttfamily\small,breaklines=true,frame=single,showstringspaces=false}

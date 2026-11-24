@@ -4,9 +4,9 @@ Repository lưu code chuyển đổi cho năm nhóm, task reports, baseline inve
 
 \section{Hạn chế và validity threats}
 \begin{enumerate}
-\item Notebook legacy thiếu metadata phần cứng/seed/checksum hoặc metric số; `NOT\_RECORDED` không được thay bằng suy đoán.
+\item Notebook legacy thiếu metadata phần cứng/seed/checksum hoặc metric số; \texttt{NOT\_RECORDED} không được thay bằng suy đoán.
 \item Một số validation/public-test split được tái sử dụng; không gọi là independent holdout.
-\item Dữ liệu một số nhóm và PyTorch full-data runs chưa có trong reports; runtime CPU-only và logger dependency blocker hạn chế diễn giải.
+\item Dữ liệu một số nhóm và PyTorch full-data runs chưa có trong reports; runtime CPU-only và logger dependency blocker giới hạn diễn giải.
 \item Parameter count không chứng minh output/gradient/metric parity; CNN-LSTM reports lệch 1,024 tham số.
 \item Synthetic smoke T0212 không đo chất lượng dự đoán; logger BLOCKED, suite có 4 failures theo shards.
 \item WBS workbook giao T0402 cho Member 05, còn bản này do chỉ định trực tiếp của nhóm trưởng Member 01; cần xác nhận cho bản nộp.

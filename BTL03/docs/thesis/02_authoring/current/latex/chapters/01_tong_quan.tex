@@ -1,19 +1,35 @@
 \chapter{Tổng quan dự án và phạm vi}
 \section{Mục tiêu và các nhóm mô hình}
 BTL03 chuyển mười cấu hình thuộc năm nhóm từ notebook Keras sang PyTorch OOP. Hai cấu hình utilities dùng lại GenderCNN/EmotionCNN, do đó đây không phải mười kiến trúc độc lập.
-\begin{longtable}{p{0.12\textwidth}p{0.34\textwidth}p{0.12\textwidth}p{0.34\textwidth}}
-\toprule Nhóm & Cấu hình & Số cấu hình & Trọng tâm \\
+\begin{longtable}{p{0.22\textwidth}p{0.32\textwidth}c p{0.34\textwidth}}
+\toprule Nhóm bài toán & Cấu hình mô hình & Số lượng & Trọng tâm chuyển đổi \\
 \midrule
-1 — MLP & FuncApxmMLP; MNISTMLP & 2 & Dense/Linear; regression/classification \\
-2 — CNN+MLP & MNISTCNN; HumanGenderCNN; EmotionCNN & 3 & Conv2D/Conv2d; preprocessing/NCHW \\
-3 — CNN+LSTM & MNISTCNNLSTM & 1 & Reshape thay TimeDistributed \\
-4 — Training Utilities & Gender/Emotion + callbacks & 2 & Callback/checkpoint/logger; model nhóm 2 dùng lại \\
-5 — Advanced Vision & SegNet; FCNObjectDetector & 2 & Segmentation và score-map \\
+1 — MLP & FuncApxmMLP; MNISTMLP & 2 & Dense $\rightarrow$ Linear; MSE loss và CrossEntropyLoss \\
+2 — CNN+MLP & MNISTCNN; HumanGenderCNN; EmotionCNN & 3 & Conv2D $\rightarrow$ Conv2d; chuyển trục NCHW; tiền xử lý \\
+3 — CNN+LSTM & MNISTCNNLSTM & 1 & Gộp/tách chiều thay thế TimeDistributed; LSTM \\
+4 — Training Utilities & Gender/Emotion + callbacks & 2 & Callback lifecycle, EarlyStopping, checkpoint, logger \\
+5 — Advanced Vision & SegNet; FCNObjectDetector & 2 & Segmentation logits/mask và score-map detection \\
 \bottomrule
 \end{longtable}
 
 \section{Snapshot, WBS và phương pháp}
-Snapshot báo cáo lấy từ nhánh T0402 trên base commit \texttt{b2b88db3fc7444f7c37391e7211416ea3843a31e}. Reports thực nghiệm mới nhất được rà soát là T0212 (2026-11-23). Workbook `Quan_Ly_Tasks` giao T0402 cho Member 05 trong WP04; yêu cầu trực tiếp của nhóm trưởng giao Member 01 tổng hợp bản hiện tại. Bài viết theo chỉ định trực tiếp, giữ mâu thuẫn owner để nhóm xác nhận, không sửa WBS.
+Snapshot báo cáo lấy từ nhánh \texttt{docs/BTL03\_T0402\_thesis-report-writing} trên base commit \texttt{b2b88db3fc7444f7c37391e7211416ea3843a31e}. Reports thực nghiệm mới nhất được rà soát là T0212 (2026-11-23).
+
+Theo \texttt{AGENTS.md} và cấu trúc điều hành dự án hiện hành, toàn bộ dự án gồm 4 Work Packages (\texttt{WP01}--\texttt{WP04}) và 30 tasks (\texttt{T0101}--\texttt{T0406}) phân bổ cho 5 thành viên:
+\begin{itemize}
+\item \textbf{WP01 — Khởi tạo Hạ tầng, Dữ liệu \& Baseline Keras} (6 tasks: \texttt{T0101}--\texttt{T0106}): Thiết lập repo OOP, pipeline dữ liệu, trích xuất baseline 10 mô hình, hệ thống logging/checkpoints, đặc tả kỹ thuật và khởi tạo báo cáo.
+\item \textbf{WP02 — Chuyển đổi 10 mô hình Keras sang PyTorch} (12 tasks: \texttt{T0201}--\texttt{T0212}): Chuyển đổi 5 nhóm mô hình sang PyTorch thuần (MLP, CNN+MLP, CNN+LSTM, Utilities, SegNet/FCN) và kiểm toán tích hợp smoke test \texttt{T0212}.
+\item \textbf{WP03 — Huấn luyện, Ablation Studies, Trực quan hóa \& Debug} (6 tasks: \texttt{T0301}--\texttt{T0306}): Huấn luyện toàn diện, các nghiên cứu cắt bỏ ABL-01 đến ABL-03, phân tích PCA, Confusion Matrix, phân tích lỗi RQ1--RQ2 và kiểm chứng parity.
+\item \textbf{WP04 — Demo, Báo cáo tổng kết, Slide/Poster \& Đóng gói} (6 tasks: \texttt{T0401}--\texttt{T0406}): Ứng dụng demo, báo cáo tổng kết thesis (\texttt{T0402}), slide/poster (\texttt{T0403}), hướng dẫn tái lập (\texttt{T0404}), kiểm toán repo (\texttt{T0405}) và nghiệm thu đóng gói (\texttt{T0406}).
+\end{itemize}
+
+Quy ước đặt tên file bằng chứng nghiệm thu trong repo tuân thủ nghiêm ngặt hai định dạng:
+\begin{itemize}
+\item Định dạng ưu tiên theo Sheets: \texttt{[YYMMDD]\_Txxxx\_<ten\_task>.md} (ví dụ: \texttt{261126\_T0102\_data\_pipeline\_report.md}, \texttt{261127\_T0103\_keras\_baseline\_log.md}).
+\item Định dạng có timestamp: \texttt{[Task ID]\_[YYMMDD]\_[HHMM].md} (ví dụ: \texttt{T0201\_261122\_2112.md}, \texttt{T0212\_261123\_2130.md}, \texttt{T0402\_261124\_0831.md}).
+\end{itemize}
+
+Workbook \texttt{Quan\_Ly\_Tasks} giao T0402 cho Member 05 trong WP04; yêu cầu trực tiếp của nhóm trưởng giao Member 01 tổng hợp bản hiện tại. Bài viết theo chỉ định trực tiếp, ghi nhận mâu thuẫn phân công để nhóm xác nhận, không tự ý sửa WBS.
 
 README nêu RQ1/RQ2 nhưng charter Markdown đúng tên chưa có trong repository. Vì vậy câu hỏi nghiên cứu trong báo cáo được đánh dấu là tóm lược theo README, không gán là nguyên văn charter. Phương pháp kiểm toán đối chiếu task reports, notebook/baseline CSV, Run ID, source/config và Git evidence; không coi synthetic smoke là training kết quả.
 
