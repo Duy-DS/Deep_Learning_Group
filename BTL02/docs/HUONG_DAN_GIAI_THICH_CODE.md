@@ -24,6 +24,20 @@ Filter visualization hiển thị kernel `Conv2d.weight`; feature-map hook chỉ
 
 ---
 
+## WP5 T0503: Phân tích True/Fail Cases (RQ4)
+
+`src/evaluate/error_analysis.py` cung cấp `ErrorAnalyzer`. Với batch ảnh `[B,C,H,W]`, model ở `eval()` và `torch.no_grad()` trả logits `[B,7]`; softmax cho xác suất mỗi lớp, `topk(3)` lưu ba lớp/xác suất, argmax là nhãn dự đoán. Bảng mỗi mẫu lưu chỉ số, nhãn thật/dự đoán, confidence và top-3; nhóm đúng chia confidence cao/thấp theo ngưỡng cấu hình, sai giữ nguyên để phân tích. Cặp lỗi là confusion có hướng `true → predicted`, sắp theo số lượng giảm dần. Lưới hình dùng đúng tensor evaluation của DataLoader, không có augmentation mới.
+
+Phần nguyên nhân trong Markdown là danh sách giả thuyết cần xác minh ảnh thật: che khuất, góc/ánh sáng, nhãn mơ hồ/nhiễu và mất cân bằng lớp thiểu số Disgust. Chỉ thống kê lớp không chứng minh nguyên nhân cụ thể; cần xem ảnh gốc/người gán nhãn và đối chiếu support/per-class recall. Kết quả synthetic unit test chỉ xác nhận logic phần mềm.
+
+**Hỏi: Vì sao cặp lỗi có hướng?** Trả lời: Fear→Sad và Sad→Fear là lỗi khác nhau và có thể bất đối xứng; giữ nhãn thật và nhãn dự đoán riêng giúp chẩn đoán lớp nguồn đích.
+
+**Hỏi: Top-3 xác suất là độ tin cậy đã hiệu chuẩn chưa?** Trả lời: Không. Đây là softmax score, hữu ích để xem thứ tự tương đối; không được diễn giải như xác suất calibrated nếu chưa chạy calibration đánh giá riêng.
+
+**Hỏi: Có thể kết luận Disgust bị nhầm do mất cân bằng chỉ từ confusion matrix không?** Trả lời: Không; mất cân bằng là giả thuyết cần kiểm tra support, recall, thí nghiệm class-weight/focal và xem ảnh/nhãn.
+
+---
+
 Tài liệu này tổng hợp và giải thích chi tiết bản chất kỹ thuật của **toàn bộ 5 nhiệm vụ** (`T0103`, `T0105`, `T0104`, `T0201`, `T0202`) thuộc 2 Gói công việc **WP1 (Hạ tầng & Dữ liệu)** và **WP2 (Mô hình Baseline & Custom CNN)**. 
 
 Tài liệu được biên soạn để bạn nắm vững 100% bản chất mã nguồn, sẵn sàng bảo vệ và trả lời tự tin mọi câu hỏi vấn đáp của Giảng viên.
