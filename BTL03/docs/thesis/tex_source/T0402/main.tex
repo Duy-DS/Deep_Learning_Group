@@ -1,0 +1,20 @@
+% Báo cáo tổng kết snapshot T0402; biên dịch XeLaTeX trên Overleaf.
+\documentclass[12pt,a4paper,oneside]{book}
+\input{preamble.tex}
+\addbibresource{references.bib}
+\begin{document}
+\frontmatter
+\input{frontmatter.tex}
+\tableofcontents
+\listoftables
+\mainmatter
+\input{chapters/01_tong_quan.tex}
+\input{chapters/02_co_so_ly_thuyet.tex}
+\input{chapters/03_thiet_ke_va_chuyen_doi.tex}
+\input{chapters/04_bang_chung_va_trang_thai.tex}
+\input{chapters/05_thao_luan_va_ket_luan.tex}
+\printbibliography[heading=bibintoc,title={Tài liệu tham khảo}]
+\appendix
+\chapter{Provenance chính}
+Các report và log được dẫn theo đường dẫn repository trong từng chương. Baseline chi tiết nằm tại \texttt{experiments/csv\_logs/keras\_baseline\_10\_models.csv}; manifest tại \texttt{docs/thesis/source\_materials/evidence\_sources\_manifest.md}. Không đưa dữ liệu, checkpoint hoặc runtime artifact vào bundle.
+\end{document}

@@ -1,0 +1,63 @@
+\chapter{Kiểm toán bằng chứng, kết quả và trạng thái}
+Report tích hợp T0212 là nguồn cho smoke, logger blocker và test-suite shard được tóm tắt tại chương này \cite{btl03_t0212_internal}.
+\section{Parameter-count audit}
+Các số dưới đây là số được ghi trong baseline/task reports và T0212, không chứng minh weight/output/accuracy parity.
+\begin{longtable}{p{0.25\textwidth}r p{0.34\textwidth}p{0.22\textwidth}}
+\toprule Cấu hình & Keras & PyTorch/report & Diễn giải \\
+\midrule
+FuncApxmMLP, $B=16$ & 65* & 65 & $4B+1$; 65 chỉ tại $B=16$ \\
+MNISTMLP & 669,706 & 669,706 & Count khớp \\
+MNISTCNN & 1,817,610 & 1,817,610 & Count khớp \\
+HumanGenderCNN & 4,063,570 & 4,063,570 & Count khớp \\
+EmotionCNN & 19,028,287 & 19,028,287 & Count khớp \\
+MNISTCNNLSTM & 1,747,073 & T0206: 1,746,049; T0207/T0212: 1,747,073 & \textbf{CẦN ĐỐI CHIẾU}; lệch 1,024 \\
+Gender + callbacks & 4,063,570 & 4,063,570 & Dùng lại GenderCNN \\
+Emotion + callbacks & 19,028,287 & 19,028,287 & Dùng lại EmotionCNN \\
+SegNet & 29,458,211 & 29,458,211 & Gồm 15,886 BN non-trainable theo report \\
+FCNObjectDetector & 83,367 & 83,367 & Count khớp \\
+\bottomrule
+\end{longtable}
+\noindent * Keras không lưu model summary số cho EXP-01; 65 suy ra từ công thức tại $B=16$. CNN-LSTM bất đồng giữa T0206 và T0207/T0212 cần đối chiếu source/counting semantics. Parameter count không chứng minh parity đầu ra hoặc metric.
+
+\section{Kết quả có nguồn}
+\begin{longtable}{p{0.23\textwidth}p{0.39\textwidth}p{0.29\textwidth}}
+\toprule Nguồn & Quan sát được & Caveat \\
+\midrule
+T0201 & 36 sweep A/B/C; seed 42, SGD 0.01, batch 128; PyTorch MSE/Run\_ID. Ví dụ Test-grid MSE 0.02343764 tại A=100 và 0.00683120 tại A=1000. & Baseline Keras numeric MSE NOT\_RECORDED; không kết luận parity metric. \\
+T0202 & Một run MNIST MLP 30 epoch; accuracy 0.95870, loss 0.13292970, 150.24952 giây CPU theo report. & Keras 0.9648 dùng test split làm validation/evaluate; protocol không đồng nhất. \\
+Keras EXP-03/EXP-05 & CSV lưu MNIST CNN accuracy 0.9884; FER train accuracy 0.8660, val accuracy 0.5954, val loss cuối 1.4070. & Đây là legacy outputs, không phải kết quả PyTorch mới; một số split bị reuse. \\
+T0212 smoke & 10/10 synthetic one-epoch train/validation PASS; parameter audit được report khớp 10/10. & Không phải training trên dữ liệu thật hoặc accuracy khoa học. \\
+T0212 logger/suite & Logger 10/10 BLOCKED; shards 78 passed, 4 failed trên 82 tests. & Tổng thể T0212 là BLOCKED, không phải PASS toàn phần. \\
+\bottomrule
+\end{longtable}
+
+\section{Trạng thái task}
+\begin{longtable}{p{0.18\textwidth}p{0.37\textwidth}p{0.35\textwidth}}
+\toprule Hạng mục & Trạng thái trong evidence & Việc tiếp theo \\
+\midrule
+T0201 & 36 PyTorch sweep có logs; Keras numeric MSE NOT\_RECORDED & Đối chứng Keras cùng protocol nếu cần parity \\
+T0202 & Một MNIST MLP run 30 epoch được báo cáo & Giữ caveat split; không suy rộng ra 10 cấu hình \\
+T0203--T0205 & Code/count/shape tests; full-data PyTorch run chưa được reports xác nhận & Dữ liệu thật, split/config/runtime và logs \\
+T0206--T0207 & Dataset/model evidence; full MNIST train/MAE chưa xác nhận; count lệch 1,024 & Đối chiếu source/counting semantics, rồi run có protocol rõ \\
+T0208--T0209 & Callback code/tests; logger/data blocker & Xác minh logger runtime và WIKI/FER thật \\
+T0210--T0211 & Kiến trúc/shape/count; không có PyTorch full-data metric & Dữ liệu thật và metric segmentation/detection đúng nghĩa \\
+T0212 & \textbf{BLOCKED}; logger blocked và 4 test lỗi theo shards & Khắc phục dependency trong môi trường được duyệt rồi chạy lại \\
+Full training / ablation / RQ & \textbf{[CHƯA CÓ BẰNG CHỨNG ĐẦY ĐỦ TRONG REPOSITORY ĐƯỢC KIỂM TRA]} & Lưu split, seed, config, runtime, Run\_ID, logs/checkpoint/report \\
+Demo / PDF Overleaf & NOT RECORDED / NOT RUN trong reports đã rà soát & Xác nhận WBS/thông tin nhóm; upload, compile và duyệt trên Overleaf \\
+T0402 & Prompt giao viết báo cáo; mã task xung đột WBS trong AGENTS.md & Nhóm xác nhận mapping task chính thức \\
+\bottomrule
+\end{longtable}
+
+\section{Evidence và giới hạn suy luận}
+\begin{longtable}{p{0.23\textwidth}p{0.33\textwidth}p{0.34\textwidth}}
+\toprule Loại evidence & Cho phép kết luận & Không cho phép kết luận \\
+\midrule
+Source/config & Có implementation/cấu hình được khai báo & Cấu hình đã chạy hoặc mục tiêu đã đạt \\
+Parameter count & Số tham số theo snapshot/quy ước report & Weight/output/gradient/metric parity \\
+Synthetic smoke & Shape/wiring và một epoch giả theo report & Generalization/accuracy trên dữ liệu thật \\
+Legacy notebook output & Metric đã in ở Keras notebook & Metric PyTorch hoặc holdout độc lập khi split bị reuse \\
+T0201/T0202 & Kết quả đúng run/config được report & Benchmark đại diện mọi cấu hình \\
+T0212 suite & 78 pass/4 fail theo shards; logger blocked & Overall PASS hoặc nghiệm thu T0212 \\
+\bottomrule
+\end{longtable}
+Nguồn chính: \texttt{docs/reports/T0201\_261122\_2112.md}, \texttt{T0202\_261122\_2112.md}, \texttt{T0212\_261123\_2130.md}, baseline CSV và manifest evidence.

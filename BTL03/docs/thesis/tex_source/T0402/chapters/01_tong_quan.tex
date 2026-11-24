@@ -1,0 +1,22 @@
+\chapter{Tổng quan dự án và phạm vi}
+\section{Mục tiêu}
+BTL03 chuyển mười cấu hình thuộc năm nhóm từ notebook Keras sang PyTorch OOP. Báo cáo phân biệt implementation, legacy output, run PyTorch và synthetic smoke; không xem code hiện hữu là bằng chứng full training.
+
+\section{Năm nhóm cấu hình}
+\begin{longtable}{p{0.12\textwidth}p{0.34\textwidth}p{0.12\textwidth}p{0.34\textwidth}}
+\toprule Nhóm & Cấu hình & Số cấu hình & Trọng tâm \\
+\midrule
+1 — MLP & FuncApxmMLP; MNISTMLP & 2 & Dense/Linear; hồi quy và phân loại \\
+2 — CNN+MLP & MNISTCNN; HumanGenderCNN; EmotionCNN & 3 & Conv2D/Conv2d; NCHW và preprocessing \\
+3 — CNN+LSTM & MNISTCNNLSTM & 1 & Reshape thay TimeDistributed \\
+4 — Utilities & Gender + callbacks; Emotion + callbacks & 2 & Callbacks/logger; dùng lại nhóm 2 \\
+5 — Vision nâng cao & SegNet; FCNObjectDetector & 2 & Segmentation và score-map \\
+\bottomrule
+\end{longtable}
+Hai cấu hình nhóm 4 dùng lại kiến trúc nhóm 2, do đó mười cấu hình không phải mười kiến trúc độc lập.
+
+\section{Snapshot và câu hỏi nghiên cứu}
+Base snapshot là \texttt{b2b88db3fc7444f7c37391e7211416ea3843a31e}; report thực nghiệm tổng thể gần nhất trong evidence là T0212 ngày 2026-11-23. README liệt kê RQ1/RQ2; charter Markdown đúng tên chưa được xác minh nên câu chữ RQ cần nhóm đối chiếu. Không tự tạo RQ3/RQ4.
+
+\section{Mã task T0402 và WBS}
+Prompt giao T0402 viết báo cáo. Tuy nhiên, \texttt{AGENTS.md} xếp T0401--T0404 cho WP4 Advanced Vision và T0601--T0603 cho WP6 báo cáo/đóng gói. Bản này tuân theo chỉ định trực tiếp để soạn tài liệu, ghi lại mâu thuẫn và không sửa WBS hay tuyên bố phân công chính thức đã được giải quyết.

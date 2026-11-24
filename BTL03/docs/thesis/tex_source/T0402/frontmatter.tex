@@ -1,0 +1,58 @@
+\begin{titlepage}
+\thispagestyle{empty}
+\begin{center}
+\vspace*{1.4cm}
+{\Large\bfseries [TÊN TRƯỜNG / KHOA — NHÓM XÁC NHẬN]}\\[1.5cm]
+{\Large\bfseries BÁO CÁO TỔNG KẾT BTL03}\\[0.6cm]
+{\LARGE\bfseries CHUYỂN ĐỔI MÃ NGUỒN DEEP LEARNING\\ TỪ KERAS SANG PYTORCH}\\[0.8cm]
+Snapshot tài liệu: T0402\\
+Base repository: \texttt{b2b88db3fc7444f7c37391e7211416ea3843a31e}\\
+Ngày lập bản thảo: 2026-11-24
+\vfill
+\begin{tabularx}{\textwidth}{c p{0.27\textwidth} p{0.25\textwidth} X}
+\toprule
+STT & Thành viên / alias & Họ tên / MSSV & Vai trò theo evidence \\
+\midrule
+1 & Duy-DS & [NHÓM XÁC NHẬN] & T0101/T0201/T0202; tác giả bản thảo T0402 \\
+2 & nguyenthanhdat180905-cloud & [NHÓM XÁC NHẬN] & Reports nhóm 2 \\
+3 & nguyen-cong-tri & [NHÓM XÁC NHẬN] & Reports nhóm 3 \\
+4 & TonOfWeight072501 & [NHÓM XÁC NHẬN] & Reports utilities \\
+5 & CHIVY2005 & [NHÓM XÁC NHẬN] & Reports nhóm 5 \\
+\midrule
+\multicolumn{2}{l}{Lớp/giảng viên: [NHÓM XÁC NHẬN]} & \multicolumn{2}{l}{Tỷ lệ đóng góp: [NHÓM XÁC NHẬN; tổng 100\%]} \\
+\bottomrule
+\end{tabularx}
+\vfill
+[ĐỊA ĐIỂM], 2026
+\end{center}
+\end{titlepage}
+
+\chapter*{Tóm tắt}
+\addcontentsline{toc}{chapter}{Tóm tắt}
+BTL03 chuyển mười cấu hình thuộc năm nhóm từ Keras sang PyTorch. Bằng chứng hiện có gồm baseline Keras được trích từ notebook, 36 cấu hình sweep T0201, một run MNIST MLP T0202 và kiểm toán T0212. T0212 báo 10/10 synthetic one-epoch train/validation cases pass, nhưng logger bị BLOCKED do protobuf/TensorBoard và full suite theo shard có 78 passed, 4 failed trên 82 test; trạng thái tổng thể là BLOCKED. Những kết quả này không chứng minh toàn bộ mô hình đã huấn luyện đầy đủ trên dữ liệu thật.
+
+\noindent\textbf{Từ khóa:} Keras; PyTorch; NCHW; reproducibility; provenance; synthetic smoke.
+
+\chapter*{Câu hỏi nghiên cứu}
+\addcontentsline{toc}{chapter}{Câu hỏi nghiên cứu}
+README BTL03 có RQ1 và RQ2 nhưng charter Markdown đúng tên chưa được xác minh trong repository. Câu hỏi dưới đây vì vậy cần nhóm đối chiếu với charter chính thức; không tự tạo RQ3/RQ4.
+\begin{longtable}{p{0.10\textwidth}p{0.44\textwidth}p{0.25\textwidth}p{0.13\textwidth}}
+\toprule ID & Câu hỏi theo README & Evidence cần & Trạng thái \\
+\midrule
+RQ1* & Khác biệt layout, loop và khởi tạo ảnh hưởng thế nào đến hội tụ/gradient? & Đối chứng cùng protocol, run có log & Chưa kết luận tổng quát \\
+RQ2* & Regularization, augmentation và callbacks ảnh hưởng ra sao đến overfitting trên dữ liệu thật? & Run đối chứng có split/config/log & Chưa kết luận hiệu quả PyTorch \\
+RQ3/RQ4 & Chưa xác minh câu chữ trong charter & Charter được nhóm xác nhận & Không tự dựng câu hỏi \\
+\bottomrule
+\end{longtable}
+\noindent * Câu hỏi theo README, không xác nhận là trích nguyên văn charter.
+
+\chapter*{Mở đầu}
+\addcontentsline{toc}{chapter}{Mở đầu}
+\section*{Bối cảnh và mục tiêu}
+Mục tiêu là tái cấu trúc mười cấu hình Keras sang các thành phần PyTorch hướng đối tượng và thu thập bằng chứng có thể truy vết. Mục tiêu thiết kế không đồng nghĩa kết quả đã đạt.
+\section*{Phạm vi và phương pháp}
+Bản thảo tổng hợp repository tại base commit nêu trên và reports T0101--T0212. Phương pháp là đối chiếu task report, CSV/Run\_ID, config và source; không chạy lại mô hình hoặc suy diễn metric thiếu.
+\section*{Đóng góp đã xác minh và giới hạn}
+Có code/config, task reports, parameter audit, sweep T0201, run T0202 và smoke tích hợp T0212. T0212 overall BLOCKED; nhiều full-data run, ablation, demo và PDF chưa có bằng chứng nghiệm thu.
+\section*{Cấu trúc báo cáo}
+Chương 1 nêu phạm vi; chương 2 giải thích khác biệt framework; chương 3 mô tả kiến trúc; chương 4 tổng hợp bằng chứng; chương 5 thảo luận giới hạn và kiến nghị.

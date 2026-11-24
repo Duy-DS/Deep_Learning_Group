@@ -1,0 +1,19 @@
+\chapter{Cơ sở lý thuyết và khác biệt Keras--PyTorch}
+\section{Vòng lặp, logits và loss}
+PyTorch thể hiện chu trình \texttt{zero\_grad}, forward, loss, backward và optimizer step; validation chuyển model sang \texttt{eval()} và inference/no-gradient mode. Phân loại dùng logits với \texttt{CrossEntropyLoss} và class-index \texttt{torch.long}; không áp softmax trước loss. Softmax có thể dùng sau forward khi cần xác suất. Số tham số bằng nhau không chứng minh tương đương weights, outputs, gradients hay metric \cite{paszke2019pytorch}.
+
+\section{NHWC, NCHW và WIKI rotation}
+Keras thường biểu diễn ảnh $(N,H,W,C)$, còn \texttt{nn.Conv2d} nhận $(N,C,H,W)$:
+\[
+x_{NCHW}=\operatorname{permute}(x_{NHWC},0,3,1,2).\operatorname{contiguous}().
+\]
+Dataset WIKI áp dụng \texttt{np.rot90(k=3, axes=(1,2))} trước phép đổi trục. Rotation đổi vị trí không gian; permute chỉ đổi thứ tự chiều. MNIST legacy chia pixel byte cho 255. T0102/T0205 ghi FER legacy không có phép chia \texttt{/255} tường minh; loader có chế độ \texttt{preserve}, nhưng parity phải dựa trên range dữ liệu nguồn thật. FCN detection dùng $x/127.5-1.0$.
+
+\section{CNN-LSTM thay TimeDistributed}
+Với input $(B,T,C,H,W)$, gộp $(B,T)$ thành $(BT,C,H,W)$ cho CNN xử lý từng frame; flatten thành $(BT,F)$ rồi khôi phục $(B,T,F)$ theo đúng thứ tự thời gian trước LSTM. Đây là hợp đồng shape tương ứng \texttt{TimeDistributed(CNN)}, không tự chứng minh parity trọng số hoặc metric.
+
+\section{SegNet và mask loss}
+\texttt{UpSampling2D} nearest được ánh xạ sang \texttt{nn.Upsample(scale\_factor=2, mode=nearest)}. SegNet trả logits $(B,K,H,W)$, mask class-index có shape $(B,H,W)$ và dtype long cho cross-entropy. Pixel accuracy khác mIoU; không đổi tên metric legacy \cite{badrinarayanan2017segnet}.
+
+\section{FCN score-map}
+Notebook detection dùng score \texttt{tanh}, target $\pm1$ và MSE; head convolution gồm kernel $8\times8$ và $1\times1$. Trường metric legacy tên accuracy không phải IoU/mAP. Heatmap từ model chưa huấn luyện chỉ kiểm tra luồng dữ liệu/inference, không đo chất lượng phát hiện.
