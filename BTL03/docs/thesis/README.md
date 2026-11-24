@@ -6,8 +6,9 @@ Thư mục này quản lý song song bản thảo Markdown và nguồn LaTeX cho
 
 - `AGENT_THESIS_RULES.md`: quy tắc biên soạn, provenance và kiểm tra.
 - `templates/`: khung Markdown/LaTeX gốc, bảo vệ theo quy trình; chỉ sao chép để viết.
+- `templates/sample_style_v2/`: bộ template mới tham khảo cấu trúc sample 1/2; tách biệt và không thay thế template gốc READ-ONLY.
 - `source_materials/`: phạm vi snapshot, manifest nguồn và hướng dẫn lưu mẫu.
-- `source_materials/samples/`: hai mẫu `.tex` do người dùng cung cấp (được giữ nguyên trong Git theo yêu cầu) và `style_analysis.md`; chỉ dùng quy ước trình bày, không chép nội dung đề tài mẫu vào BTL03.
+- `source_materials/samples/`: hai mẫu `.tex` do người dùng cung cấp (được giữ nguyên trong Git theo yêu cầu) và `style_analysis.md`; phân tích chỉ về cấu trúc/trình bày, không chép nội dung đề tài mẫu vào BTL03.
 - `md_drafts/`: Markdown để đọc nhanh và review trên Git.
 - `tex_source/`: nguồn đồng bộ, nén để upload Overleaf.
 - `BaoCao_TongKet_BTL03.pdf`: vị trí PDF cuối đã biên dịch/duyệt; không có trong snapshot T0212.
@@ -16,11 +17,11 @@ Tên họ và MSSV, người chủ trì báo cáo và tỷ lệ đóng góp cu�
 
 ## Đồng bộ Markdown và LaTeX
 
-1. Đọc `AGENT_THESIS_RULES.md`, đề cương và manifest.
+2. Đọc `AGENT_THESIS_RULES.md`, đề cương, manifest và `source_materials/samples/style_analysis.md`; nếu cần dùng format mới thì sao chép `templates/sample_style_v2/`, không sửa template gốc.
 2. Kiểm tra nguồn trước khi ghi mỗi số liệu/trạng thái; không sửa mẫu để che thiếu sót.
-3. Cập nhật đồng thời `md_drafts/BaoCao_TongKet_BTL03_T0212_draft.md` và năm chương trong `tex_source/chapters/`. Giữ nhất quán bảng, trạng thái, tác giả, caveat, evidence IDs và citation.
+3. Giữ nguyên snapshot T0212. Với mốc mới, tạo/cập nhật draft mang snapshot/task tương ứng và bundle LaTeX riêng (ví dụ `tex_source/T0402/`); đồng bộ bảng, trạng thái, tác giả, caveat, evidence IDs và citations giữa Markdown/LaTeX.
 4. Kiểm tra Git diff và cấu trúc/include/citation bằng kiểm tra văn bản tĩnh. Không chạy compiler/test/training trên local; Overleaf là nơi biên dịch PDF.
-5. Khi có task mới, giữ snapshot T0212 nguyên trạng; tạo snapshot/mốc mới với commit, ngày và evidence riêng. Không hồi tố kết quả WP03/WP04 vào T0212.
+5. Khi có task mới, giữ snapshot T0212 nguyên trạng; tạo snapshot/mốc mới với commit, ngày và evidence riêng. Không hồi tố kết quả WP03/WP04 vào T0212. Template mới theo sample style lưu riêng ở `templates/sample_style_v2/`; không sửa template gốc READ-ONLY.
 
 ### Quy ước trình bày tham khảo
 

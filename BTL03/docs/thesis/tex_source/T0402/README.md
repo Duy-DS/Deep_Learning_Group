@@ -1,5 +1,5 @@
-# LaTeX source bundle — snapshot T0402
+# LaTeX source bundle — snapshot T0402 / style v2
 
-Bundle độc lập đồng bộ với `../../md_drafts/BaoCao_TongKet_BTL03_T0402_draft.md` và chỉ đọc repository evidence; tác giả bản thảo được ghi trong front matter là thành viên thật `Duy-DS`. `AGENTS.md` có mâu thuẫn WBS/prompt về mã T0402; báo cáo giữ nguyên caveat này.
+Bundle XeLaTeX modular, theo mạch nghiên cứu/pipeline của `sample_1.tex` kết hợp front matter, sơ đồ và ma trận kiểm toán trong `sample_2.tex`. Chỉ áp dụng cấu trúc/trình bày, không sao chép nội dung, dữ liệu, PII, citation, hình, package riêng hay kết luận của hai sample. Đồng bộ với `../../md_drafts/BaoCao_TongKet_BTL03_T0402_draft.md`; tác giả snapshot là thành viên thật `Duy-DS` theo chỉ định trực tiếp. WBS workbook giao T0402 cho Member 05; caveat được giữ trong bìa và báo cáo.
 
-Để dùng Overleaf, nén **nội dung bên trong thư mục T0402** để `main.tex` ở root ZIP, upload rồi chọn XeLaTeX. Preamble dùng XeLaTeX Unicode và BibLaTeX/Biber. Không có hình ngoài nào được tham chiếu; PDF chưa được tạo/duyệt. Không biên dịch local theo quy tắc `AGENT_THESIS_RULES.md`.
+Để dùng Overleaf, nén **nội dung bên trong thư mục T0402** để `main.tex` ở root ZIP, upload rồi chọn XeLaTeX/Biber theo dự án. Các chương dùng đường dẫn tương đối. Chưa có hình kết quả thực nghiệm để đóng gói; không tạo hình giả. PDF chưa được biên dịch/duyệt. Không biên dịch local theo `AGENT_THESIS_RULES.md`.

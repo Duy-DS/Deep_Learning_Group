@@ -1,11 +1,12 @@
-% Báo cáo tổng kết snapshot T0402; biên dịch XeLaTeX trên Overleaf.
-\documentclass[12pt,a4paper,oneside]{book}
+% BTL03 T0402 — sample-style report bundle for Overleaf (XeLaTeX).
+\documentclass[12pt,a4paper,openany,oneside]{book}
 \input{preamble.tex}
 \addbibresource{references.bib}
 \begin{document}
 \frontmatter
 \input{frontmatter.tex}
 \tableofcontents
+\listoffigures
 \listoftables
 \mainmatter
 \input{chapters/01_tong_quan.tex}
@@ -15,6 +16,6 @@
 \input{chapters/05_thao_luan_va_ket_luan.tex}
 \printbibliography[heading=bibintoc,title={Tài liệu tham khảo}]
 \appendix
-\chapter{Provenance chính}
-Các report và log được dẫn theo đường dẫn repository trong từng chương. Baseline chi tiết nằm tại \texttt{experiments/csv\_logs/keras\_baseline\_10\_models.csv}; manifest tại \texttt{docs/thesis/source\_materials/evidence\_sources\_manifest.md}. Không đưa dữ liệu, checkpoint hoặc runtime artifact vào bundle.
+\chapter{Provenance và giới hạn evidence}
+Nguồn nội bộ chính: \texttt{docs/reports/T0201\_261122\_2112.md}, \texttt{T0202\_261122\_2112.md}, \texttt{T0212\_261123\_2130.md}; baseline tại \texttt{experiments/csv\_logs/keras\_baseline\_10\_models.csv}; manifest tại \texttt{docs/thesis/source\_materials/evidence\_sources\_manifest.md}. Run ID và split được nêu trong Chương 4. Không đóng gói dataset, checkpoint, event log hoặc PDF chưa duyệt.
 \end{document}

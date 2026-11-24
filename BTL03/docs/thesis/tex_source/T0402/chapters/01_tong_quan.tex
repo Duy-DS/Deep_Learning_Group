@@ -1,22 +1,21 @@
 \chapter{Tổng quan dự án và phạm vi}
-\section{Mục tiêu}
-BTL03 chuyển mười cấu hình thuộc năm nhóm từ notebook Keras sang PyTorch OOP. Báo cáo phân biệt implementation, legacy output, run PyTorch và synthetic smoke; không xem code hiện hữu là bằng chứng full training.
-
-\section{Năm nhóm cấu hình}
+\section{Mục tiêu và các nhóm mô hình}
+BTL03 chuyển mười cấu hình thuộc năm nhóm từ notebook Keras sang PyTorch OOP. Hai cấu hình utilities dùng lại GenderCNN/EmotionCNN, do đó đây không phải mười kiến trúc độc lập.
 \begin{longtable}{p{0.12\textwidth}p{0.34\textwidth}p{0.12\textwidth}p{0.34\textwidth}}
 \toprule Nhóm & Cấu hình & Số cấu hình & Trọng tâm \\
 \midrule
-1 — MLP & FuncApxmMLP; MNISTMLP & 2 & Dense/Linear; hồi quy và phân loại \\
-2 — CNN+MLP & MNISTCNN; HumanGenderCNN; EmotionCNN & 3 & Conv2D/Conv2d; NCHW và preprocessing \\
+1 — MLP & FuncApxmMLP; MNISTMLP & 2 & Dense/Linear; regression/classification \\
+2 — CNN+MLP & MNISTCNN; HumanGenderCNN; EmotionCNN & 3 & Conv2D/Conv2d; preprocessing/NCHW \\
 3 — CNN+LSTM & MNISTCNNLSTM & 1 & Reshape thay TimeDistributed \\
-4 — Utilities & Gender + callbacks; Emotion + callbacks & 2 & Callbacks/logger; dùng lại nhóm 2 \\
-5 — Vision nâng cao & SegNet; FCNObjectDetector & 2 & Segmentation và score-map \\
+4 — Training Utilities & Gender/Emotion + callbacks & 2 & Callback/checkpoint/logger; model nhóm 2 dùng lại \\
+5 — Advanced Vision & SegNet; FCNObjectDetector & 2 & Segmentation và score-map \\
 \bottomrule
 \end{longtable}
-Hai cấu hình nhóm 4 dùng lại kiến trúc nhóm 2, do đó mười cấu hình không phải mười kiến trúc độc lập.
 
-\section{Snapshot và câu hỏi nghiên cứu}
-Base snapshot là \texttt{b2b88db3fc7444f7c37391e7211416ea3843a31e}; report thực nghiệm tổng thể gần nhất trong evidence là T0212 ngày 2026-11-23. README liệt kê RQ1/RQ2; charter Markdown đúng tên chưa được xác minh nên câu chữ RQ cần nhóm đối chiếu. Không tự tạo RQ3/RQ4.
+\section{Snapshot, WBS và phương pháp}
+Snapshot báo cáo lấy từ nhánh T0402 trên base commit \texttt{b2b88db3fc7444f7c37391e7211416ea3843a31e}. Reports thực nghiệm mới nhất được rà soát là T0212 (2026-11-23). Workbook `Quan_Ly_Tasks` giao T0402 cho Member 05 trong WP04; yêu cầu trực tiếp của nhóm trưởng giao Member 01 tổng hợp bản hiện tại. Bài viết theo chỉ định trực tiếp, giữ mâu thuẫn owner để nhóm xác nhận, không sửa WBS.
 
-\section{Mã task T0402 và WBS}
-Prompt giao T0402 viết báo cáo. Tuy nhiên, \texttt{AGENTS.md} xếp T0401--T0404 cho WP4 Advanced Vision và T0601--T0603 cho WP6 báo cáo/đóng gói. Bản này tuân theo chỉ định trực tiếp để soạn tài liệu, ghi lại mâu thuẫn và không sửa WBS hay tuyên bố phân công chính thức đã được giải quyết.
+README nêu RQ1/RQ2 nhưng charter Markdown đúng tên chưa có trong repository. Vì vậy câu hỏi nghiên cứu trong báo cáo được đánh dấu là tóm lược theo README, không gán là nguyên văn charter. Phương pháp kiểm toán đối chiếu task reports, notebook/baseline CSV, Run ID, source/config và Git evidence; không coi synthetic smoke là training kết quả.
+
+\section{Trạng thái tại mốc evidence}
+T0201 có 36 sweep configs; T0202 có một MNIST MLP run 30 epoch. T0212 ghi 10/10 synthetic one-epoch smoke cases PASS nhưng logger BLOCKED và suite shards 78 pass/4 fail trên 82; tổng thể BLOCKED. Các trạng thái này không chứng minh full training mười mô hình, ablation, demo hay báo cáo PDF đã hoàn tất.

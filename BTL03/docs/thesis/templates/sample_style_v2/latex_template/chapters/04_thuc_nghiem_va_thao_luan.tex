@@ -1,0 +1,21 @@
+\chapter{Thực nghiệm, kiểm toán và thảo luận}
+\section{Snapshot và protocol}
+Ghi dataset, split, seed, runtime, lệnh/config, task và trạng thái test; phân biệt legacy output, PyTorch run, unit test và synthetic smoke.
+\section{Parameter audit}
+\begin{longtable}{p{0.23\textwidth}r r r p{0.24\textwidth}}
+\toprule Cấu hình & Reference & Port & Delta & Caveat/counting semantics \\
+\midrule
+Chỉ điền số có provenance & & & & Bất đồng nguồn phải giữ và đánh dấu cần đối chiếu \\
+\bottomrule
+\end{longtable}
+\section{Kết quả run có thật}
+\begin{longtable}{p{0.18\textwidth}p{0.23\textwidth}p{0.23\textwidth}p{0.18\textwidth}p{0.16\textwidth}}
+\toprule Run/Task & Dataset/split & Seed/config/runtime & Metric/kết quả & Caveat \\
+\midrule
+Nếu chưa chạy, ghi NOT RUN/NOT RECORDED & Split phải ghi rõ & Seed/config/runtime có nguồn & Metric/unit có nguồn & Không suy diễn \\
+\bottomrule
+\end{longtable}
+\section{Acceptance và task status}
+Phân biệt PASSED, BLOCKED, NOT RUN, NOT RECORDED và CHƯA THỰC HIỆN; bảng status có evidence path và điều kiện tiếp theo.
+\section{Thảo luận/validity}
+Tổ chức mỗi phát hiện theo claim → evidence/path → diễn giải → caveat/validity threat.

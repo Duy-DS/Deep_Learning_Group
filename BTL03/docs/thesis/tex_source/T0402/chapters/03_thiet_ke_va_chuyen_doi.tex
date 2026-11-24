@@ -1,29 +1,47 @@
-\chapter{Kiến trúc hệ thống và chuyển đổi}
-\section{Các thành phần OOP}
+\chapter{Thiết kế hệ thống và chuyển đổi PyTorch}
+\section{Kiến trúc OOP}
 \begin{itemize}
-\item \texttt{BaseMigratedModel}: hợp đồng forward, kiểm tra NCHW, bộ đếm total/trainable/non-trainable và feature hooks.
-\item \texttt{BaseTrainer}: vòng lặp train/validation, callback, logger và checkpoint; validation dùng inference mode.
-\item \texttt{seed\_everything(42)} cùng worker seed/generator hỗ trợ tái lập. T0106 lưu ý \texttt{PYTHONHASHSEED} phải được đặt trước khi khởi chạy tiến trình nếu cần cố định hash seed của chính tiến trình.
-\item Callbacks gồm lifecycle, EarlyStopping, ModelCheckpoint và ReduceLROnPlateau.
-\item \texttt{ExperimentLogger} ghi epoch CSV, master CSV 18 cột và TensorBoard SummaryWriter. \texttt{CheckpointManager} lưu state/metadata cục bộ và chỉ mirror Drive nếu mount root tồn tại.
-\item YAML, runner và \texttt{src/train.py} cung cấp dispatch CLI. T0212 \texttt{--task all --smoke-test} dùng dữ liệu tổng hợp và sandbox; không phải full training.
+\item \texttt{BaseMigratedModel}: forward contract, kiểm tra NCHW, parameter counters và feature hooks.
+\item \texttt{BaseTrainer}: train/validation, callbacks, logger, checkpoint; validation dùng inference mode.
+\item \texttt{seed\_everything(42)} và worker/generator helpers hỗ trợ reproducibility. T0106 lưu ý PYTHONHASHSEED cần đặt trước khi khởi tạo process để tác động hash seed của process hiện tại.
+\item Callbacks có lifecycle, EarlyStopping, ModelCheckpoint và ReduceLROnPlateau.
+\item \texttt{ExperimentLogger} ghi epoch CSV, master CSV 18 cột và SummaryWriter; \texttt{CheckpointManager} lưu state/metadata, mirror Drive chỉ khi mount root tồn tại.
+\item YAML/runners/\texttt{src/train.py} cung cấp CLI dispatch; `--task all --smoke-test` là synthetic harness, không phải full training.
 \end{itemize}
-T0104 ghi một lần logger độc lập PASS; T0212 ghi logger BLOCKED bởi protobuf/TensorBoard. Hai mốc thời gian này không mâu thuẫn nếu giữ đúng môi trường và phạm vi từng report.
+T0104 ghi logger smoke độc lập PASS; T0212 ghi SummaryWriter BLOCKED bởi protobuf/TensorBoard. Hai kết quả thuộc các runtime/mốc khác nhau, cần nêu đúng phạm vi.
 
-\section{Ma trận nhóm và giới hạn}
-\begin{longtable}{p{0.10\textwidth}p{0.27\textwidth}p{0.25\textwidth}p{0.28\textwidth}}
-\toprule Nhóm & Cấu hình & Kỹ thuật chính & Evidence/caveat \\
+\section{Pipeline và ranh giới bằng chứng}
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[node distance=8mm and 8mm,every node/.style={draw,rounded corners,align=center,text width=27mm,minimum height=10mm,font=\small}]
+\node (legacy) {Keras legacy\\baseline CSV};
+\node[right=of legacy] (data) {Dataset/config\\preprocessing};
+\node[right=of data] (model) {PyTorch models\\5 groups/10 configs};
+\node[below=of model] (engine) {Trainer/callbacks\\logger/checkpoint};
+\node[left=of engine] (cli) {CLI/synthetic smoke\\T0212 snapshot};
+\node[left=of cli] (docs) {Task reports\\tests/evidence};
+\draw[-{Stealth}] (legacy)--(data);
+\draw[-{Stealth}] (data)--(model);
+\draw[-{Stealth}] (model)--(engine);
+\draw[-{Stealth}] (engine)--(cli);
+\draw[-{Stealth}] (cli)--(docs);
+\end{tikzpicture}
+\caption{Pipeline khái quát theo source và task reports; T0212 smoke dùng synthetic fixtures, logger BLOCKED.}
+\label{fig:t0402-pipeline}
+\end{figure}
+Sơ đồ trình bày kiến trúc cần kiểm toán, không khẳng định toàn bộ luồng full-data/logger chạy thành công.
+
+\section{Ma trận chuyển đổi}
+\begin{longtable}{p{0.12\textwidth}p{0.29\textwidth}p{0.28\textwidth}p{0.23\textwidth}}
+\toprule Nhóm & Cấu hình & Kỹ thuật & Evidence/giới hạn \\
 \midrule
-1 & FuncApxmMLP; MNISTMLP & Linear/MLP; logits + CE & T0201 36 sweep; T0202 một run MNIST 30 epoch \\
-2 & MNISTCNN; HumanGenderCNN; EmotionCNN & Conv2d, NCHW, preprocessing riêng & Count/shape reports; full PyTorch metrics thiếu ở nhiều bài \\
-3 & MNISTCNNLSTM & Gộp/tách batch-time; LSTM & Count T0206/T0207 lệch 1,024; full MAE chưa xác nhận \\
-4 & Gender/Emotion + callbacks & Callback lifecycle/checkpoint/logging & Code/tests có; full data run bị thiếu hoặc blocked \\
-5 & SegNet; FCNObjectDetector & Upsample/mask; score-map tanh & Count/shape evidence; chưa có full-data quality metrics \\
+1 & FuncApxmMLP; MNISTMLP & Linear; logits/loss & T0201 sweep; T0202 một MNIST run \\
+2 & MNISTCNN; HumanGenderCNN; EmotionCNN & Conv2d; NCHW; preprocessing & Count/shape; full metrics thiếu ở nhiều model \\
+3 & MNISTCNNLSTM & Batch-time reshape; LSTM & T0206/T0207 count lệch 1,024 \\
+4 & Gender/Emotion + utilities & Callbacks/logger/checkpoint & Code/tests; full run/logger bị thiếu hoặc blocked \\
+5 & SegNet; FCNObjectDetector & Upsample/mask; tanh score-map & Count/shape; chưa có full-data metric \\
 \bottomrule
 \end{longtable}
 
-\section{Các chi tiết chuyển đổi}
-\texttt{FuncApxmMLP} có công thức $4B+1$; 65 chỉ tại $B=16$. \texttt{MNISTMLP} flatten 784, hai tầng 512 và 10 logits. CNN MNIST giữ Flatten 2304; Gender bảo toàn WIKI rotation trước NCHW; Emotion giữ preprocessing FER theo legacy. CNN-LSTM nhận chuỗi 8 frame và thay TimeDistributed bằng reshape. SegNet dùng mask class-index $(B,H,W)$ và nearest upsampling. FCN giữ regression score-map và chuẩn hóa RGB $x/127.5-1$.
-
-\section{Logger, checkpoint và CLI}
-Logger API/schema có trong source, nhưng trạng thái vận hành phụ thuộc runtime. Report T0212 ghi SummaryWriter không khởi tạo vì protobuf generated/runtime không tương thích; logger không ghi run CSV/event cho smoke. Do vậy không suy từ code/config ra logger end-to-end đã hoạt động.
+\section{Kết quả cấu hình và thực nghiệm}
+T0201 report 36 sweep configs (seed 42, SGD 0.01, batch 128); T0202 report một MNIST MLP run 30 epoch. Kết quả, protocol và caveat chi tiết được ghi ở Chương~\ref{ch:evidence}; không ngoại suy hai run này ra toàn bộ mười cấu hình.

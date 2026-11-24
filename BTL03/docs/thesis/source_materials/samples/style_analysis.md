@@ -1,42 +1,68 @@
-# Phân tích cấu trúc và phong cách từ hai mẫu LaTeX
+# Phân tích phong cách trình bày của `sample_1.tex` và `sample_2.tex`
 
-**Mục đích:** dùng `sample_1.tex` và `sample_2.tex` do người dùng cung cấp làm ví dụ về tổ chức báo cáo. Đây là phân tích quy ước, không phải sao chép nội dung. Không xem format của mẫu là quy định chính thức của trường.
+**Phạm vi:** đọc toàn bộ hai file do người dùng cung cấp. Inventory hiện tại lần lượt là 1.459 và 998 dòng. Tài liệu này phân tích cấu trúc/biểu đạt, không xác nhận quy định trường. Hai file gốc được giữ nguyên; tuyệt đối không chép nội dung, số liệu, tên/MSSV, hình hoặc citation của đề tài mẫu vào báo cáo BTL03.
 
-## 1. Điểm chung
+## 1. Kiến trúc tài liệu và phân cấp
 
-- Phân tách front matter và nội dung đánh số: bìa, mục lục/danh mục, tóm tắt hoặc thuật ngữ trước chương chính.
-- Mở đầu làm rõ bối cảnh, vấn đề, mục tiêu/nhiệm vụ, phạm vi/đối tượng và phương pháp; mẫu thứ hai còn nêu đóng góp và cấu trúc báo cáo.
-- Thân bài có luồng từ nền tảng đến dữ liệu/phương pháp, kết quả và thảo luận; phần cuối tách kết luận/kiến nghị/giới hạn và phụ lục.
-- Dùng phân cấp chương–mục, hình/bảng/phương trình có caption/label và cross-reference để người đọc tra cứu.
-- Mẫu theo pipeline giải thích artifact trong mạch lập luận; mẫu theo người dùng phân chia kết quả theo persona/use case và kiểm toán tiêu chí hệ thống.
+| Khía cạnh | `sample_1.tex` | `sample_2.tex` | Chọn lọc cho BTL03 |
+|---|---|---|---|
+| Class | `book`, A4, 12pt, `openany`, `oneside` | `report`, A4, 12pt, `oneside` | Giữ `book` và XeLaTeX hiện hành trong BTL03; không đổi class chỉ để giống hình thức |
+| Preamble | Nạp một gói tùy biến `research-format` | Preamble inline, nhánh `iftex`, font/geometry/heading/table/TikZ/callout/hyperref | Giữ preamble modular BTL03; `research-format.sty` không có trong repo, không bê nguyên package stack của sample 2 |
+| Front matter | Bìa → danh mục thuật ngữ → tóm tắt → TOC/LoF/LoT → mainmatter | Bìa và bảng thành viên → lời cảm ơn → TOC/LoF/LoT → thuật ngữ → tóm tắt → mở đầu | Một bìa; snapshot/hash/date; thành viên có evidence, placeholders pháp lý; tóm tắt, từ khóa, abbreviations/RQ, mục lục |
+| Phân cấp | Chương → section → subsection; có phần không đánh số và phần đánh số | Chương `report`, mở đầu/kết luận dạng không đánh số, mục đánh số thủ công ở front matter | Dùng 5 chương T0402 có cấp bậc nhất quán; tránh số thủ công dễ lệch cross-reference |
+| Luồng | Pipeline nghiên cứu: nền tảng → dữ liệu → mô hình → kết quả | Pipeline hệ thống và user stories → analytics → dashboard/audit | Kết hợp: framework/data → architecture → audit/results → discussion/validity |
 
-## 2. Đặc điểm và cách chuyển dụng của từng mẫu
+## 2. Văn phong và mạch diễn giải
 
-### `sample_1.tex` — báo cáo nghiên cứu theo pipeline
+### 2.1 Pattern quan sát trong sample 1
 
-Tổ chức: bìa → thuật ngữ/chữ viết tắt → tóm tắt → mở đầu → lý thuyết → dữ liệu/tiền xử lý → phương pháp/biểu diễn → tối ưu hóa → thực nghiệm/kết quả/thảo luận → kết luận/kiến nghị → tài liệu tham khảo/phụ lục. Có cấu trúc nghiên cứu rõ, nhiều bảng/hình/phương trình và mạng tham chiếu chéo.
+- Mở đầu nêu lý do, lịch sử nghiên cứu, mục đích/nhiệm vụ, đối tượng/phạm vi, phương pháp và cấu trúc.
+- Chương nối tiếp theo luồng công việc; bảng/hình được giới thiệu trong văn bản, sau đó diễn giải ý nghĩa và chuyển tiếp sang phần kế tiếp.
+- Phần lý thuyết định nghĩa ký hiệu trước; công thức có nhãn, giải nghĩa biến và nêu cách dùng trong pipeline.
+- Kết quả được thảo luận cùng giả định/giới hạn, không chỉ xếp bảng số liệu; phụ lục gom code/evidence theo bước nghiên cứu.
 
-**Chuyển dụng BTL03:** dùng mạch cơ sở Keras/PyTorch → dữ liệu/baseline → kiến trúc và chuyển đổi → kiểm toán/test → kết quả run thật → thảo luận validity. Không viết chương kết quả theo cách giả định đủ mười full run khi evidence T0212 không có.
+### 2.2 Pattern quan sát trong sample 2
 
-### `sample_2.tex` — báo cáo hệ thống/visual analytics theo người dùng
+- Front matter và mở đầu thiên về deliverable: mục tiêu, nhiệm vụ, phạm vi, phương pháp, đóng góp, cấu trúc.
+- Chương data contract và pipeline đi trước phân tích; thiết kế trực quan được tổ chức theo người dùng/chức năng.
+- Sơ đồ TikZ, bảng kiểm toán và callout giúp giải thích luồng hệ thống/tiêu chí; kết luận tách findings, hạn chế, hướng phát triển.
+- Giọng văn nhấn mạnh claim cụ thể đi với artifact/kiểm toán, phù hợp báo cáo hệ thống kỹ thuật.
 
-Tổ chức: bìa và bảng thành viên → lời cảm ơn/tóm tắt → mở đầu có mục tiêu/phạm vi/phương pháp/đóng góp → chương lý thuyết → data pipeline/hợp đồng dữ liệu → phân tích khám phá → thiết kế theo use case → kiểm toán kỹ thuật/hiệu năng/tiếp cận → kết luận, giới hạn, tài liệu tham khảo, phụ lục. Sơ đồ pipeline và hình/bảng được gắn với chức năng hệ thống.
+### 2.3 Quy tắc diễn đạt áp dụng
 
-**Chuyển dụng BTL03:** mô tả pipeline Dataset → model → Trainer/Callback → logger/checkpoint → CLI/evaluation; dùng ma trận năm nhóm/mười cấu hình. Có thể nhóm theo vai trò người đọc (người tái lập, reviewer, người đánh giá) nhưng không tạo persona/demo chưa được xác nhận WP04.
+Áp dụng mạch **claim → evidence/path/Run ID → diễn giải → caveat**. Phân biệt code/config, unit/shape test, synthetic smoke, legacy output và PyTorch full-data run. Không dùng lời khẳng định tuyệt đối (“hoàn toàn tương đương”, “đã đạt”) nếu evidence chỉ là parameter count hoặc smoke giả. Tách kết luận snapshot khỏi kiến nghị tương lai.
 
-## 3. Quy ước trình bày được chọn cho BTL03
+## 3. Bảng, công thức, code, hình và trích dẫn
 
-1. **Bìa:** tên đề tài/mã BTL03, mốc và commit snapshot, ngày chốt evidence, alias thành viên đã xác nhận. Họ tên/MSSV/giảng viên/tỷ lệ giữ placeholder nếu thiếu xác nhận.
-2. **Front matter:** tóm tắt, từ khóa, danh mục từ viết tắt khi cần, mục lục và danh mục hình/bảng chỉ khi có nội dung thực.
-3. **Mở đầu:** bối cảnh → mục tiêu/câu hỏi → đối tượng/phạm vi → cách kiểm toán evidence → đóng góp đã kiểm chứng → hạn chế → cấu trúc báo cáo.
-4. **Thân bài:** nền tảng/chuyển đổi → dữ liệu và baseline/protocol → kiến trúc OOP/pipeline → kết quả code/test/parity → kết quả full training (chỉ sau khi có run thật) → thảo luận và validity.
-5. **Phần cuối:** kết luận snapshot, kiến nghị giai đoạn tiếp theo, tài liệu tham khảo; phụ lục cho evidence manifest, acceptance matrix, config/lệnh và bảng chi tiết dài.
-6. **Hình/bảng:** caption tự mô tả; giới thiệu và diễn giải trong văn bản; label/cross-reference ổn định; ghi evidence ID, run/split/seed và caveat liên quan. Sơ đồ phải phản ánh source/config thực tế.
+| Thành phần | Pattern trong mẫu | Quy ước BTL03 T0402 |
+|---|---|---|
+| Bảng | Sample 1 dùng `longtable`, header lặp và cột tự định nghĩa trong package riêng; sample 2 dùng `tabularx`, bảng có khung/stripe, acceptance và audit tables | Dùng `booktabs`, `longtable` cho bảng dài, `tabularx` cho mô tả; caption/label và giới thiệu trong prose; ghi unit/split/source/caveat |
+| Công thức | Sample 1 đánh số equation, label/cross-reference và giải thích ký hiệu; sample 2 dùng equation cho công thức thống kê và tiêu chí | Chỉ đưa công thức cần thiết cho tensor/loss/metric; giải thích điều kiện và ký hiệu; Markdown dùng cùng ký hiệu LaTeX |
+| Code/thuật toán | Sample 1 chủ yếu có ảnh chụp code trong phụ lục; sample 2 diễn giải thuật toán, có inline code và sơ đồ | BTL03 có `listings`; dùng đoạn code ngắn có trong source, không screenshot giả, không shell-escape/minted |
+| Hình/sơ đồ | Cả hai dùng figure, caption, label và tham chiếu; sample 2 dùng TikZ cho pipeline/What–Why–How | Chỉ chèn asset có provenance; path tương đối; TikZ chỉ mô tả source/config thực tế và caption nêu giới hạn |
+| Bibliography | Cả hai dùng `thebibliography` và citation key | Bundle BTL03 dùng BibLaTeX/Biber với `.bib`; Markdown giữ danh sách/key tương ứng; chỉ metadata đã xác minh |
+| Bố cục | Sample 2 có màu/callout/logo và quy định trường cụ thể; sample 1 gọi custom style | Không suy lề/font/cỡ chữ chính thức từ sample; dùng XeLaTeX, font tiếng Việt và package stack BTL03 hiện có |
 
-## 4. Ranh giới nội dung và kỹ thuật
+## 4. Tương thích Overleaf và đồng bộ Markdown ↔ LaTeX
 
-- Không sao chép bìa, lời cảm ơn, tên/MSSV, dữ liệu, hình, trích dẫn hoặc kết luận chuyên ngành từ các sample.
-- Không bê nguyên preamble/package, macro, màu sắc, layout hay các package đặc thù của mẫu. XeLaTeX và package stack của BTL03 vẫn là lựa chọn hiện tại; mọi thay đổi phải build kiểm tra.
-- Không suy ra yêu cầu lề/font/cỡ chữ chính thức từ hai mẫu; xin mẫu/quy định học phần nếu cần chuẩn in.
-- Bảng/hình chưa có evidence để placeholder có nhãn “chưa có”, không dựng kết quả giả. WP03/WP04, logger và training giữ trạng thái đúng evidence, đặc biệt T0212 `BLOCKED`.
-- Kết luận khác với khuyến nghị: kết luận tổng hợp điều evidence chứng minh; khuyến nghị nêu hành động tương lai, có phụ thuộc và cách nghiệm thu.
+- BTL03 hiện cấu hình XeLaTeX với `fontspec`, `polyglossia` Vietnamese, `biblatex`/Biber và TikZ. Nguồn phải nén thành bundle tự chứa, `main.tex` ở root ZIP, mọi `\input`/ảnh dùng đường dẫn tương đối.
+- Sample 1 gọi `research-format`; package không hiện diện trong repository. Sample 2 có nhánh pdfLaTeX/XeLaTeX, macro, geometry, palette, logo/figures và callout riêng của đề tài đó. Không sao chép trực tiếp các phụ thuộc này.
+- Markdown và TeX phải có cùng thứ tự chương, bảng, số, split, trạng thái, caveat, tác giả, RQ và citation. Bảng dài có thể rút gọn khi dễ đọc nhưng mọi giá trị/kết luận phải khớp.
+- PDF chỉ được tạo/duyệt trên Overleaf theo quy tắc thesis; không cài TeX, không build local. Không đưa `.aux/.log/.fls/.fdb_latexmk` hoặc PDF chưa duyệt vào Git.
+
+## 5. Ánh xạ phong cách vào BTL03
+
+1. **Front matter:** bìa có tên đề tài, mã, snapshot/hash/date; alias theo evidence; placeholder rõ cho họ tên/MSSV/giảng viên/tỷ lệ chưa xác nhận.
+2. **Mở đầu:** bối cảnh → mục tiêu/RQ đã xác minh → phạm vi/snapshot → cách chọn evidence → đóng góp đã chứng minh → giới hạn → cấu trúc.
+3. **Chương 1:** WBS và năm nhóm/mười cấu hình; phân biệt cấu hình với kiến trúc độc lập.
+4. **Chương 2:** Keras/PyTorch, NHWC/NCHW, rotation, TimeDistributed, logits/loss, upsampling/mask và parity risks.
+5. **Chương 3:** pipeline OOP; component matrix theo code hiện hành; sơ đồ có caption nói rõ test/synthetic/logger status.
+6. **Chương 4:** parameter audit, legacy-vs-PyTorch results, protocol, task status, evidence matrix; giữ T0212 BLOCKED và discrepancy CNN-LSTM.
+7. **Chương 5/phụ lục:** validity, bài học, kiến nghị có điều kiện; manifest/run IDs và tài liệu tham khảo.
+
+## 6. Ranh giới sample và nguồn gốc
+
+- Không sao chép nội dung chuyên ngành VN30/ETT, số liệu, figure, citation, URL, bìa/logo, tên/MSSV hay đánh giá từ sample.
+- Không sửa sample gốc. Template gốc BTL03 cũng giữ READ-ONLY; template style v2 là bản mới, độc lập.
+- Format mẫu chỉ là tham khảo hình thức, không phải quy định chính thức của trường.
+- Hình/bảng chưa có evidence phải ghi “chưa có evidence” hoặc không đưa vào; không sinh nội dung giả để lấp bố cục.

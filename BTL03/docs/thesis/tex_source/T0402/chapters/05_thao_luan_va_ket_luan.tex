@@ -1,24 +1,27 @@
 \chapter{Thảo luận, hạn chế và kết luận}
-\section{Hạn chế và nguy cơ sai lệch}
+\section{Kết luận trong phạm vi snapshot}
+Repository lưu code chuyển đổi cho năm nhóm, task reports, baseline inventory, sweep T0201, MNIST MLP run T0202 và kiểm toán T0212. Evidence cho phép mô tả kiến trúc, parameter audit và một phần wiring, nhưng không chứng minh mười cấu hình đều full-train hoặc đạt baseline. T0212 vẫn BLOCKED; full training toàn bộ, ablation, kết luận RQ, demo cuối và PDF Overleaf chưa có evidence hoàn tất trong reports đã rà soát.
+
+\section{Hạn chế và validity threats}
 \begin{enumerate}
-\item Một số notebook legacy thiếu hardware, seed/checksum hoặc metric số; \texttt{NOT\_RECORDED} không được thay bằng suy đoán.
+\item Notebook legacy thiếu metadata phần cứng/seed/checksum hoặc metric số; `NOT\_RECORDED` không được thay bằng suy đoán.
 \item Một số validation/public-test split được tái sử dụng; không gọi là independent holdout.
-\item Reports T0203--T0211 ghi thiếu dữ liệu WIKI/FER/SegNet/vehicle và nhiều PyTorch full runs chưa hoàn tất; môi trường CPU-only/dependency blocker ảnh hưởng việc chạy.
-\item Parameter-count parity không chứng minh tương đương toán học đầy đủ; CNN-LSTM có bất đồng 1,024 tham số giữa T0206 và T0207/T0212.
-\item T0212 smoke dùng dữ liệu tổng hợp; logger blocked, suite theo shards 78 pass/4 fail; overall status là BLOCKED.
-\item README tổng quan có chỗ không khớp task-level evidence; báo cáo ưu tiên task reports, baseline CSV và source provenance.
-\item WBS T0402 có mâu thuẫn với prompt; họ tên pháp lý/MSSV/tỷ lệ cuối kỳ chưa xác nhận.
+\item Dữ liệu một số nhóm và PyTorch full-data runs chưa có trong reports; runtime CPU-only và logger dependency blocker hạn chế diễn giải.
+\item Parameter count không chứng minh output/gradient/metric parity; CNN-LSTM reports lệch 1,024 tham số.
+\item Synthetic smoke T0212 không đo chất lượng dự đoán; logger BLOCKED, suite có 4 failures theo shards.
+\item WBS workbook giao T0402 cho Member 05, còn bản này do chỉ định trực tiếp của nhóm trưởng Member 01; cần xác nhận cho bản nộp.
+\item Họ tên pháp lý/MSSV/giảng viên/tỷ lệ và RQ nguyên văn charter còn cần nhóm xác nhận.
 \end{enumerate}
 
 \section{Bài học và kiến nghị}
 \begin{itemize}
-\item Khóa split, seed, preprocessing, loss reduction, optimizer/initializer và runtime trước khi so sánh framework.
-\item Gắn metric với task, đường dẫn nguồn, split, Run\_ID và trạng thái; tách legacy baseline khỏi PyTorch output.
-\item Xử lý TensorBoard/protobuf như blocker môi trường riêng; không dùng writer giả để tuyên bố logger hoạt động.
-\item Đối chiếu source snapshot/count semantics CNN-LSTM trước khi chốt parity.
-\item Chỉ báo cáo ablation/RQ sau đối chứng thật; dùng metric segmentation/detection đúng định nghĩa.
-\item Nhóm xác nhận WBS, danh tính pháp lý/MSSV/giảng viên và tỷ lệ đóng góp tổng 100\%; sau đó upload/compile/duyệt PDF trên Overleaf.
+\item Khóa split, seed, preprocessing, loss/optimizer và runtime trước khi so framework.
+\item Mỗi số liệu phải gắn task, source, Run\_ID, split và caveat; tách rõ legacy output với PyTorch run.
+\item Khắc phục TensorBoard/protobuf trong môi trường được duyệt rồi chạy lại logger/full suite; không thay bằng writer giả.
+\item Audit source/counting semantics CNN-LSTM trước khi chốt parity.
+\item Chỉ trả lời RQ và tuyên bố hiệu quả ablation sau các run đối chứng thật; dùng metric segmentation/detection đúng nghĩa.
+\item Nhóm xác nhận owner/WBS, thông tin pháp lý/đóng góp, review bản thảo và duyệt PDF biên dịch trên Overleaf.
 \end{itemize}
 
-\section{Kết luận trong phạm vi snapshot}
-Repository lưu code chuyển đổi cho năm nhóm, task reports, baseline inventory, sweep T0201, run T0202, parameter audits và smoke tích hợp T0212. Bằng chứng không chứng minh mười cấu hình đều đã được huấn luyện đầy đủ hoặc đạt baseline. T0212 vẫn \textbf{BLOCKED}; full training, ablation, kết luận RQ, demo cuối và PDF Overleaf chưa có bằng chứng hoàn tất trong reports được rà soát. Đây là bản tổng hợp có giới hạn, không phải xác nhận nghiệm thu cuối kỳ.
+\section{Kết luận cuối}
+Báo cáo là tổng hợp có giới hạn theo evidence hiện có, không phải chứng nhận nghiệm thu cuối kỳ. Kết luận không vượt khỏi các Run ID, split, test và trạng thái được dẫn trong Chương 4.
