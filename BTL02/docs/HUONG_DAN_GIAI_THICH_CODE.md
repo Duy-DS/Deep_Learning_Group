@@ -12,6 +12,18 @@ Learning curves cần CSV **epoch-level** có epoch, train_loss, train_acc, lr (
 
 ---
 
+## WP5 T0502: Conv Filters, Feature Maps và Grad-CAM (RQ4)
+
+`src/evaluate/gradcam_vis.py` cung cấp `GradCAMVisualizer` làm việc với mọi `nn.Module` có `nn.Conv2d`, bao gồm CNN dự án và backbone. Nếu không chỉ định tầng, feature-map extraction chọn convolution đầu/cuối; Grad-CAM ưu tiên `get_target_layer()` của model rồi fallback Conv cuối. Forward hook lưu activation $A\in\mathbb{R}^{1\times K\times h\times w}$; backward hook lấy gradient. Trọng số kênh $\alpha_k=\frac{1}{hw}\sum_{ij}\frac{\partial y^c}{\partial A^k_{ij}}$; heatmap $L^c=\operatorname{ReLU}(\sum_k\alpha_kA^k)$ được nội suy bilinear về $H\times W$ và min-max chuẩn hóa về [0,1]. Hook được gỡ trong `finally`, model trở về train/eval mode ban đầu và gradient được xóa.
+
+Filter visualization hiển thị kernel `Conv2d.weight`; feature-map hook chỉ giữ activation detach trên CPU. Overlay chuẩn hóa tensor đầu vào đã nhận từ evaluation pipeline để hiển thị; đây là minh họa chứ không phục hồi pixel ảnh gốc sau ImageNet normalization. RQ4 xem vùng kích hoạt là tín hiệu giải thích, không phải bằng chứng nhân quả hay khẳng định model luôn tập trung đúng mắt/miệng.
+
+**Hỏi: Vì sao ResNet50 chọn convolution cuối của layer4?** Trả lời: Model cung cấp `get_target_layer()` để chọn feature map ngữ nghĩa sâu, nhưng vẫn giữ độ phân giải không gian để nội suy CAM. Có thể truyền tầng khác khi cần kiểm tra độ phân giải.
+
+**Hỏi: Tại sao ảnh overlay được chuẩn hóa min-max?** Trả lời: Input evaluation có thể là grayscale [0,1] hoặc RGB chuẩn hóa ImageNet, nên chuẩn hóa chỉ nhằm hiển thị. Phân tích định lượng không dùng ảnh hiển thị này và input model không bị thay đổi.
+
+---
+
 Tài liệu này tổng hợp và giải thích chi tiết bản chất kỹ thuật của **toàn bộ 5 nhiệm vụ** (`T0103`, `T0105`, `T0104`, `T0201`, `T0202`) thuộc 2 Gói công việc **WP1 (Hạ tầng & Dữ liệu)** và **WP2 (Mô hình Baseline & Custom CNN)**. 
 
 Tài liệu được biên soạn để bạn nắm vững 100% bản chất mã nguồn, sẵn sàng bảo vệ và trả lời tự tin mọi câu hỏi vấn đáp của Giảng viên.
