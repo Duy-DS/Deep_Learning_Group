@@ -1,5 +1,17 @@
 # 📚 TÀI LIỆU TOÀN DIỆN GIẢI THÍCH CODE & KIẾN TRÚC DỰ ÁN (BTL02 - FER2013)
 
+## WP5 T0501: Metrics, Confusion Matrix và Classification Report
+
+`src/evaluate/plot_metrics.py` đóng gói việc đọc epoch-history, suy luận và trực quan hóa trong `MetricsVisualizer`. Input `DataLoader` phải được tạo từ pipeline evaluation hiện hữu: ảnh FER2013 grayscale 48×48 qua transform deterministic; ảnh SOTA RGB/resize dùng eval transform ImageNet. Module không tạo augmentation và `infer()` gọi `model.eval()`/`torch.no_grad()`. Tensor logits `[B,7]` được argmax để lấy dự đoán; `sklearn.metrics` tính confusion matrix cố định thứ tự bảy lớp và precision/recall/F1/support, macro/weighted averages. Ma trận chuẩn hóa chia tổng mỗi hàng, hiển thị phần trăm; ma trận đếm giữ số nguyên. Hình lưu 300 dpi, report xuất JSON/CSV/Markdown.
+
+Learning curves cần CSV **epoch-level** có epoch, train_loss, train_acc, lr (val_loss/val_acc tùy chọn). CSV tổng hợp MLflow 24 cột chỉ giữ metric cuối run, không phải history; module chủ động báo lỗi thay vì nội suy/giả lập đường cong. `--mock` tạo dữ liệu tổng hợp chỉ để thử luồng vẽ, không phải kết quả thí nghiệm FER2013.
+
+**Hỏi: Vì sao không thể vẽ đường cong từ CSV 24 cột hiện có?** Trả lời: CSV T0403 có một dòng/run và `metrics.train_loss` là số tổng kết; không có chuỗi epoch, do đó không chứa trajectory Loss/Accuracy/LR.
+
+**Hỏi: PublicTest có phải holdout độc lập không?** Trả lời: Không trong pipeline hiện tại; Trainer dùng PublicTest làm validation/model selection. Chỉ diễn giải như validation; PrivateTest là split đánh giá cuối.
+
+---
+
 Tài liệu này tổng hợp và giải thích chi tiết bản chất kỹ thuật của **toàn bộ 5 nhiệm vụ** (`T0103`, `T0105`, `T0104`, `T0201`, `T0202`) thuộc 2 Gói công việc **WP1 (Hạ tầng & Dữ liệu)** và **WP2 (Mô hình Baseline & Custom CNN)**. 
 
 Tài liệu được biên soạn để bạn nắm vững 100% bản chất mã nguồn, sẵn sàng bảo vệ và trả lời tự tin mọi câu hỏi vấn đáp của Giảng viên.
