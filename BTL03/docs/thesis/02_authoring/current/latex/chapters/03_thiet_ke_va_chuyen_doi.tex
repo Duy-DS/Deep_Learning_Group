@@ -1,0 +1,80 @@
+\chapter{Thiết kế kiến trúc hệ thống và quy trình chuyển đổi}
+
+\section{Thiết kế hướng đối tượng (OOP) của mã nguồn PyTorch}
+Nhằm khắc phục tình trạng mã nguồn viết dạng script thủ tục rời rạc ở các notebook ban đầu, nhóm đã tái cấu trúc toàn bộ hệ thống theo phương pháp lập trình hướng đối tượng (OOP). Thiết kế này nâng cao tính mô-đun hóa, khả năng mở rộng và tái sử dụng mã nguồn giữa các nhóm bài toán:
+
+\begin{itemize}
+\item \textbf{Lớp cơ sở trừu tượng \texttt{BaseMigratedModel}:} Được định nghĩa tại \path{src/models/base_model.py}, đóng vai trò là giao diện chuẩn mực mà toàn bộ 10 mô hình chuyển đổi bắt buộc phải kế thừa. Lớp này quy định hợp đồng cho phương thức lan truyền tiến \texttt{forward()}, đồng thời tích hợp sẵn phương thức đếm tham số huấn luyện \texttt{count\_parameters()} và trích xuất vector đặc trưng ẩn \texttt{extract\_features()} phục vụ trực quan hóa không gian đặc trưng bằng PCA.
+
+\item \textbf{Bộ điều khiển huấn luyện chuẩn hóa \texttt{BaseTrainer}:} Đóng gói toàn bộ logic vòng lặp huấn luyện và kiểm định tại \path{src/engine/trainer.py}. Lớp này tự động quản lý việc chuyển đổi trạng thái mô hình giữa chế độ huấn luyện (\texttt{train()}) và chế độ kiểm định (\texttt{eval()}), kích hoạt cơ chế không tính đạo hàm (\texttt{torch.no\_grad()}) trong pha validation để tiết kiệm tối đa bộ nhớ tính toán, đồng thời điều phối hoạt động của các Callbacks.
+
+\item \textbf{Đảm bảo tính tái lập thực nghiệm (\texttt{seed\_everything}):} Hàm tiện ích \texttt{seed\_everything(42)} được thiết kế tại \path{src/utils.py} nhằm cố định hạt giống ngẫu nhiên cho toàn bộ các thư viện liên quan: PyTorch CPU, PyTorch GPU (CUDA), NumPy, Python built-in random, đồng thời cấu hình cơ chế tất định cho CuDNN (\texttt{torch.backends.cudnn.deterministic = True}). Báo cáo T0106 cũng lưu ý rằng biến môi trường \texttt{PYTHONHASHSEED=42} cần được thiết lập từ bên ngoài tiến trình để đảm bảo thứ tự duyệt từ điển (dict) hoàn toàn cố định giữa các lần chạy.
+
+\item \textbf{Hệ thống Callbacks hướng đối tượng:} Tại \path{src/engine/callbacks.py}, nhóm xây dựng hệ sinh thái tiện ích tương đương Keras:
+\begin{itemize}
+\item \texttt{EarlyStopping}: Theo dõi hàm mất mát validation loss, tự động kích hoạt cờ dừng huấn luyện nếu chỉ số không cải thiện sau một số lượng epoch kiên nhẫn nhất định (\texttt{patience=5}), giúp ngăn ngừa hiện tượng quá khớp (overfitting).
+\item \texttt{ModelCheckpoint}: Tự động lưu trữ trạng thái trọng số tốt nhất (\texttt{.pt}) kèm siêu dữ liệu cấu hình khi tìm thấy giá trị validation loss nhỏ nhất.
+\item \texttt{ReduceLROnPlateau}: Giảm tốc độ học (learning rate) theo hệ số xác định khi quá trình tối ưu hóa rơi vào vùng bão hòa (plateau).
+\end{itemize}
+
+\item \textbf{Hệ thống ghi nhật ký thực nghiệm (\texttt{ExperimentLogger}):} Được cài đặt tại \path{src/logger.py}, lớp này xuất đồng thời hai luồng dữ liệu: tệp CSV chi tiết theo từng epoch và bảng tổng hợp thực nghiệm chung \path{master_experiment_runs.csv} tuân thủ nghiêm ngặt định dạng 18 cột dữ liệu. Đồng thời, logger hỗ trợ xuất dữ liệu trực quan hóa biểu đồ hàm mất mát sang TensorBoard (\texttt{SummaryWriter}). Bên cạnh đó, lớp \texttt{CheckpointManager} hỗ trợ tự động sao lưu trọng số sang Google Drive khi môi trường chạy phát hiện thư mục mount hợp lệ.
+\end{itemize}
+
+\section{Sơ đồ luồng xử lý và Đường ống dữ liệu (Pipeline)}
+Quy trình từ mã nguồn Keras gốc đến hệ thống mô hình PyTorch hoàn chỉnh được tổ chức thành một đường ống xử lý khép kín, phân tách rõ ràng giữa dữ liệu, mô hình, động cơ huấn luyện và kiểm tra tính tương đương:
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=8mm and 8mm,every node/.style={draw,rounded corners,align=center,text width=27mm,minimum height=10mm,font=\small}]
+\node (legacy) {Mã nguồn Keras gốc\\Baseline CSV};
+\node[right=of legacy] (data) {Pipeline dữ liệu\\Đổi trục NCHW};
+\node[right=of data] (model) {Mô hình PyTorch\\5 nhóm / 10 cấu hình};
+\node[below=of model] (engine) {Động cơ BaseTrainer\\Callbacks \& Logger};
+\node[left=of engine] (cli) {Giao diện CLI\\Huấn luyện \& Smoke};
+\node[left=of cli] (docs) {Báo cáo nghiệm thu\\Nhật ký thực nghiệm};
+\draw[-{Stealth}] (legacy)--(data);
+\draw[-{Stealth}] (data)--(model);
+\draw[-{Stealth}] (model)--(engine);
+\draw[-{Stealth}] (engine)--(cli);
+\draw[-{Stealth}] (cli)--(docs);
+\end{tikzpicture}
+\caption{Sơ đồ luồng xử lý và đường ống dữ liệu toàn diện của hệ thống BTL03.}
+\label{fig:t0402-pipeline}
+\end{figure}
+
+Sơ đồ trên thể hiện rõ tính nhất quán của hệ thống: dữ liệu sau khi được chuẩn hóa và chuyển đổi trục được nạp vào mô hình PyTorch thông qua DataLoader; quá trình huấn luyện được kiểm soát bởi BaseTrainer và xuất nhật ký ra các tệp log chuẩn hóa, làm cơ sở vững chắc cho các báo cáo nghiệm thu kỹ thuật.
+
+\section{Ma trận ánh xạ 10 mô hình từ Keras sang PyTorch}
+Bảng~\ref{tab:ma_tran_chuyen_doi} tóm tắt các kỹ thuật chuyển đổi cụ thể được áp dụng cho từng kiến trúc mô hình và các bằng chứng xác minh tương ứng trong kho lưu trữ:
+
+\begin{longtable}{L{0.08\textwidth}L{0.30\textwidth}L{0.32\textwidth}L{0.24\textwidth}}
+\caption{Ma trận ánh xạ kỹ thuật chuyển đổi cho 10 mô hình}\label{tab:ma_tran_chuyen_doi}\\
+\toprule \textbf{Nhóm} & \textbf{Cấu hình mô hình} & \textbf{Kỹ thuật chuyển đổi trọng tâm} & \textbf{Hiện trạng xác minh} \\
+\midrule
+\endfirsthead
+\caption[]{Ma trận ánh xạ kỹ thuật chuyển đổi (tiếp)}\\\toprule \textbf{Nhóm} & \textbf{Cấu hình mô hình} & \textbf{Kỹ thuật chuyển đổi trọng tâm} & \textbf{Hiện trạng xác minh} \\
+\midrule
+\endhead
+\midrule\multicolumn{4}{r}{\footnotesize\itshape Tiếp ở trang sau}\\
+\endfoot
+\bottomrule
+\endlastfoot
+1 & FuncApxmMLP; MNISTMLP & Chuyển \texttt{Dense} $\rightarrow$ \texttt{Linear}; cấu hình hàm mất mát MSE và CrossEntropyLoss & Đã xác minh sweep T0201 và huấn luyện MNIST T0202 \\
+2 & MNISTCNN; HumanGenderCNN; EmotionCNN & Chuyển \texttt{Conv2d}; đổi trục NCHW; bảo toàn phép xoay ảnh \texttt{np.rot90} & Đã khớp chính xác số tham số; kiểm thử chức năng đạt \\
+3 & MNISTCNNLSTM & Kỹ thuật gộp/tách chiều thay thế \texttt{TimeDistributed}; tầng hồi quy LSTM & Đã hoàn thành cấu trúc mô hình; đang đối chiếu số tham số \\
+4 & Gender/Emotion + Callbacks & Tích hợp trọn bộ Callbacks hướng đối tượng và logger xuất bảng 18 cột & Đã kiểm thử độc lập thành công; sẵn sàng cho huấn luyện thật \\
+5 & SegNet; FCNObjectDetector & Bộ giải mã \texttt{nn.Upsample}; phân vùng mask; hồi quy score-map FCN & Đã khớp tham số SegNet; đã kiểm tra luồng forward pass \\
+\end{longtable}
+
+\section{Giao diện dòng lệnh (CLI) và Kiểm thử nhanh tự động}
+Toàn bộ quy trình huấn luyện và đánh giá mô hình được hợp nhất thông qua điểm điều phối dòng lệnh tại \path{src/train.py}. Người sử dụng có thể chỉ định mô hình cần huấn luyện, tập siêu tham số và cấu hình thiết bị thông qua các tham số CLI tường minh:
+
+\begin{lstlisting}[style=python,caption={Ví dụ câu lệnh huấn luyện và kiểm thử mô hình qua giao diện CLI}]
+# Huấn luyện mô hình MNIST MLP với cấu hình chuẩn
+python src/train.py --model mnist_mlp --config configs/mlp_config.yaml --epochs 30
+
+# Chạy kiểm thử tích hợp nhanh (smoke test) trên toàn bộ 10 mô hình
+python src/train.py --model all --smoke-test --batch-size 4
+\end{lstlisting}
+
+Chế độ kiểm thử nhanh (\texttt{--smoke-test}) được nhóm thiết kế đặc biệt để chạy qua 1 epoch với tập dữ liệu nhỏ (synthetic fixtures). Chế độ này có vai trò xác nhận tính thông suốt của đường ống dữ liệu, kiểm tra khớp kích thước tensor giữa các tầng và phát hiện sớm các lỗi cú pháp trước khi phân bổ tài nguyên tính toán lớn cho quá trình huấn luyện chính thức.

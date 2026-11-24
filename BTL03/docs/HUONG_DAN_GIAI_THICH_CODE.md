@@ -1,14 +1,13 @@
 # Hướng dẫn giải thích code — Task T0102
 
-## Phụ lục T0101 — Hệ thống viết báo cáo tổng kết T0212
+## Phụ lục T0101 — Hệ thống viết báo cáo tổng kết
 
 ### Luồng tạo và xuất bản
 
-- `docs/thesis/templates/` chứa cấu trúc gốc Markdown/LaTeX; sửa nội dung báo cáo trong `md_drafts/` và `tex_source/`, không sửa template để lấp số liệu.
-- `source_materials/evidence_sources_manifest.md` ánh xạ evidence ID đến report, CSV, source/config và giới hạn diễn giải.
-- Bản Markdown là bản review dễ diff; bộ XeLaTeX có năm chapter và BibLaTeX là nguồn upload Overleaf. Đồng bộ số liệu, bảng, trạng thái, caveat và citation trước mỗi snapshot.
-- Từ gốc `BTL03/`, build local bằng `cd docs/thesis/tex_source; latexmk -xelatex -interaction=nonstopmode -halt-on-error main.tex`. Build local cần XeLaTeX/polyglossia/Biber; không tuyên bố build thành công nếu chưa xem exit code và log.
-- Overleaf workflow: nén *nội dung* `tex_source/` để `main.tex` ở root ZIP → upload/chọn XeLaTeX/compile → kiểm tra và lưu PDF đã duyệt dưới `docs/thesis/`. Không commit `.aux/.log/.fls/.fdb_latexmk` hoặc PDF build tạm.
+- `docs/thesis/` có ba tầng: `01_materials/` (samples/templates/evidence), `02_authoring/current/` (Markdown + bundle LaTeX hiện hành), `02_authoring/snapshots/` (snapshot lịch sử), và `03_releases/` (chỉ PDF đã duyệt).
+- `01_materials/evidence/evidence_sources_manifest.md` ánh xạ evidence ID đến report, CSV, source/config và giới hạn diễn giải; không nhân bản evidence gốc.
+- Bản Markdown là bản review dễ diff; bundle XeLaTeX tự chứa ở `02_authoring/current/latex/`. Đồng bộ số liệu, bảng, trạng thái, caveat và citation trước mỗi snapshot.
+- **Không build local.** Overleaf workflow: nén *nội dung* `02_authoring/current/latex/` để `main.tex` ở root ZIP → upload/chọn XeLaTeX/compile → kiểm tra PDF → sau khi duyệt lưu tại `03_releases/<version>/`. Không commit `.aux/.log/.fls/.fdb_latexmk` hoặc PDF build tạm.
 
 ### Cách đọc snapshot T0212
 

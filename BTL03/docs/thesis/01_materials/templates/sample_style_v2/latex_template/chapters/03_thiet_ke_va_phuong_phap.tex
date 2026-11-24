@@ -1,0 +1,14 @@
+\chapter{Thiết kế hệ thống và phương pháp}
+\section{Kiến trúc/pipeline}
+Vẽ pipeline bằng TikZ hoặc asset tương đối. Caption phải nêu snapshot/evidence; không mô tả thành phần BLOCKED như thể chạy thành công.
+\section{Thành phần OOP và runtime}
+Mô tả model, trainer, callbacks, logger, checkpoint, config, CLI và trách nhiệm từng component dựa trên source.
+\section{Ma trận cấu hình}
+\begin{longtable}{p{0.12\textwidth}p{0.25\textwidth}p{0.23\textwidth}p{0.28\textwidth}p{0.12\textwidth}}
+\toprule Nhóm & Cấu hình & Component/path & Kỹ thuật/evidence & Caveat \\
+\midrule
+Nhóm/cấu hình & Path có thật & Kỹ thuật & Run/test source & Giới hạn \\
+\bottomrule
+\end{longtable}
+\section{Tái lập}
+Ghi seed, split, runtime, Run ID, schema log và điều kiện khôi phục run.

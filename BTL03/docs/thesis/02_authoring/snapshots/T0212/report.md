@@ -134,7 +134,7 @@ flowchart LR
 | 5 — `SegNet` | NCHW; mask 7 lớp; upsample decoder | 29,458,211 total params; model/data smoke | Không có full run trên segmentation data thật |
 | 5 — `FCNObjectDetector` | RGB, chuẩn hóa legacy, score-map | 83,367 params; shape/heatmap tests | Không có data/metric detection thật; accuracy ≠ IoU/mAP |
 
-Các thông số bảng dựa trên T0103 baseline provenance, reports từng task và T0212; xem `source_materials/evidence_sources_manifest.md` [E-BASELINE, E-T0201--07, E-T0210--12].
+Các thông số bảng dựa trên T0103 baseline provenance, reports từng task và T0212; xem manifest được lưu tại `docs/thesis/01_materials/evidence/evidence_sources_manifest.md` [E-BASELINE, E-T0201--07, E-T0210--12].
 
 ## 4. Kiểm toán T0212 và trạng thái thực nghiệm
 
@@ -209,7 +209,7 @@ T0212 xác nhận một phần luồng phần mềm và parity-count được b�
 | Logger/full suite | Logger bị chặn; 78 passed/4 failed theo shard | T0212 overall PASS |
 | T0201/T0202 | Kết quả run riêng có logs/report | Kết quả đại diện mười cấu hình hoặc protocol thống nhất |
 
-Chi tiết evidence/source/run ID của mỗi hạng mục nằm trong `source_materials/evidence_sources_manifest.md`. Bảng trên tổng hợp phạm vi suy luận, không thay thế các báo cáo task.
+Chi tiết evidence/source/run ID của mỗi hạng mục nằm trong `docs/thesis/01_materials/evidence/evidence_sources_manifest.md`. Bảng trên tổng hợp phạm vi suy luận, không thay thế các báo cáo task.
 
 ### 5.3 Hạn chế và validity threats
 
@@ -241,4 +241,4 @@ T0212 ghi nhận tiến độ chuyển đổi mã và kiểm toán tham số/lu�
 1. Paszke, A. và cộng sự (2019). *PyTorch: An Imperative Style, High-Performance Deep Learning Library*. NeurIPS 32.
 2. Badrinarayanan, V., Kendall, A., & Cipolla, R. (2017). *SegNet: A Deep Convolutional Encoder-Decoder Architecture for Image Segmentation*. IEEE TPAMI, 39(12), 2481–2495. DOI: 10.1109/TPAMI.2016.2644615.
 3. Nhóm BTL03 (2026). *T0212: WP02 PR review, parameter audit, CLI and smoke-test report*. `docs/reports/T0212_261123_2130.md`, snapshot commit `33dcd74599e86404bbc8128c8057afba82810093`.
-4. Nguồn nội bộ khác được trích theo evidence ID và đường dẫn trong [`source_materials/evidence_sources_manifest.md`](../source_materials/evidence_sources_manifest.md); các kết quả task-specific được giới hạn theo đúng report tương ứng.
+4. Nguồn nội bộ khác được trích theo evidence ID và đường dẫn trong [`evidence_sources_manifest.md`](../../../01_materials/evidence/evidence_sources_manifest.md); các kết quả task-specific được giới hạn theo đúng report tương ứng.

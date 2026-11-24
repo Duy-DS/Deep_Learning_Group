@@ -1,0 +1,5 @@
+# LaTeX source bundle — snapshot T0402 / style v2
+
+Bundle XeLaTeX modular, theo mạch nghiên cứu/pipeline của sample 1 kết hợp front matter, sơ đồ và ma trận kiểm toán của sample 2. Chỉ áp dụng cấu trúc/trình bày, không sao chép nội dung, dữ liệu cá nhân, citation, hình, package riêng hay kết luận của sample. Markdown đồng bộ lưu tại thư mục sibling `../report.md`; phân tích style là material nội bộ, không thuộc bundle ZIP. Tác giả snapshot là `Duy-DS` theo chỉ định trực tiếp. Workbook giao T0402 cho Member 05; caveat được giữ trong bìa/report.
+
+Để dùng Overleaf, nén **nội dung bên trong chính thư mục này** để `main.tex` ở root ZIP, upload rồi chọn XeLaTeX/Biber. `main.tex` chỉ input các file bên trong bundle; không ZIP kèm README này hoặc Markdown sibling. Chưa có hình kết quả thực nghiệm để đóng gói; không tạo hình giả. PDF chưa được biên dịch/duyệt. Nếu được duyệt, PDF release lưu trong `docs/thesis/03_releases/<version>/`; không biên dịch local theo `AGENT_THESIS_RULES.md`.

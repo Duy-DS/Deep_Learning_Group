@@ -1,0 +1,21 @@
+% Template BTL03 style v2 — XeLaTeX/Overleaf; không phải file kết quả.
+\documentclass[12pt,a4paper,openany,oneside]{book}
+\input{preamble.tex}
+\addbibresource{references.bib}
+\begin{document}
+\frontmatter
+\input{frontmatter.tex}
+\tableofcontents
+\listoffigures
+\listoftables
+\mainmatter
+\input{chapters/01_tong_quan.tex}
+\input{chapters/02_co_so_ly_thuyet.tex}
+\input{chapters/03_thiet_ke_va_phuong_phap.tex}
+\input{chapters/04_thuc_nghiem_va_thao_luan.tex}
+\input{chapters/05_ket_luan.tex}
+\printbibliography[heading=bibintoc,title={Tài liệu tham khảo}]
+\appendix
+\chapter{Manifest bằng chứng}
+[Liệt kê evidence ID, report/path, commit/snapshot, Run ID và giới hạn diễn giải.]
+\end{document}

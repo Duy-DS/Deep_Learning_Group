@@ -1,0 +1,26 @@
+% BTL03 T0402 — Báo cáo Bài tập lớn môn Học sâu (XeLaTeX).
+\documentclass[12pt,a4paper,openany,oneside]{book}
+\input{preamble.tex}
+\addbibresource{references.bib}
+\begin{document}
+\frontmatter
+\input{frontmatter.tex}
+\tableofcontents
+\listoffigures
+\listoftables
+\mainmatter
+\input{chapters/01_tong_quan.tex}
+\input{chapters/02_co_so_ly_thuyet.tex}
+\input{chapters/03_thiet_ke_va_chuyen_doi.tex}
+\input{chapters/04_bang_chung_va_trang_thai.tex}
+\input{chapters/05_thao_luan_va_ket_luan.tex}
+\printbibliography[heading=bibintoc,title={Tài liệu tham khảo}]
+\appendix
+\chapter{Danh mục mã nguồn và Nhật ký thực nghiệm}
+Toàn bộ mã nguồn triển khai và nhật ký bằng chứng thực nghiệm của đề tài được lưu trữ minh bạch tại các thư mục chuẩn hóa trong kho lưu trữ của nhóm:
+\begin{itemize}
+\item \textbf{Mã nguồn PyTorch chính thức:} Toàn bộ các mô hình nằm tại \path{src/models/}, động cơ huấn luyện và callbacks tại \path{src/engine/}, pipeline dữ liệu tại \path{src/datasets/}, và điểm thực thi CLI tại \path{src/train.py}.
+\item \textbf{Báo cáo nhiệm vụ và kiểm thử tích hợp:} \path{docs/reports/T0201_261122_2112.md}, \path{docs/reports/T0202_261122_2112.md}, \path{docs/reports/T0212_261123_2130.md}.
+\item \textbf{Nhật ký kết quả thực nghiệm dạng bảng:} Bộ thông số baseline Keras tại \path{experiments/csv_logs/keras_baseline_10_models.csv}, bảng tổng hợp master tại \path{experiments/csv_logs/master_experiment_runs.csv}, và manifest dẫn chiếu tại \path{docs/thesis/01_materials/evidence/evidence_sources_manifest.md}.
+\end{itemize}
+\end{document}
