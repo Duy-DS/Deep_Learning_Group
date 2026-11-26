@@ -1,7 +1,7 @@
 # ==============================================================================
 # Cấu hình thực nghiệm chuẩn (Single Source of Truth) — Dự báo PM2.5 Bắc Kinh
 # Khớp 100% với WP01 (data/preprocess), WP02 (train_baseline.py, src/models/*),
-# WP03 (training_loop.py, fine_tune.py, run_ablation.py) và utils_metrics.py
+# WP03 (training_loop.py, fine_tune.py, run_ablation.py), WP04 (XAI) & WP05 (ONNX)
 # ==============================================================================
 paths:
   data_dir: "data/preprocess"          # Dùng trực tiếp thành quả đã chia tập của WP01
@@ -30,9 +30,9 @@ data:
   target_idx: 0
   lookback: 96                         # L = 96 giờ lịch sử
   horizon: 24                          # H = 24 giờ dự báo mặc định
-  train_stride: 7                      # Bước trượt tập train (giảm trùng lặp 96h)
+  train_stride: 2                      # Tăng 3.5x dữ liệu train so với stride=7 để Transformer hội tụ tốt
   eval_stride: 1                       # Bước trượt tập train_dev, dev, test
-  num_continuous_features: 11          # 11 biến vật lý/ô nhiễm đầu tiên dùng RevIN
+  num_continuous_features: 11          # 11 biến vật lý/ô nhiễm đầu tiên dùng RevIN chọn lọc
   include_wind_onehot: true            # Tự động nối thêm 16 cột wd_* từ WP01 (tổng D=31)
   canonical_multivariate_cols:
     - "pm2.5"
@@ -90,14 +90,20 @@ pretrain:
     - "informer_full"
   seeds: [42, 1024, 2026]
   batch_size: 512
-  epochs: 20
-  patience: 6
-  lr: 5.0e-5
-  dlinear_lr: 5.0e-4                   # LR riêng cho DLinear tránh hội tụ quá sớm ở epoch 1
-  weight_decay: 5.0e-2
-  dropout: 0.4
-  loss_fn: "MSELoss"                   # Đồng bộ với eval_metric để tránh lệch mục tiêu spike
+  epochs: 35
+  patience: 8
+  lr: 4.0e-4                           # LR chuẩn cho Transformer/LSTM (xóa handicap 10x cũ)
+  dlinear_lr: 1.0e-3                   # LR chuẩn cho DLinear (khớp WP02 Baseline, hội tụ đầy đủ)
+  weight_decay: 1.0e-2                 # Decoupled AdamW (tự đặt 0.0 cho bias/norm/revin/pos_emb)
+  dropout: 0.20
+  use_residual_anchor: false           # TẮT ResidualAnchorWrapper (gỡ nút thắt phẳng & xung đột RevIN)
+  val_selection_mode: "balanced_dev"   # Chọn checkpoint cân bằng 50/50 mùa Đông (train_dev) & Hè (dev)
+  loss_fn: "PeakShapeLoss"             # Peak-Weighted MSE + Temporal Slope Loss (đánh giá vẫn dùng MSE/MAE chuẩn)
   huber_delta: 2.5
+  peak_threshold_z: 0.84               # ~150 ug/m3 trong không gian z-score (mean=82.2, std=80.7)
+  peak_alpha: 0.25                     # Điểm ngọt A/B thực đo: giảm đồng thời Test MSE & SpikeMAE (~10 ug/m3)
+  diff_weight: 0.10                    # Phạt sai lệch độ dốc bậc 1 (giữ sắc nét biên độ mà không nhiễu MSE)
+  peak_max_weight: 3.5                 # Chặn trên trọng số chống nhiễu ngoại lai cực đoan
   eval_metric: "MSELoss"
   optimizer: "AdamW"
   scheduler: "StepwiseWarmupCosine"
@@ -109,32 +115,41 @@ pretrain:
 
 finetune:
   ckpt_source: "wp03"                  # "wp03" (Global Pretrained) | "wp02" (BaselineTrainer)
-  stride: 7
+  stride: 2                            # Đủ số cửa sổ thích nghi theo trạm (~10,000+ mẫu/trạm)
   batch_size: 256
-  epochs: 12
-  patience: 4
-  lr: 5.0e-5                           # LR nhỏ kèm warmup ở epoch 1 giữ ổn định pretrain
-  weight_decay: 5.0e-2
-  freeze_backbone: true                # Mặc định đóng băng backbone
+  epochs: 15
+  patience: 5
+  lr: 5.0e-5                           # LR êm cho head/adapter của trạm tránh vượt điểm tối ưu toàn cục
+  backbone_lr_ratio: 0.1               # Khi unfreeze_backbone=true, backbone học chậm 10x so với head
+  weight_decay: 1.0e-2
+  freeze_backbone: true                # Đóng băng encoder sâu, mở khóa đúng head + adapter
   unfreeze_backbone: false
+  val_selection_mode: "balanced_dev"   # Tránh overfit vào riêng tập dev mùa hè của trạm
   seed: 42
-  loss_fn: "MSELoss"
+  loss_fn: "PeakShapeLoss"
   huber_delta: 2.5
+  peak_threshold_z: 0.84
+  peak_alpha: 0.25
+  diff_weight: 0.10
+  peak_max_weight: 3.5
   scheduler: "ReduceLROnPlateau"
   scheduler_factor: 0.5
-  scheduler_patience: 1
+  scheduler_patience: 2
 
 models:
   patchtst:
-    patch_len: 16
-    stride: 7
-    d_model: 64
+    patch_len: 12
+    stride: 6
+    d_model: 128
     n_heads: 4
-    e_layers: 2
-    d_ff: 128
-    dropout: 0.4
+    e_layers: 3
+    d_ff: 256
+    dropout: 0.20
+    lr: 5.0e-4
     target_idx: 0
-    use_revin: true
+    num_continuous_features: 11
+    min_std: 0.1
+    use_revin: false                   # Tắt RevIN theo chứng cứ A/B (-11.6% MSE H=24, -23.2% MSE H=192)
     use_revin_wrapper: false
 
   informer:
@@ -145,10 +160,12 @@ models:
     d_ff: 256
     factor: 5
     label_len: 48
-    dropout: 0.4
+    dropout: 0.15
+    lr: 4.0e-4
     activation: "gelu"
     attention_type: "probsparse"
-    use_revin_wrapper: true
+    deterministic_eval: true
+    use_revin_wrapper: false           # Tắt RevIN theo chứng cứ A/B (-16.2% MSE H=24, -25.7% MSE H=192)
 
   informer_full:
     d_model: 128
@@ -158,16 +175,23 @@ models:
     d_ff: 256
     factor: 96
     label_len: 48
-    dropout: 0.4
+    dropout: 0.15
+    lr: 4.0e-4
     activation: "gelu"
     attention_type: "full"
-    use_revin_wrapper: true
+    deterministic_eval: true
+    use_revin_wrapper: false
 
   lstm:
-    dropout: 0.4
-    use_revin_wrapper: true
+    hidden_size: 128
+    num_layers: 2
+    dropout: 0.20
+    lr: 5.0e-4
+    use_revin_wrapper: false           # Tắt RevIN theo chứng cứ A/B (-14.5% MSE H=24, giữ hồi quy H=192)
 
   dlinear:
+    kernel_size: 25
+    lr: 1.0e-3
     use_revin_wrapper: false
 
 ablation:
