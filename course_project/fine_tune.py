@@ -72,7 +72,8 @@ def build_single_station_loaders(
     use_pin_memory: bool = False,
 ) -> Dict[str, DataLoader]:
     """Tạo đầy đủ 4 DataLoader (train, train_dev, dev, test) cho riêng 1 trạm từ dữ liệu WP01."""
-    num_workers = 4 if use_pin_memory else 0
+    # TensorDataset nằm sẵn trong RAM -> num_workers=0 tránh tạo 12x4x4 tiến trình fork gây OOM RAM
+    num_workers = 0
     loaders: Dict[str, DataLoader] = {}
 
     for split_name in ALL_SPLITS:

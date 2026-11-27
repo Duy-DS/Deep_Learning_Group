@@ -552,7 +552,8 @@ def prepare_global_12stations_data(
     )
 
     use_pin_memory = torch.cuda.is_available()
-    num_workers = min(2, os.cpu_count() or 2) if use_pin_memory else 0
+    # TensorDataset nằm hoàn toàn trong RAM nên num_workers=0 tránh nhân bản RAM qua fork() gây OOM ở H=192
+    num_workers = 0
     global_loaders: Dict[str, DataLoader] = {}
 
     for split_name in ALL_SPLITS:
