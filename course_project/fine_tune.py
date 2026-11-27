@@ -1008,7 +1008,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--lookback", type=int, default=96)
     parser.add_argument("--horizon", type=int, default=24, choices=[24, 48, 96, 192])
     parser.add_argument(
-        "--stride", "--train-stride", dest="stride", type=int, default=2
+        "--stride", "--train-stride", dest="stride", type=int, default=4
     )
     parser.add_argument("--train-dev-stride", type=int, default=None)
     parser.add_argument("--dev-stride", type=int, default=None)
@@ -1017,14 +1017,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--epochs", type=int, default=15)
     parser.add_argument("--lr", type=float, default=5e-5)
     parser.add_argument("--backbone-lr-ratio", type=float, default=0.1)
-    parser.add_argument("--weight-decay", type=float, default=1e-2)
+    parser.add_argument("--weight-decay", type=float, default=2e-2)
     parser.add_argument("--patience", type=int, default=5)
     parser.add_argument("--loss-fn", type=str, default="PeakShapeLoss")
     parser.add_argument("--huber-delta", type=float, default=2.5)
     parser.add_argument("--peak-threshold-z", type=float, default=0.84)
-    parser.add_argument("--peak-alpha", type=float, default=0.25)
-    parser.add_argument("--diff-weight", type=float, default=0.10)
-    parser.add_argument("--peak-max-weight", type=float, default=3.5)
+    parser.add_argument("--peak-alpha", type=float, default=0.15)
+    parser.add_argument("--diff-weight", type=float, default=0.05)
+    parser.add_argument("--peak-max-weight", type=float, default=3.0)
     parser.add_argument(
         "--val-selection-mode",
         type=str,

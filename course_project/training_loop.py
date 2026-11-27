@@ -24,6 +24,7 @@ import gc
 import inspect
 import json
 import math
+import os
 import random
 import time
 from pathlib import Path
@@ -551,7 +552,7 @@ def prepare_global_12stations_data(
     )
 
     use_pin_memory = torch.cuda.is_available()
-    num_workers = 4 if use_pin_memory else 0
+    num_workers = min(2, os.cpu_count() or 2) if use_pin_memory else 0
     global_loaders: Dict[str, DataLoader] = {}
 
     for split_name in ALL_SPLITS:
@@ -1159,23 +1160,23 @@ class TrainingPipeline:
         lookback: int = 96,
         horizon: int = 24,
         batch_size: int = 512,
-        train_stride: int = 2,
-        lr: float = 4e-4,
+        train_stride: int = 4,
+        lr: float = 2e-4,
         dlinear_lr: float = 1e-3,
-        weight_decay: float = 1e-2,
-        dropout: float = 0.20,
-        epochs: int = 35,
-        patience: int = 8,
+        weight_decay: float = 3e-2,
+        dropout: float = 0.30,
+        epochs: int = 25,
+        patience: int = 5,
         loss_fn: str = "PeakShapeLoss",
         huber_delta: float = 2.5,
         peak_threshold_z: float = 0.84,
-        peak_alpha: float = 0.25,
-        diff_weight: float = 0.10,
-        peak_max_weight: float = 3.5,
+        peak_alpha: float = 0.15,
+        diff_weight: float = 0.05,
+        peak_max_weight: float = 3.0,
         use_residual_anchor: bool = False,
         val_selection_mode: str = "balanced_dev",
         model_configs: Optional[Dict[str, Dict[str, Any]]] = None,
-        warmup_ratio: float = 0.1,
+        warmup_ratio: float = 0.15,
         min_lr_ratio: float = 0.01,
         max_grad_norm: float = 1.0,
         seeds: Optional[List[int]] = None,
@@ -1754,22 +1755,22 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--lookback", type=int, default=96)
     parser.add_argument("--horizon", type=int, default=24, choices=[24, 48, 96, 192])
     parser.add_argument("--batch-size", type=int, default=512)
-    parser.add_argument("--train-stride", type=int, default=2)
+    parser.add_argument("--train-stride", type=int, default=4)
     parser.add_argument("--train-dev-stride", type=int, default=None)
     parser.add_argument("--dev-stride", type=int, default=None)
     parser.add_argument("--test-stride", type=int, default=None)
-    parser.add_argument("--lr", type=float, default=4e-4)
+    parser.add_argument("--lr", type=float, default=2e-4)
     parser.add_argument("--dlinear-lr", type=float, default=1e-3)
-    parser.add_argument("--weight-decay", type=float, default=1e-2)
-    parser.add_argument("--dropout", type=float, default=0.20)
-    parser.add_argument("--epochs", type=int, default=35)
-    parser.add_argument("--patience", type=int, default=8)
+    parser.add_argument("--weight-decay", type=float, default=3e-2)
+    parser.add_argument("--dropout", type=float, default=0.30)
+    parser.add_argument("--epochs", type=int, default=25)
+    parser.add_argument("--patience", type=int, default=5)
     parser.add_argument("--loss-fn", type=str, default="PeakShapeLoss")
     parser.add_argument("--huber-delta", type=float, default=2.5)
     parser.add_argument("--peak-threshold-z", type=float, default=0.84)
-    parser.add_argument("--peak-alpha", type=float, default=0.25)
-    parser.add_argument("--diff-weight", type=float, default=0.10)
-    parser.add_argument("--peak-max-weight", type=float, default=3.5)
+    parser.add_argument("--peak-alpha", type=float, default=0.15)
+    parser.add_argument("--diff-weight", type=float, default=0.05)
+    parser.add_argument("--peak-max-weight", type=float, default=3.0)
     parser.add_argument(
         "--use-residual-anchor",
         action="store_true",

@@ -30,7 +30,7 @@ data:
   target_idx: 0
   lookback: 96                         # L = 96 giờ lịch sử
   horizon: 24                          # H = 24 giờ dự báo mặc định
-  train_stride: 2                      # Tăng 3.5x dữ liệu train so với stride=7 để Transformer hội tụ tốt
+  train_stride: 4                      # 74,244 cửa sổ (giảm trùng lặp liên trạm chống overfit, nhanh 2x)
   eval_stride: 1                       # Bước trượt tập train_dev, dev, test
   num_continuous_features: 11          # 11 biến vật lý/ô nhiễm đầu tiên dùng RevIN chọn lọc
   include_wind_onehot: true            # Tự động nối thêm 16 cột wd_* từ WP01 (tổng D=31)
@@ -90,24 +90,24 @@ pretrain:
     - "informer_full"
   seeds: [42, 1024, 2026]
   batch_size: 512
-  epochs: 35
-  patience: 8
-  lr: 4.0e-4                           # LR chuẩn cho Transformer/LSTM (xóa handicap 10x cũ)
+  epochs: 25
+  patience: 5
+  lr: 2.0e-4                           # LR tối ưu chống overfit sớm trên 12 trạm (đo trực tiếp trên T4)
   dlinear_lr: 1.0e-3                   # LR chuẩn cho DLinear (khớp WP02 Baseline, hội tụ đầy đủ)
-  weight_decay: 1.0e-2                 # Decoupled AdamW (tự đặt 0.0 cho bias/norm/revin/pos_emb)
-  dropout: 0.20
+  weight_decay: 3.0e-2                 # Decoupled AdamW (0.0 cho bias/norm/pos_emb; chống overfit Transformer)
+  dropout: 0.30
   use_residual_anchor: false           # TẮT ResidualAnchorWrapper (gỡ nút thắt phẳng & xung đột RevIN)
   val_selection_mode: "balanced_dev"   # Chọn checkpoint cân bằng 50/50 mùa Đông (train_dev) & Hè (dev)
   loss_fn: "PeakShapeLoss"             # Peak-Weighted MSE + Temporal Slope Loss (đánh giá vẫn dùng MSE/MAE chuẩn)
   huber_delta: 2.5
   peak_threshold_z: 0.84               # ~150 ug/m3 trong không gian z-score (mean=82.2, std=80.7)
-  peak_alpha: 0.25                     # Điểm ngọt A/B thực đo: giảm đồng thời Test MSE & SpikeMAE (~10 ug/m3)
-  diff_weight: 0.10                    # Phạt sai lệch độ dốc bậc 1 (giữ sắc nét biên độ mà không nhiễu MSE)
-  peak_max_weight: 3.5                 # Chặn trên trọng số chống nhiễu ngoại lai cực đoan
+  peak_alpha: 0.15                     # Điểm ngọt trên 12 trạm: PatchTST 0.8027 MSE, SpikeMAE 82.2, PeakCap 72.0%
+  diff_weight: 0.05                    # Giữ biên độ sắc nét (Range ~48%) mà không đẩy ngoại lai MSE
+  peak_max_weight: 3.0                 # Chặn trên trọng số chống nhiễu ngoại lai cực đoan
   eval_metric: "MSELoss"
   optimizer: "AdamW"
   scheduler: "StepwiseWarmupCosine"
-  warmup_ratio: 0.1
+  warmup_ratio: 0.15
   min_lr_ratio: 0.01
   max_grad_norm: 1.0
   use_amp: true
@@ -115,13 +115,13 @@ pretrain:
 
 finetune:
   ckpt_source: "wp03"                  # "wp03" (Global Pretrained) | "wp02" (BaselineTrainer)
-  stride: 2                            # Đủ số cửa sổ thích nghi theo trạm (~10,000+ mẫu/trạm)
+  stride: 4                            # Khớp nhịp cửa sổ train_stride=4 chống overfit từng trạm
   batch_size: 256
   epochs: 15
   patience: 5
   lr: 5.0e-5                           # LR êm cho head/adapter của trạm tránh vượt điểm tối ưu toàn cục
   backbone_lr_ratio: 0.1               # Khi unfreeze_backbone=true, backbone học chậm 10x so với head
-  weight_decay: 1.0e-2
+  weight_decay: 2.0e-2
   freeze_backbone: true                # Đóng băng encoder sâu, mở khóa đúng head + adapter
   unfreeze_backbone: false
   val_selection_mode: "balanced_dev"   # Tránh overfit vào riêng tập dev mùa hè của trạm
@@ -129,9 +129,9 @@ finetune:
   loss_fn: "PeakShapeLoss"
   huber_delta: 2.5
   peak_threshold_z: 0.84
-  peak_alpha: 0.25
-  diff_weight: 0.10
-  peak_max_weight: 3.5
+  peak_alpha: 0.15
+  diff_weight: 0.05
+  peak_max_weight: 3.0
   scheduler: "ReduceLROnPlateau"
   scheduler_factor: 0.5
   scheduler_patience: 2
@@ -144,8 +144,8 @@ models:
     n_heads: 4
     e_layers: 3
     d_ff: 256
-    dropout: 0.20
-    lr: 5.0e-4
+    dropout: 0.30
+    lr: 2.0e-4
     target_idx: 0
     num_continuous_features: 11
     min_std: 0.1
@@ -160,8 +160,8 @@ models:
     d_ff: 256
     factor: 5
     label_len: 48
-    dropout: 0.15
-    lr: 4.0e-4
+    dropout: 0.25
+    lr: 2.0e-4
     activation: "gelu"
     attention_type: "probsparse"
     deterministic_eval: true
@@ -175,8 +175,8 @@ models:
     d_ff: 256
     factor: 96
     label_len: 48
-    dropout: 0.15
-    lr: 4.0e-4
+    dropout: 0.25
+    lr: 2.0e-4
     activation: "gelu"
     attention_type: "full"
     deterministic_eval: true
@@ -185,8 +185,8 @@ models:
   lstm:
     hidden_size: 128
     num_layers: 2
-    dropout: 0.20
-    lr: 5.0e-4
+    dropout: 0.30
+    lr: 3.0e-4
     use_revin_wrapper: false           # Tắt RevIN theo chứng cứ A/B (-14.5% MSE H=24, giữ hồi quy H=192)
 
   dlinear:
