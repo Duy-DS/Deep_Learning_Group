@@ -10,20 +10,20 @@
       2026
     ],
     "mse_per_seed": [
-      1.78906,
-      1.828474,
-      1.815196
+      1.454359,
+      1.64215,
+      1.578379
     ],
     "mae_per_seed": [
-      0.984941,
-      1.009521,
-      1.005323
+      0.915537,
+      0.947264,
+      0.901517
     ],
-    "mse_mean": 1.81091,
-    "mse_std": 0.01637362098010083,
-    "mae_mean": 0.9999283333333334,
-    "mae_std": 0.010735328634414901,
+    "mse_mean": 1.5582960000000001,
+    "mse_std": 0.07796948158093654,
+    "mae_mean": 0.9214393333333334,
+    "mae_std": 0.019136791029033276,
     "checkpoint_path": "outputs/checkpoints/global/informer_full_multivariate_H192_pretrained.pt",
-    "extra_notes": "WP03 Pre-training (multivariate, D=31, L=96, H=192) | RMSE=1.345687±0.007458"
+    "extra_notes": "WP03 Pre-training v2 (multivariate, D=31, L=96, H=192, loss=PeakShapeLoss, val=balanced_dev) | RMSE=1.247923±0.038445"
   }
 ]

@@ -193,7 +193,27 @@ test_revin_wrapper_restores_mean_and_preserves_exogenous                  PASSED
 - **Bài học kinh nghiệm:**
   - Không áp dụng máy móc `RevIN` hay `ResidualAnchor` của các bộ dữ liệu xu hướng trơn (ETT/Exchange) lên dữ liệu chất lượng không khí PM2.5 có phân phối lệch phải mạnh và tính hồi quy về trung bình theo gió mùa; luôn chạy A/B kiểm chứng trực tiếp trên cả tầm ngắn `H=24` lẫn tầm xa `H=192`.
 - **Hành động tiếp theo (Follow-up Tasks):**
-  - [ ] Huấn luyện lại toàn bộ ma trận 12 trạm × 3 seeds × 4 horizons (`H ∈ {24, 48, 96, 192}`) trên GPU (Kaggle P100/2×T4 hoặc Google Colab) với `train_stride=2, epochs=35`.
-  - [ ] Chạy lại Ablation Studies (`bash scripts/ablation.sh all --no-skip-existing --with-finetune`) để cập nhật các bảng báo cáo RQ1/RQ2.
-  - [ ] Bàn giao bộ checkpoint `.pt` mới cho WP04 (`src/xai/`) chạy lại SHAP/IG và WP05 (`scripts/prepare_observatory_assets.py`) xuất lại toàn bộ `.onnx` (`opset=17`).
-  - [x] Cập nhật nhật ký phiên tại `docs/dev-logs/261126_2325.md`.
+  - [x] Tinh chỉnh chống overfit trực tiếp trên Tesla T4 (`train_stride=4, lr=2e-4, dropout=0.30, wd=3e-2, PeakShape 0.15/0.05, num_workers=0` — commit `27d884d`, `3aed719`).
+  - [x] Huấn luyện xong toàn bộ ma trận 12 trạm × 3 seeds × 4 horizons (`H ∈ {24, 48, 96, 192}`) + Univariate H=24 + Ablation 3 (`informer_full` $O(L^2)$) + Fine-tune 12 trạm (88 global `.pt` + 48 station `.pt` + 2 scalers `.joblib`) trên Google Colab GPU (Tesla T4, chỉ tốn 4.29 đơn vị điện toán).
+  - [x] Kiểm định 68/68 serving checkpoints qua `PyTorchCheckpointLoader.load(strict=True)`, `InformerDeterministicPatcher` (`drift = 0.000000`), ONNX `opset=17` (`max_abs_diff <= 4.77e-7`) và WP04 `IGExplainer`.
+  - [x] Cập nhật nhật ký ngày tại `docs/dev-logs/261126_2325.md`.
+
+### 5.4. Kết quả thực đo chính thức Full 12 trạm × 3 seeds (`42, 1024, 2026`) trên Tesla T4 GPU
+
+| H | Mô hình | Test MSE ↓ (mean ± std) | Test MAE ↓ (mean ± std) | Range Ratio ↑ | Spike MAE (µg/m³) ↓ | Peak Capture ↑ |
+|---:|---|---:|---:|---:|---:|---:|
+| **24 (Uni)** | **`PatchTST`** | **`0.8287 ± 0.0092`** *(#1)* | **`0.6033 ± 0.0053`** *(#1)* | `35.1%` | `92.8` | `62.2%` |
+| **24 (Uni)** | `DLinear` | `0.8496 ± 0.0011` | `0.6073 ± 0.0004` | — | — | — |
+| **24 (Multi)** | `DLinear` | `0.8209 ± 0.0147` | `0.6079 ± 0.0081` | `35.1%` | `84.32` | `66.3%` |
+| **24 (Multi)** | **`PatchTST`** | `0.8471 ± 0.0507` *(seed1024: **`0.7937`**)* | **`0.5865 ± 0.0113`** *(#1)* | **`52.5%`** | **`83.13`** *(#1)* | **`74.0%`** *(#1)* |
+| **48 (Multi)** | `DLinear` | `1.1105 ± 0.0005` | `0.7554 ± 0.0030` | `33.2%` | `107.30` | `59.5%` |
+| **48 (Multi)** | **`PatchTST`** | `1.2762 ± 0.0235` | `0.7647 ± 0.0047` | **`55.4%`** *(#1)* | `108.23` | **`69.8%`** |
+| **96 (Multi)** | `DLinear` | `1.3813 ± 0.0486` | `0.8839 ± 0.0195` | `32.3%` | `130.66` | `53.7%` |
+| **96 (Multi)** | **`Informer`** | `1.4432 ± 0.2454` *(vs Full `1.7855`)* | **`0.8568 ± 0.0496`** *(#1)* | `35.8%` | `126.89` | `55.5%` |
+| **96 (Multi)** | **`PatchTST`** | `1.4320 ± 0.0970` *(-24.4% vs cũ)* | **`0.8725 ± 0.0034`** | **`49.8%`** *(#1)* | **`120.40`** *(#1)* | **`63.9%`** *(#1)* |
+| **192 (Multi)** | `DLinear` | `1.4771 ± 0.0233` | `0.9281 ± 0.0141` | `24.9%` | `132.63` | `48.5%` |
+| **192 (Multi)** | **`PatchTST`** | **`1.4611 ± 0.0061`** *(#1, -32.5% vs cũ)* | **`0.9243 ± 0.0132`** *(#1)* | **`29.2%`** *(#1)* | `132.90` | **`49.4%`** *(#1)* |
+| **192 (Multi)** | `Informer` | `1.5755 ± 0.1599` *(-11.0% vs cũ)* | `0.9459 ± 0.0336` | `20.6%` | **`132.45`** *(#1)* | `45.7%` |
+| **192 (Multi)** | `LSTM` | `1.5446 ± 0.0007` *(-29.4% vs cũ)* | `0.9377 ± 0.0043` | `26.9%` | `147.42` | `47.1%` |
+
+- **Ablation 3 (`ProbSparse` vs `FullAttention` $O(L^2)$):** Tại `H=96`, `ProbSparse` nhanh hơn `1.20×`, tiết kiệm `12.45%` VRAM và giảm `10.09%` RMSE; tại `H=192`, nhanh hơn `1.09×` và tiết kiệm `9.55%` VRAM.
