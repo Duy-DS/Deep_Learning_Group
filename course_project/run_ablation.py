@@ -2,6 +2,14 @@
 T0305 — Tệp chạy độc lập toàn bộ ma trận thực nghiệm Ablation Studies (RQ1 & RQ2),
 tích hợp đối chứng trực tiếp với WP02 BaselineTrainer (`train_baseline.py`) và
 xuất hợp đồng dữ liệu hợp nhất `ExperimentMetricsContract` (`utils_metrics.py`).
+
+Bản nâng cấp:
+- Nạp đầy đủ mục `models:` và `finetune:` từ `configs/default.yaml` (không còn hardcode
+  `freeze_backbone=True`, `patience=4` hay bỏ qua cấu hình mô hình).
+- Truyền đồng bộ `PeakShapeLoss`, `val_selection_mode` (`balanced_dev`) và
+  `use_residual_anchor` xuống `TrainingPipeline` và `run_fine_tuning_pipeline`.
+- Xuất thêm các cột chẩn đoán đỉnh & độ phẳng (`range_ratio_mean`, `spike_mae_ugm3_mean`,
+  `peak_capture_ratio_mean`) song song với chuẩn `ExperimentMetricsContract`.
 """
 
 from __future__ import annotations
@@ -9,7 +17,7 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
-from typing import Dict, List, Optional, Sequence
+from typing import Any, Dict, List, Optional, Sequence
 
 import pandas as pd
 import yaml
@@ -19,6 +27,7 @@ from training_loop import (
     DEFAULT_MODELS,
     TrainingPipeline,
     apply_yaml_config,
+    load_model_configs,
     run_wp02_baseline_pipeline,
 )
 from utils_metrics import ExperimentMetricsContract
@@ -46,7 +55,6 @@ def ensure_pretrain_results(
     data_dir: Path,
     output_dir: Path,
     mode: str,
-    horizon: int,
     models: Sequence[str],
     lookback: int,
     batch_size: int,
@@ -59,8 +67,14 @@ def ensure_pretrain_results(
     patience: int,
     loss_fn: str,
     huber_delta: float,
+    peak_threshold_z: float,
+    peak_alpha: float,
+    diff_weight: float,
+    peak_max_weight: float,
+    use_residual_anchor: bool,
+    val_selection_mode: str,
+    model_configs: Dict[str, Dict[str, Any]],
     seeds: List[int],
-    skip_existing: bool = True,
 ) -> pd.DataFrame:
     """
     Đảm bảo đã có đủ kết quả Pre-training cho danh sách `models` ở cấu hình `(mode, horizon)`.
@@ -105,6 +119,13 @@ def ensure_pretrain_results(
             patience=patience,
             loss_fn=loss_fn,
             huber_delta=huber_delta,
+            peak_threshold_z=peak_threshold_z,
+            peak_alpha=peak_alpha,
+            diff_weight=diff_weight,
+            peak_max_weight=peak_max_weight,
+            use_residual_anchor=use_residual_anchor,
+            val_selection_mode=val_selection_mode,
+            model_configs=model_configs,
             seeds=seeds,
         )
         new_runs_df, new_summary_df = pipeline.run(models=missing_models)
@@ -179,15 +200,26 @@ def ensure_finetune_results(
     batch_size: int,
     epochs: int,
     lr: float,
+    backbone_lr_ratio: float,
     weight_decay: float,
     patience: int,
     loss_fn: str,
     huber_delta: float,
+    peak_threshold_z: float,
+    peak_alpha: float,
+    diff_weight: float,
+    peak_max_weight: float,
+    val_selection_mode: str,
     freeze_backbone: bool,
+    model_configs: Dict[str, Dict[str, Any]],
     seed: int,
-    skip_existing: bool = True,
+    num_stations: Optional[int] = None,
 ) -> pd.DataFrame:
-    """Chạy hoặc nạp kết quả Fine-tuning 12 trạm cho cấu hình `(mode, horizon)`."""
+    """Chạy hoặc nạp kết quả Fine-tuning cho các station IDs trong dữ liệu.
+
+    `num_stations` là số lượng kỳ vọng để kiểm tra; danh sách tên trạm vẫn được
+    suy ra động từ split train và xác minh nhất quán trong pipeline Fine-tuning.
+    """
     report_dir = output_dir / "reports"
     ft_summary_csv = report_dir / f"before_vs_after_by_model_{mode}_H{horizon}.csv"
     ft_detail_csv = report_dir / f"before_vs_after_by_station_{mode}_H{horizon}.csv"
@@ -209,6 +241,7 @@ def ensure_finetune_results(
         res = run_fine_tuning_pipeline(
             data_dir=data_dir,
             models=missing_models,
+            num_stations=num_stations,
             mode=mode,  # type: ignore[arg-type]
             lookback=lookback,
             horizon=horizon,
@@ -216,11 +249,18 @@ def ensure_finetune_results(
             batch_size=batch_size,
             epochs=epochs,
             lr=lr,
+            backbone_lr_ratio=backbone_lr_ratio,
             weight_decay=weight_decay,
             patience=patience,
             loss_fn=loss_fn,
             huber_delta=huber_delta,
+            peak_threshold_z=peak_threshold_z,
+            peak_alpha=peak_alpha,
+            diff_weight=diff_weight,
+            peak_max_weight=peak_max_weight,
+            val_selection_mode=val_selection_mode,
             freeze_backbone=freeze_backbone,
+            model_configs=model_configs,
             output_root=output_dir,
             seed=seed,
         )
@@ -252,8 +292,8 @@ def build_wp02_vs_wp03_table(
     wp02_df: pd.DataFrame, wp03_df: pd.DataFrame, horizon: int = 24
 ) -> pd.DataFrame:
     """
-    Đối chứng trực tiếp WP02 (`BaselineTrainer`: Adam lr=1e-3, không RevIN/ResidualAnchor)
-    với WP03 (`TrainingPipeline`: RevIN + ResidualAnchor + Stepwise WarmupCosine).
+    Đối chứng trực tiếp WP02 (`BaselineTrainer`: Adam lr=1e-3)
+    với WP03 (`TrainingPipeline` v2: Selective RevIN + PeakShapeLoss + Balanced Val + Stepwise WarmupCosine).
     """
     rows: List[Dict[str, object]] = []
     for model_name in ("lstm", "dlinear"):
@@ -299,7 +339,7 @@ def build_ablation1_table(
     multi_df: pd.DataFrame, uni_df: pd.DataFrame, horizon: int = 24
 ) -> pd.DataFrame:
     """
-    Ablation 1 (RQ1): So sánh Multivariate vs. Univariate
+    Ablation 1 (RQ1/RQ3): So sánh Multivariate vs. Univariate
     và tính tỷ lệ giảm sai số (%) nhờ bổ sung biến khí tượng.
     """
     rows: List[Dict[str, object]] = []
@@ -340,7 +380,7 @@ def build_ablation1_table(
 
 def build_ablation2_table(horizon_dfs: Dict[int, pd.DataFrame]) -> pd.DataFrame:
     """
-    Ablation 2 (RQ2): Tổng hợp 4 mô hình trên đầy đủ 4 khung dự báo H in {24, 48, 96, 192}.
+    Ablation 2 (RQ1/RQ2): Tổng hợp 4 mô hình trên đầy đủ 4 khung dự báo H in {24, 48, 96, 192}.
     """
     frames: List[pd.DataFrame] = []
     for h in sorted(horizon_dfs.keys()):
@@ -358,6 +398,9 @@ def build_ablation2_table(horizon_dfs: Dict[int, pd.DataFrame]) -> pd.DataFrame:
             "mae_mean",
             "mae_std",
             "mae_mean_std",
+            "range_ratio_mean",
+            "spike_mae_ugm3_mean",
+            "peak_capture_ratio_mean",
             "train_time_mean_sec",
             "peak_vram_max_mb",
         ]
@@ -463,7 +506,7 @@ def export_markdown_report(
 
     if wp02_vs_wp03_df is not None and not wp02_vs_wp03_df.empty:
         sections.append(
-            "## 0. Đối chứng WP02 (`BaselineTrainer`) vs. WP03 (`TrainingPipeline` — RevIN + ResidualAnchor) tại $H=24$\n"
+            "## 0. Đối chứng WP02 (`BaselineTrainer`) vs. WP03 (`TrainingPipeline` v2) tại $H=24$\n"
         )
         sections.append(_df_to_markdown(wp02_vs_wp03_df) + "\n")
 
@@ -477,15 +520,19 @@ def export_markdown_report(
         sections.append(
             "## 2. Ablation 2 (RQ2): Đánh giá 4 mô hình trên 4 khung dự báo $H \\in \\{24, 48, 96, 192\\}$\n"
         )
-        display_cols = [
+        preferred_cols = [
             "horizon",
             "model",
             "mse_mean_std",
             "rmse_mean_std",
             "mae_mean_std",
+            "range_ratio_mean",
+            "spike_mae_ugm3_mean",
+            "peak_capture_ratio_mean",
             "train_time_mean_sec",
             "peak_vram_max_mb",
         ]
+        display_cols = [c for c in preferred_cols if c in ab2_df.columns]
         sections.append(_df_to_markdown(ab2_df[display_cols]) + "\n")
 
     if ab3_df is not None and not ab3_df.empty:
@@ -509,6 +556,7 @@ def run_ablation_suite(args: argparse.Namespace) -> None:
     ablation_dir = args.output_dir / "ablation"
     ablation_dir.mkdir(parents=True, exist_ok=True)
     report_dir = args.output_dir / "reports"
+    model_configs = load_model_configs(args.config)
 
     run_all = "all" in args.ablations
     do_ab1 = run_all or ("ablation1" in args.ablations)
@@ -541,6 +589,13 @@ def run_ablation_suite(args: argparse.Namespace) -> None:
             patience=args.patience,
             loss_fn=args.loss_fn,
             huber_delta=args.huber_delta,
+            peak_threshold_z=args.peak_threshold_z,
+            peak_alpha=args.peak_alpha,
+            diff_weight=args.diff_weight,
+            peak_max_weight=args.peak_max_weight,
+            use_residual_anchor=args.use_residual_anchor,
+            val_selection_mode=args.val_selection_mode,
+            model_configs=model_configs,
             seeds=args.seeds,
             skip_existing=args.skip_existing,
         )
@@ -558,16 +613,24 @@ def run_ablation_suite(args: argparse.Namespace) -> None:
                 mode=mode,
                 horizon=horizon,
                 models=models,
+                num_stations=args.num_stations,
                 lookback=args.lookback,
-                stride=args.train_stride,
+                stride=args.ft_stride,
                 batch_size=args.ft_batch_size,
                 epochs=args.ft_epochs,
                 lr=args.ft_lr,
+                backbone_lr_ratio=args.ft_backbone_lr_ratio,
                 weight_decay=args.weight_decay,
-                patience=4,
+                patience=args.ft_patience,
                 loss_fn=args.loss_fn,
                 huber_delta=args.huber_delta,
-                freeze_backbone=True,
+                peak_threshold_z=args.peak_threshold_z,
+                peak_alpha=args.peak_alpha,
+                diff_weight=args.diff_weight,
+                peak_max_weight=args.peak_max_weight,
+                val_selection_mode=args.val_selection_mode,
+                freeze_backbone=args.ft_freeze_backbone,
+                model_configs=model_configs,
                 seed=args.seeds[0],
                 skip_existing=args.skip_existing,
             )
@@ -626,7 +689,7 @@ def run_ablation_suite(args: argparse.Namespace) -> None:
     existing_wp02_csv = report_dir / "wp02_baseline_summary_multivariate_H24.csv"
     if args.with_wp02_baseline or existing_wp02_csv.exists():
         print("\n" + "=" * 84)
-        print("ĐỐI CHỨNG WP02 (BaselineTrainer) VS. WP03 (TrainingPipeline) @ H=24")
+        print("ĐỐI CHỨNG WP02 (BaselineTrainer) VS. WP03 (TrainingPipeline v2) @ H=24")
         print("=" * 84)
         wp02_h24 = ensure_wp02_baseline_results(
             data_dir=args.data_dir,
@@ -695,20 +758,31 @@ def parse_args() -> argparse.Namespace:
         choices=[24, 48, 96, 192],
         help="Khung dự báo cho Ablation 3 (mặc định: 96 192).",
     )
-    parser.add_argument("--lookback", type=int, default=96)
+    parser.add_argument("--num-stations", type=int, default=None)
     parser.add_argument("--batch-size", type=int, default=512)
-    parser.add_argument("--train-stride", type=int, default=12)
+    parser.add_argument("--train-stride", type=int, default=4)
     parser.add_argument("--train-dev-stride", type=int, default=None)
     parser.add_argument("--dev-stride", type=int, default=None)
     parser.add_argument("--test-stride", type=int, default=None)
-    parser.add_argument("--lr", type=float, default=3e-5)
-    parser.add_argument("--dlinear-lr", type=float, default=1e-4)
+    parser.add_argument("--lr", type=float, default=2e-4)
+    parser.add_argument("--dlinear-lr", type=float, default=1e-3)
     parser.add_argument("--weight-decay", type=float, default=3e-2)
-    parser.add_argument("--dropout", type=float, default=0.35)
-    parser.add_argument("--epochs", type=int, default=20)
-    parser.add_argument("--patience", type=int, default=6)
-    parser.add_argument("--loss-fn", type=str, default="MSELoss")
+    parser.add_argument("--dropout", type=float, default=0.30)
+    parser.add_argument("--epochs", type=int, default=25)
+    parser.add_argument("--patience", type=int, default=5)
+    parser.add_argument("--loss-fn", type=str, default="PeakShapeLoss")
     parser.add_argument("--huber-delta", type=float, default=2.5)
+    parser.add_argument("--peak-threshold-z", type=float, default=0.84)
+    parser.add_argument("--peak-alpha", type=float, default=0.15)
+    parser.add_argument("--diff-weight", type=float, default=0.05)
+    parser.add_argument("--peak-max-weight", type=float, default=3.0)
+    parser.add_argument("--use-residual-anchor", action="store_true", default=False)
+    parser.add_argument(
+        "--val-selection-mode",
+        type=str,
+        default="balanced_dev",
+        choices=["balanced_dev", "dev", "train_dev"],
+    )
     parser.add_argument(
         "--seeds",
         nargs="+",
@@ -727,8 +801,18 @@ def parse_args() -> argparse.Namespace:
         help="Chạy kèm Fine-tuning 12 trạm cho từng cấu hình Ablation.",
     )
     parser.add_argument("--ft-batch-size", type=int, default=256)
-    parser.add_argument("--ft-epochs", type=int, default=12)
-    parser.add_argument("--ft-lr", type=float, default=1e-5)
+    parser.add_argument("--ft-epochs", type=int, default=15)
+    parser.add_argument("--ft-lr", type=float, default=5e-5)
+    parser.add_argument("--ft-backbone-lr-ratio", type=float, default=0.1)
+    parser.add_argument("--ft-stride", type=int, default=2)
+    parser.add_argument("--ft-patience", type=int, default=5)
+    parser.add_argument("--ft-freeze-backbone", action="store_true", default=True)
+    parser.add_argument(
+        "--ft-unfreeze-backbone",
+        dest="ft_freeze_backbone",
+        action="store_false",
+        help="Mở khóa toàn bộ backbone với Discriminative LR khi fine-tune trong ablation.",
+    )
     parser.add_argument(
         "--no-skip-existing",
         dest="skip_existing",
@@ -737,16 +821,26 @@ def parse_args() -> argparse.Namespace:
     )
     parser.set_defaults(skip_existing=True)
     apply_yaml_config(parser, ["paths", "data", "pretrain", "ablation"])
-
+    if parser.get_default("num_stations") is None:
+        parser.set_defaults(num_stations=12)
     pre_args, _ = parser.parse_known_args()
     if Path(pre_args.config).exists():
         with open(pre_args.config, "r", encoding="utf-8") as f:
             ft_cfg = (yaml.safe_load(f) or {}).get("finetune", {})
-        parser.set_defaults(
-            ft_batch_size=ft_cfg.get("batch_size", 256),
-            ft_epochs=ft_cfg.get("epochs", 12),
-            ft_lr=ft_cfg.get("lr", 1e-5),
-        )
+        if isinstance(ft_cfg, dict):
+            parser.set_defaults(
+                ft_batch_size=ft_cfg.get("batch_size", 256),
+                ft_epochs=ft_cfg.get("epochs", 15),
+                ft_lr=ft_cfg.get("lr", 5e-5),
+                ft_backbone_lr_ratio=ft_cfg.get("backbone_lr_ratio", 0.1),
+                ft_stride=ft_cfg.get("stride", 2),
+                ft_freeze_backbone=bool(
+                    ft_cfg.get(
+                        "freeze_backbone",
+                        not bool(ft_cfg.get("unfreeze_backbone", False)),
+                    )
+                ),
+            )
 
     args = parser.parse_args()
     args.data_dir = Path(args.data_dir)

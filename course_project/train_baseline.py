@@ -16,12 +16,13 @@ import argparse
 import os
 import random
 from pathlib import Path
-from typing import Dict, List, Literal, Tuple
+from typing import Any, Dict, List, Literal, Optional, Tuple
 
 import numpy as np
 import pandas as pd
 import torch
 import torch.nn as nn
+import yaml
 from torch.utils.data import DataLoader, TensorDataset
 
 from src.models.dlinear import DLinearModel
@@ -372,11 +373,25 @@ def create_synthetic_dataloaders(
 # ---------------------------------------------------------------------------
 
 
+def load_baseline_yaml_config(config_path: str | Path) -> Dict[str, Any]:
+    """Đọc cấu hình wp02_baseline, data và paths từ tệp YAML chuẩn."""
+    cfg_file = Path(config_path)
+    if not cfg_file.exists():
+        return {}
+    with open(cfg_file, "r", encoding="utf-8") as f:
+        return yaml.safe_load(f) or {}
+
+
 def run_multi_seed_experiment(
     model_name: Literal["LSTM", "DLinear"],
     horizon: int,
     epochs: int = 15,
     smoke_test: bool = True,
+    seeds: Optional[List[int]] = None,
+    lookback: int = 96,
+    learning_rate: float = 1e-3,
+    checkpoint_dir: str = "checkpoints",
+    log_dir: str = "outputs/logs",
 ) -> ExperimentMetricsContract:
     """
     Chạy thực nghiệm tự động qua 3 seeds và xuất hợp đồng kết quả mean ± std.
@@ -386,16 +401,20 @@ def run_multi_seed_experiment(
         horizon (int): Khung dự báo H ∈ {24, 48, 96, 192}.
         epochs (int): Số epochs tối đa mỗi lần chạy.
         smoke_test (bool): Chế độ chạy nhanh kiểm tra luồng.
+        seeds (Optional[List[int]]): Danh sách hạt giống ngẫu nhiên từ YAML.
+        lookback (int): Chiều dài cửa sổ quá khứ từ YAML.
+        learning_rate (float): Tốc độ học từ YAML.
+        checkpoint_dir (str): Thư mục lưu checkpoint từ YAML.
+        log_dir (str): Thư mục lưu log từ YAML.
 
     Trả về:
         ExperimentMetricsContract: Hợp đồng kết quả theo chuẩn Pydantic v2.
     """
-    seeds = [42, 1024, 2026]
+    seeds = list(seeds) if seeds else [42, 1024, 2026]
     mse_list = []
     mae_list = []
     last_checkpoint = ""
 
-    lookback = 96
     in_features = 15
     metrics_calc = MetricsCalculator()
 
@@ -429,8 +448,9 @@ def run_multi_seed_experiment(
             model_name=model_name,
             horizon=horizon,
             seed=seed,
-            checkpoint_dir="checkpoints",
-            log_dir="outputs/logs",
+            learning_rate=learning_rate,
+            checkpoint_dir=checkpoint_dir,
+            log_dir=log_dir,
         )
 
         trainer.fit(train_loader, val_loader, epochs=epochs)
@@ -448,7 +468,7 @@ def run_multi_seed_experiment(
     contract = metrics_calc.summarize_multi_seed(
         experiment_id=f"EXP_{model_name}_H{horizon}",
         model_name=model_name,
-        station_id="ALL_36_STATIONS",
+        station_id="ALL_12_STATIONS",
         horizon=horizon,
         mse_per_seed=mse_list,
         mae_per_seed=mae_list,
@@ -476,6 +496,12 @@ if __name__ == "__main__":
         description="Huấn luyện mô hình Baseline PM2.5 (T0204)"
     )
     parser.add_argument(
+        "--config",
+        type=str,
+        default="configs/default.yaml",
+        help="Đường dẫn tệp cấu hình YAML chuẩn",
+    )
+    parser.add_argument(
         "--model",
         type=str,
         choices=["LSTM", "DLinear", "all"],
@@ -486,10 +512,10 @@ if __name__ == "__main__":
         "--horizon",
         type=int,
         choices=[24, 48, 96, 192],
-        default=24,
+        default=None,
         help="Khung dự báo H giờ (24, 48, 96, 192)",
     )
-    parser.add_argument("--epochs", type=int, default=10, help="Số epochs tối đa")
+    parser.add_argument("--epochs", type=int, default=None, help="Số epochs tối đa")
     parser.add_argument(
         "--smoke-test",
         action="store_true",
@@ -498,13 +524,30 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
+    cfg = load_baseline_yaml_config(args.config)
+    wp02_cfg = cfg.get("wp02_baseline", {}) if isinstance(cfg.get("wp02_baseline"), dict) else {}
+    data_cfg = cfg.get("data", {}) if isinstance(cfg.get("data"), dict) else {}
+    paths_cfg = cfg.get("paths", {}) if isinstance(cfg.get("paths"), dict) else {}
+
+    horizon = int(args.horizon if args.horizon is not None else data_cfg.get("horizon", 24))
+    epochs = int(args.epochs if args.epochs is not None else wp02_cfg.get("epochs", 10))
+    lookback = int(data_cfg.get("lookback", 96))
+    seeds = list(wp02_cfg.get("seeds", [42, 1024, 2026]))
+    lr = float(wp02_cfg.get("lr", 1e-3))
+    ckpt_dir = str(paths_cfg.get("wp02_ckpt_dir", "checkpoints"))
+    log_dir = str(paths_cfg.get("wp02_log_dir", "outputs/logs"))
 
     models_to_run = ["LSTM", "DLinear"] if args.model == "all" else [args.model]
 
     for model_type in models_to_run:
         run_multi_seed_experiment(
             model_name=model_type,
-            horizon=args.horizon,
-            epochs=args.epochs,
+            horizon=horizon,
+            epochs=epochs,
             smoke_test=args.smoke_test,
+            seeds=seeds,
+            lookback=lookback,
+            learning_rate=lr,
+            checkpoint_dir=ckpt_dir,
+            log_dir=log_dir,
         )

@@ -18,11 +18,11 @@ Tài liệu này đóng vai trò là hiến pháp vận hành và kiến trúc t
 - Phân biệt rõ ràng giữa **quyết định đã chốt trong thiết kế**, **đề xuất thử nghiệm**, và **các hạng mục đang chờ (TBD)**. Không tự ý thay đổi cấu trúc siêu tham số chuẩn hoặc giao thức chia dữ liệu khi chưa được phép.
 
 ### **2. Project Mission & Experimental Scope (Sứ mệnh & Phạm vi thực nghiệm)**
-Xây dựng hệ thống dự báo nồng độ $\text{PM}_{2.5}$ đa biến trên 36 trạm quan trắc tại Bắc Kinh, giải quyết ba câu hỏi nghiên cứu (RQ1, RQ2, RQ3), minh bạch hóa quyết định dự báo bằng XAI và đóng gói sản phẩm qua Docker + Streamlit Dashboard.
+Xây dựng hệ thống dự báo nồng độ $\text{PM}_{2.5}$ đa biến trên 12 trạm thuộc bộ dữ liệu UCI Beijing Multi-Site Air-Quality (PRSA), giải quyết ba câu hỏi nghiên cứu (RQ1, RQ2, RQ3), minh bạch hóa quyết định dự báo bằng XAI và đóng gói sản phẩm qua Docker + Streamlit Dashboard. Zhang et al. (2017) là nền tảng/ngữ cảnh lý thuyết riêng; quy mô 36 trạm trong nghiên cứu đó không phải phạm vi dữ liệu thực nghiệm của repository.
 
 | Hạng mục | Thiết lập cơ sở (Project Baseline) |
 | :--- | :--- |
-| **Dữ liệu đầu vào** | Chuỗi thời gian hàng giờ từ 36 trạm quan trắc Bắc Kinh; kết hợp biến khí tượng: `TEMP`, `PRE`, `DEW` (điểm sương), `WD` (hướng gió), `CWS`/`WSPM` (tốc độ gió), `RAIN`/`CP`. |
+| **Dữ liệu đầu vào** | Chuỗi thời gian hàng giờ từ 12 trạm UCI PRSA có trong `data/raw/`; kết hợp các biến khí tượng sẵn có như `TEMP`, `PRES`, `DEWP`, `wd`, `WSPM`, `RAIN`. Không coi 36 trạm của Zhang et al. (2017) là dữ liệu của repository. |
 | **Tiền xử lý chuẩn** | Nội suy tuyến tính (`Linear Interpolation`) + `Forward Fill`; `Cyclic Encoding` ($\sin/\cos$) cho giờ/ngày/tháng; `One-Hot Encoding` (5 chiều) cho hướng gió (`WD`). |
 | **Phân chia dữ liệu** | Chia tuần tự theo thời gian tuyến tính: `60% / 10% / 10% / 20%` (Train / Val / Test). |
 | **Cửa sổ trượt (Sliding Window)** | Chiều dài quan sát quá khứ $L = 96$ giờ; Khung dự báo tương lai $H \in \{24, 48, 96, 192\}$ giờ. |
@@ -37,7 +37,7 @@ Xây dựng hệ thống dự báo nồng độ $\text{PM}_{2.5}$ đa biến tr�
 *   **Evidence-Driven Execution (Bằng chứng thực thi là bắt buộc):** Sau bất kỳ task, thực nghiệm hay lần sửa lỗi nào, Agent **bắt buộc** phải khởi tạo file báo cáo/log tương ứng trong `docs/bug-fixes/`, `docs/dev-logs/`, `docs/reports/`, hoặc `docs/experiences/` theo đúng quy chuẩn đặt tên ở Mục III.8.
 *   **100% OOP & Docstring Tiếng Việt:** Toàn bộ mã nguồn trong `src/` phải được thiết kế theo phương pháp Hướng đối tượng (Classes & Methods). 100% class, phương thức, hàm và inline comments giải thích thuật toán phải viết bằng **Tiếng Việt** (theo chuẩn Google/NumPy Docstring).
 *   **Data Leakage Prevention (Chống rò rỉ dữ liệu):** Bộ chuẩn hóa `StandardScaler` ($\mu, \sigma$) và quy trình Imputation chỉ được phép `.fit()` trên tập **Train**, sau đó mới `.transform()` trên tập **Validation** và **Test**.
-*   **Config Decoupling:** Mọi siêu tham số (`learning_rate`, `batch_size`, `lookback=96`, `horizons=[24, 48, 96, 192]`, đường dẫn file) phải được nạp từ `configs/config.yaml`.
+*   **Config Decoupling:** Mọi siêu tham số (`learning_rate`, `batch_size`, `lookback=96`, `horizons=[24, 48, 96, 192]`, đường dẫn file) phải được nạp từ `configs/default.yaml`.
 *   **Multi-Seed Reproducibility:** Mọi kịch bản huấn luyện/đánh giá chính phải cố định seed (`random`, `numpy`, `torch`, `torch.cuda`) và hỗ trợ chạy tự động qua 3 seeds để xuất kết quả $\text{mean} \pm \text{std}$.
 
 **Ask First (Phải xin ý kiến trước khi làm):**
@@ -60,7 +60,7 @@ Xây dựng hệ thống dự báo nồng độ $\text{PM}_{2.5}$ đa biến tr�
 
 ```mermaid
 graph TD
-    RawData([Dữ liệu thô 36 trạm Bắc Kinh <br> data/raw/]) --> Preprocess[src/data_pipeline/preprocess.py <br> Imputation, Cyclic & One-Hot, Train-Fit Scaler]
+    RawData([Dữ liệu thô UCI PRSA: 12 trạm <br> data/raw/]) --> Preprocess[src/data_pipeline/preprocess.py <br> Imputation, Cyclic & One-Hot, Train-Fit Scaler]
     Preprocess --> Dataset[src/data_pipeline/dataset.py <br> Chronological Split 60/10/10/20 & Sliding Window L=96]
 
     Dataset --> TrainingLoop{training_loop.py <br> Multi-Seed Training & Early Stopping}
@@ -68,7 +68,7 @@ graph TD
     TrainingLoop -->|WP02: Baselines| Baselines[src/models/lstm.py <br> src/models/dlinear.py]
     TrainingLoop -->|WP03: SOTA Models| SOTAModels[src/models/informer.py <br> src/models/patchtst.py]
 
-    SOTAModels --> FineTune[Station-Specific Fine-Tuning <br> 36 Trạm Quan Trắc]
+    SOTAModels --> FineTune[Station-Specific Fine-Tuning <br> Tối đa 12 trạm UCI PRSA]
 
     Baselines --> Eval[utils_metrics.py <br> MSE, MAE across H = 24, 48, 96, 192]
     FineTune --> Eval
@@ -122,7 +122,7 @@ class ExperimentMetricsContract(BaseModel):
     """
     experiment_id: str = Field(..., description="Mã thực nghiệm, ví dụ: EXP01")
     model_name: Literal["LSTM", "DLinear", "Informer", "Informer_NoProbSparse", "PatchTST"]
-    station_id: str = Field(..., description="Tên trạm quan trắc (hoặc 'ALL_36_STATIONS')")
+    station_id: str = Field(..., description="Tên trạm quan trắc (hoặc 'ALL_12_STATIONS')")
     horizon: Literal[24, 48, 96, 192]
     seeds: List[int] = Field(default=[42, 1024, 2026], min_length=3)
     mse_mean: float = Field(..., ge=0.0)
@@ -188,12 +188,12 @@ Dự án gồm 26 nhiệm vụ phân bổ vào 6 gói công việc (WP01 – WP0
 
 | Gói công việc & Thành viên | Danh sách Task ID | Module sở hữu | Nhiệm vụ cốt lõi & Ranh giới kỹ thuật |
 | :--- | :--- | :--- | :--- |
-| **WP01: Data Pipeline & Preprocessing**<br>**Nguyễn Thành Đạt** | `T0101` – `T0106` | `notebooks/01_eda.ipynb`<br>`src/data_pipeline/preprocess.py`<br>`src/data_pipeline/dataset.py` | Khám phá dữ liệu 36 trạm; nội suy tuyến tính + Forward Fill; mã hóa One-Hot (5 chiều hướng gió) & Cyclic ($\sin/\cos$); chia tập `60/10/10/20`; chuẩn hóa `StandardScaler` trên tập Train; tạo `SlidingWindowGenerator` ($L=96, H \in \{24, 48, 96, 192\}$). *Không chứa logic mô hình dự báo.* |
+| **WP01: Data Pipeline & Preprocessing**<br>**Nguyễn Thành Đạt** | `T0101` – `T0106` | `notebooks/01_eda.ipynb`<br>`src/data_pipeline/preprocess.py`<br>`src/data_pipeline/dataset.py` | Khám phá 12 trạm UCI PRSA có trong repo; nội suy tuyến tính + Forward Fill; mã hóa One-Hot & Cyclic ($\sin/\cos$); chia tập `60/10/10/20`; chuẩn hóa `StandardScaler` trên tập Train; tạo `SlidingWindowGenerator` ($L=96, H \in \{24, 48, 96, 192\}$). *Không chứa logic mô hình dự báo.* |
 | **WP02: Baseline Model Development**<br>**Trần Chí Vỹ** | `T0201` – `T0204` | `src/models/lstm.py`<br>`src/models/dlinear.py`<br>`utils_metrics.py` | Xây dựng class `LSTMModel` và `DLinearModel` (tách Trend & Seasonal); thiết lập hàm tính `MSE`, `MAE` chuẩn hóa; huấn luyện và lưu log Loss/Early Stopping cho các mốc Horizon. |
-| **WP03: SOTA Model & Fine-Tuning**<br>**Đinh Thái Toàn** | `T0301` – `T0305` | `training_loop.py`<br>`src/models/informer.py`<br>`src/models/patchtst.py`<br>`scripts/train.sh` | Xây dựng `TrainingPipeline` OOP tổng thể; cài đặt `Informer` (*ProbSparse Attention* & *Generative Decoder*) và `PatchTST`; Fine-tuning trọng số riêng cho 36 trạm; lập script chạy tự động 3 seeds. |
+| **WP03: SOTA Model & Fine-Tuning**<br>**Đinh Thái Toàn** | `T0301` – `T0305` | `training_loop.py`<br>`src/models/informer.py`<br>`src/models/patchtst.py`<br>`scripts/train.sh` | Xây dựng `TrainingPipeline` OOP tổng thể; cài đặt `Informer` (*ProbSparse Attention* & *Generative Decoder*) và `PatchTST`; fine-tuning trọng số riêng cho tối đa 12 trạm UCI PRSA; lập script chạy tự động 3 seeds. |
 | **WP04: XAI Integration**<br>**Nguyễn Tấn Duy** | `T0401` – `T0403` | `src/xai/shap_explainer.py`<br>`src/xai/ig_explainer.py`<br>`notebooks/02_xai_analysis.ipynb` | Định lượng đóng góp toàn cục (Global Importance) bằng `SHAP`; cài đặt `Integrated Gradients` cho PyTorch Time-Series; phân tích nguyên nhân sai số tại các đỉnh ô nhiễm (*Smog Spikes*) gắn với biến `DEW` và `WD`. |
 | **WP05: Web Demo & UI/UX**<br>**Nguyễn Công Trí** | `T0501`, `T0502`, `T0504` | `src/app/main.py` | Thiết kế giao diện Streamlit cho phép tải file CSV thực tế, chọn trạm & mô hình; vẽ biểu đồ đường Plotly nối mượt chuỗi quá khứ và tương lai; nhúng trực tiếp biểu đồ giải thích SHAP/XAI lên giao diện. |
-| **WP06: MLOps, Ablation & Docs**<br>**Nguyễn Công Trí & Đinh Thái Toàn** | `T0503`, `T0601` – `T0604` | `Dockerfile`, `requirements.txt`<br>`configs/config.yaml`<br>`README.md`, `docs/` | Đóng gói Docker container chạy độc lập; thực thi Ablation Studies (3 seeds, $\text{mean} \pm \text{std}$); thiết lập ma trận RQs; dọn dẹp repository và tổng hợp báo cáo cuối kỳ. |
+| **WP06: MLOps, Ablation & Docs**<br>**Nguyễn Công Trí & Đinh Thái Toàn** | `T0503`, `T0601` – `T0604` | `Dockerfile`, `requirements.txt`<br>`configs/default.yaml`<br>`README.md`, `docs/` | Đóng gói Docker container chạy độc lập; thực thi Ablation Studies (3 seeds, $\text{mean} \pm \text{std}$); thiết lập ma trận RQs; dọn dẹp repository và tổng hợp báo cáo cuối kỳ. |
 
 ---
 
@@ -232,9 +232,9 @@ Dự án áp dụng cơ chế kiểm soát **"Evidence-First"** cực kỳ nghi�
 ```text
 beijing-pm25-deeplearning/
 ├── configs/
-│   └── config.yaml            [READ & WRITE; Nơi duy nhất chứa Hyperparameters & Paths]
+│   └── default.yaml           [READ & WRITE; Nơi duy nhất chứa Hyperparameters & Paths]
 ├── data/
-│   ├── raw/                   [READ-ONLY; Dữ liệu gốc 36 trạm, CẤM sửa đổi hoặc commit]
+│   ├── raw/                   [READ-ONLY; 12 file trạm UCI PRSA hiện có, CẤM sửa đổi hoặc commit]
 │   └── processed/             [WRITE-ONLY; Lưu dữ liệu đã Impute/Encode/Scale, gitignored]
 ├── docs/                      [MANDATORY WRITE; Toàn bộ file trong đây PHẢI được Git track]
 │   ├── bug-fixes/             [Lưu biên bản fix bug: [YYMMDD]_[HHMM]_[vấn_đề].md]
@@ -246,7 +246,7 @@ beijing-pm25-deeplearning/
 │   └── 02_xai_analysis.ipynb  [READ & WRITE; Phân tích lỗi Smog Spikes WP04 - T0403]
 ├── scripts/
 │   ├── train.sh               [READ & WRITE; Script tự động chạy 3 seeds WP03 - T0305]
-│   └── evaluate.sh            [READ & WRITE; Script đánh giá tổng hợp & Ablation]
+│   └── ablation.sh            [READ & WRITE; Script đánh giá tổng hợp & Ablation]
 ├── src/                       [READ & WRITE; 100% OOP & Docstring Tiếng Việt]
 │   ├── __init__.py
 │   ├── data_pipeline/
@@ -336,14 +336,14 @@ source venv/bin/activate  # Linux/macOS (hoặc venv\Scripts\activate trên Wind
 pip install -r requirements.txt
 
 # 2. Chạy tiền xử lý dữ liệu & Kiểm tra chống Data Leakage (WP01)
-python -m src.data_pipeline.preprocess --config configs/config.yaml
+python -m src.data_pipeline.preprocess --config configs/default.yaml
 
 # 3. Huấn luyện thử nghiệm một mô hình với cấu hình chuẩn (WP02 / WP03)
-python training_loop.py --config configs/config.yaml --model patchtst --horizon 96 --seed 42
+python training_loop.py --config configs/default.yaml --model patchtst --horizon 96 --seed 42
 
 # 4. Chạy kịch bản tự động 3 seeds & xuất kết quả mean ± std (T0305 / T0601)
 bash scripts/train.sh
-bash scripts/evaluate.sh
+bash scripts/ablation.sh
 
 # 5. Khởi chạy ứng dụng Web Demo bằng Streamlit (WP05)
 streamlit run src/app/main.py

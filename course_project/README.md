@@ -8,7 +8,7 @@
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ed?style=for-the-badge&logo=docker)](#)
 
 > **Mã đề tài:** `DL-PM25-BJ` | **Mã quản lý công việc:** `BPM25` | **Repository:** `beijing-pm25-deeplearning`  
-> **Phương pháp tiếp cận:** Đa biến không - thời gian (36 trạm quan trắc) • Chuỗi thời gian dài ($L=96 \rightarrow H \in \{24, 48, 96, 192\}$) • Minh bạch hóa quyết định (SHAP & Integrated Gradients) • Quản trị dự án dựa trên bằng chứng (*Evidence-First*).
+> **Phương pháp tiếp cận:** Dự báo đa biến trên 12 trạm UCI Beijing Multi-Site Air-Quality (PRSA) có trong `data/raw/` • Chuỗi thời gian dài ($L=96 \rightarrow H \in \{24, 48, 96, 192\}$) • Minh bạch hóa quyết định (SHAP & Integrated Gradients) • Quản trị dự án dựa trên bằng chứng (*Evidence-First*).
 
 ---
 
@@ -29,16 +29,16 @@
 
 ## 🔬 1. BỐI CẢNH KHOA HỌC & CÂU HỎI NGHIÊN CỨU (RQs)
 
-Bắc Kinh và vùng đồng bằng Hoa Bắc (North China Plain) thường xuyên đối mặt với các đợt ô nhiễm bụi mịn $\text{PM}_{2.5}$ (đường kính khí động học $\le 2.5\ \mu\text{m}$) nghiêm trọng. Theo nghiên cứu nền tảng của **Zhang et al. (2017)** trên dữ liệu từ 36 trạm quan trắc chất lượng không khí kết hợp 15 trạm khí tượng tại Bắc Kinh:
+Bắc Kinh và vùng đồng bằng Hoa Bắc (North China Plain) thường xuyên đối mặt với các đợt ô nhiễm bụi mịn $\text{PM}_{2.5}$ (đường kính khí động học $\le 2.5\ \mu\text{m}$) nghiêm trọng. **Zhang et al. (2017) được giữ làm nền tảng lý thuyết/ngữ cảnh nghiên cứu riêng biệt**; các con số và nhận định dưới đây mô tả nghiên cứu được trích dẫn (36 trạm chất lượng không khí và 15 trạm khí tượng), không mô tả tập dữ liệu hoặc quy mô thực nghiệm của repository. Dữ liệu thực nghiệm trong repository là 12 trạm UCI PRSA.
 - **Hơn $70\%$ biến thiên của $\text{PM}_{2.5}$ bị chi phối bởi các yếu tố khí tượng**, đặc biệt là hiện tượng tạo hạt thứ cấp (*secondary generation*) khi độ ẩm/nhiệt độ điểm sương (**DEW**) cao kết hợp gió lặng và hướng gió (**WD**) thổi từ vùng công nghiệp phía Nam.
-- Dữ liệu thể hiện tính **phi tuyến mạnh**, **phụ thuộc xa theo thời gian** và **bất đối xứng theo không gian địa lý** giữa 36 trạm quan trắc.
+- Nghiên cứu được trích dẫn ghi nhận tính **phi tuyến mạnh**, **phụ thuộc xa theo thời gian** và **bất đối xứng theo không gian địa lý** trong phạm vi dữ liệu của nghiên cứu đó.
 
 Dự án **`DL-PM25-BJ`** giải quyết bài toán thông qua 3 câu hỏi nghiên cứu cốt lõi:
 
 | Mã RQ | Câu hỏi Nghiên cứu (Research Question) | Giả thuyết Khoa học & Hướng kiểm chứng |
 | :--- | :--- | :--- |
 | **RQ1** | Kiến trúc **PatchTST** có làm giảm đáng kể sai số $\text{MSE}/\text{MAE}$ ở khung dự báo dài hạn ($H = 96, 192$) so với **LSTM Baseline** không? | Cơ chế chia đoạn (*Patching*) và *Channel-Independence* giúp giữ thông tin cục bộ và bắt phụ thuộc xa tốt hơn cổng nhớ tuần tự của RNN. |
-| **RQ2** | Tinh chỉnh trọng số riêng cho từng trạm (**Station-specific Fine-tuning**) có vượt trội hơn một mô hình huấn luyện chung cho cả 36 trạm không? | Đặc thù địa lý (khu vực phía Nam gần vùng công nghiệp vs. phía Bắc) đòi hỏi mô hình thích nghi với phân phối cục bộ của từng trạm. |
+| **RQ2** | Tinh chỉnh trọng số riêng cho từng trạm (**Station-specific Fine-tuning**) có vượt trội hơn mô hình huấn luyện chung trên 12 trạm UCI PRSA không? | Đánh giá khả năng thích nghi với phân phối cục bộ của từng trạm trong phạm vi bộ dữ liệu thực nghiệm hiện có. |
 | **RQ3** | Đặc trưng hướng gió (**WD**) và điểm sương (**DEW**) có cải thiện độ chính xác tại các đỉnh ô nhiễm (**Smog Spikes**, $\text{PM}_{2.5} > 150\ \mu\text{g/m}^3$) so với mô hình đơn biến không? | Biến khí tượng cung cấp tín hiệu sớm về sự tích tụ hoặc khuếch tán bụi mịn, được định lượng tường minh qua **SHAP** và **Integrated Gradients**. |
 
 ---
@@ -56,7 +56,7 @@ Hệ thống được mô hình hóa theo tư duy **Levels of Abstraction (Mô h
 flowchart LR
     subgraph INPUT ["🌍 NGUỒN DỮ LIỆU ĐẦU VÀO"]
         direction TB
-        S1["📡 36 Trạm Quan Trắc Bắc Kinh<br/>(BMEMC & US Embassy)<br/>Chuỗi thời gian hàng giờ"]
+        S1["📡 12 Trạm UCI PRSA hiện có<br/>Chuỗi thời gian hàng giờ"]
         S2["🌦️ 6 Biến Khí Tượng Cốt Lõi<br/>TEMP, PRE, DEW (Điểm sương),<br/>WD (Hướng gió), CWS/WSPM, RAIN"]
     end
 
@@ -93,7 +93,7 @@ flowchart LR
 ```mermaid
 graph TD
     subgraph WP01 ["📦 WP01: DATA PIPELINE (src/data_pipeline/)"]
-        Raw[("data/raw/<br/>Dữ liệu 36 trạm")] --> Impute["preprocess.py :: DataImputer<br/>Linear Interpolation + Forward Fill"]
+        Raw[("data/raw/<br/>12 trạm UCI PRSA")] --> Impute["preprocess.py :: DataImputer<br/>Linear Interpolation + Forward Fill"]
         Impute --> Encode["preprocess.py :: FeatureEncoder<br/>One-Hot WD (5 chiều) + Cyclic Sin/Cos (Giờ, Tháng)"]
         Encode --> Split["dataset.py :: TemporalSplitter<br/>Chia tuần tự 60% / 10% / 10% / 20%<br/>(TUYỆT ĐỐI KHÔNG SHUFFLE)"]
         Split -->|Chỉ .fit trên Train| Scaler["preprocess.py :: StandardScaler<br/>.fit_transform(Train) & .transform(Val, Test)"]
@@ -104,7 +104,7 @@ graph TD
         Window --> Loop{"training_loop.py :: TrainingPipeline<br/>Multi-Seed [42, 1024, 2026]<br/>Early Stopping & Checkpoint"}
         Loop -->|Baseline| BaseM["lstm.py (LSTMModel)<br/>dlinear.py (DLinearModel)"]
         Loop -->|SOTA| SotaM["informer.py (InformerModel)<br/>patchtst.py (PatchTSTModel)"]
-        SotaM --> FT["Station-Specific Fine-Tuning<br/>Tinh chỉnh trọng số riêng cho 36 trạm"]
+        SotaM --> FT["Station-Specific Fine-Tuning<br/>Tối đa 12 trạm UCI PRSA"]
         BaseM --> Metrics["utils_metrics.py<br/>Đánh giá MSE, MAE (mean ± std)"]
         FT --> Metrics
     end
@@ -200,9 +200,9 @@ Toàn bộ dự án tuân thủ kiến trúc phân tầng nghiêm ngặt. Mã ng
 ```text
 beijing-pm25-deeplearning/
 ├── configs/
-│   └── config.yaml            # Quản lý tập trung Hyperparameters (L=96, H, LR, Paths)
+│   └── default.yaml           # Quản lý tập trung Hyperparameters (L=96, H, LR, Paths)
 ├── data/
-│   ├── raw/                   # [READ-ONLY] Dữ liệu gốc 36 trạm Bắc Kinh (gitignored)
+│   ├── raw/                   # [READ-ONLY] 12 file trạm UCI PRSA hiện có (gitignored)
 │   └── processed/             # [WRITE-ONLY] Dữ liệu đã Impute, Encode & Scale (gitignored)
 ├── docs/                      # [MANDATORY] HỆ THỐNG LƯU TRỮ BẰNG CHỨNG (Git Tracked 100%)
 │   ├── bug-fixes/             # Biên bản sửa lỗi: [YYMMDD]_[HHMM]_[tên_vấn_đề].md
@@ -214,7 +214,7 @@ beijing-pm25-deeplearning/
 │   └── 02_xai_analysis.ipynb  # [WP04 - T0403] Phân tích lỗi tại các đỉnh Smog Spikes
 ├── scripts/
 │   ├── train.sh               # [WP03 - T0305] Script tự động huấn luyện qua 3 Random Seeds
-│   └── evaluate.sh            # [WP06 - T0601] Script đánh giá tổng hợp & Ablation Studies
+│   └── ablation.sh            # [WP06 - T0601] Script đánh giá tổng hợp & Ablation Studies
 ├── src/                       # [CORE] 100% OOP & Docstring Tiếng Việt
 │   ├── __init__.py
 │   ├── data_pipeline/
@@ -258,7 +258,7 @@ $$\text{MSE} = \frac{1}{H} \sum_{t=1}^{H} \left(y_t - \hat{y}_t\right)^2, \qquad
 | **EXP-01 (Full)** | `PatchTST` / `Informer` (Đầy đủ) | Đa biến ($\text{PM}_{2.5}$ + 6 biến khí tượng + Cyclic) | *Patching* / *ProbSparse Attention* $O(L \log L)$ | Chuẩn hiệu năng cao nhất của hệ thống (Kiểm chứng **RQ1**). |
 | **EXP-02 (Ablation 1)** | Mô hình Đơn biến (*Univariate*) | Chỉ dùng lịch sử $\text{PM}_{2.5}$ (Bỏ biến khí tượng) | Giữ nguyên kiến trúc SOTA | Chứng minh vai trò thiết yếu của `DEW`, `WD`, `TEMP` tại đỉnh ô nhiễm (**RQ3**). |
 | **EXP-03 (Ablation 2)** | `Informer_NoProbSparse` | Đa biến đầy đủ | Thay *ProbSparse* bằng *Canonical Full Attention* $O(L^2)$ | Đánh giá chi phí bộ nhớ, tốc độ hội tụ và hiệu quả lọc nhiễu của *ProbSparse*. |
-| **EXP-04 (Ablation 3)** | Global Model vs. Fine-tuned 36 Trạm | Đa biến đầy đủ | Huấn luyện chung vs. *Station-specific Fine-tuning* | Định lượng mức cải thiện sai số khi cá nhân hóa trọng số cho từng trạm (**RQ2**). |
+| **EXP-04 (Ablation 3)** | Global Model vs. Fine-tuned trên 12 trạm UCI PRSA | Đa biến đầy đủ | Huấn luyện chung vs. *Station-specific Fine-tuning* | Định lượng mức cải thiện sai số khi cá nhân hóa trọng số cho từng trạm (**RQ2**). |
 
 ---
 
@@ -282,21 +282,21 @@ pip install -r requirements.txt
 ### 5.2. Chạy Pipeline Dữ liệu, Huấn luyện & Đánh giá Đa Seed
 ```bash
 # Bước 1: Chạy tiền xử lý dữ liệu (Imputation, Cyclic/One-Hot Encoding, Train-only Scaling)
-python -m src.data_pipeline.preprocess --config configs/config.yaml
+python -m src.data_pipeline.preprocess --config configs/default.yaml
 
 # Bước 2: Huấn luyện thử nghiệm một mô hình đơn lẻ với cấu hình YAML
-python training_loop.py --config configs/config.yaml --model patchtst --horizon 96 --seed 42
+python training_loop.py --config configs/default.yaml --model patchtst --horizon 96 --seed 42
 
 # Bước 3: Chạy tự động toàn bộ thực nghiệm qua 3 Random Seeds và xuất bảng (mean ± std)
 bash scripts/train.sh
-bash scripts/evaluate.sh
+bash scripts/ablation.sh
 ```
 
 ### 5.3. Khởi chạy Giao diện Web Demo (Streamlit Dashboard)
 ```bash
 streamlit run src/app/main.py
 ```
-> Truy cập `http://localhost:8501` trên trình duyệt để tải lên file CSV thực tế, chọn trạm quan trắc trong 36 trạm, lựa chọn mô hình (`LSTM`, `DLinear`, `Informer`, `PatchTST`) và tương tác trực tiếp với biểu đồ dự báo nối mượt quá khứ - tương lai kèm giải thích SHAP/IG.
+> Truy cập `http://localhost:8501` trên trình duyệt để tải lên file CSV thực tế, chọn một trong tối đa 12 trạm UCI PRSA được cung cấp, lựa chọn mô hình (`LSTM`, `DLinear`, `Informer`, `PatchTST`) và tương tác trực tiếp với biểu đồ dự báo nối mượt quá khứ - tương lai kèm giải thích SHAP/IG.
 
 ### 5.4. Đóng gói & Khởi chạy bằng Docker (MLOps Containerization)
 ```bash
@@ -352,7 +352,7 @@ Dự án gồm **26 nhiệm vụ (`T0101` – `T0604`)** được chia thành **
 | **WP03** | **SOTA Model & Fine-Tuning** | `T0301` – `T0305` | `training_loop.py`<br>`src/models/informer.py`<br>`src/models/patchtst.py`<br>`scripts/train.sh` | **Đinh Thái Toàn** |
 | **WP04** | **XAI Integration** | `T0401` – `T0403` | `src/xai/shap_explainer.py`<br>`src/xai/ig_explainer.py`<br>`notebooks/02_xai_analysis.ipynb` | **Nguyễn Tấn Duy** |
 | **WP05** | **Web Demo & UI/UX** | `T0501`, `T0502`, `T0504` | `src/app/main.py` | **Nguyễn Công Trí** |
-| **WP06** | **MLOps, Ablation & Documentation** | `T0503`, `T0601` – `T0604` | `Dockerfile`, `requirements.txt`<br>`configs/config.yaml`<br>`README.md`, `docs/` | **Nguyễn Công Trí** &<br>**Đinh Thái Toàn** |
+| **WP06** | **MLOps, Ablation & Documentation** | `T0503`, `T0601` – `T0604` | `Dockerfile`, `requirements.txt`<br>`configs/default.yaml`<br>`README.md`, `docs/` | **Nguyễn Công Trí** &<br>**Đinh Thái Toàn** |
 
 ---
 

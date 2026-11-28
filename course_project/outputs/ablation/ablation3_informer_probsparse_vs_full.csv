@@ -1,3 +1,0 @@
-﻿horizon,probsparse_mse,full_attn_mse,probsparse_rmse,full_attn_rmse,rmse_reduction_pct,probsparse_mae,full_attn_mae,probsparse_time_sec,full_attn_time_sec,speedup_ratio,probsparse_vram_mb,full_attn_vram_mb,vram_saved_pct
-96,1.648650 ± 0.016738,1.649734 ± 0.028337,1.283987 ± 0.006522,1.284388 ± 0.011035,0.03,0.935697 ± 0.006286,0.937815 ± 0.018715,2031.56,2579.11,1.27x,1138.45,1880.24,39.45
-192,1.804310 ± 0.021195,1.810910 ± 0.020054,1.343230 ± 0.007880,1.345687 ± 0.007458,0.18,0.993946 ± 0.004987,0.999928 ± 0.013148,2584.12,3262.13,1.26x,1516.17,1880.81,19.39

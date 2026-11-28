@@ -18,7 +18,17 @@ venv/
 .venv/
 env/
 .env
-data/preprocess/train.csv
+
+# Dữ liệu raw gốc và dữ liệu tiền xử lý — không theo dõi trong Git
+data/raw/
+data/preprocess/
+data/processed/*
+!data/processed/.gitkeep
+
+# Đầu ra huấn luyện, logs, checkpoints & artifacts
+outputs/
+*.pkl
+*.log
 # Jupyter Notebook checkpoints
 .ipynb_checkpoints/
 

@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import joblib
 import numpy as np
 import pandas as pd
+import yaml
 from sklearn.preprocessing import StandardScaler
 
 TARGET_COL = "pm2.5"
@@ -219,7 +220,32 @@ def verify_causal_preprocessing(
     )
 
 
-def run_preprocess(raw_dir: Path, out_dir: Path) -> None:
+def load_preprocess_config(config_path: Optional[Path]) -> Dict[str, Any]:
+    """Đọc cấu hình tiền xử lý từ tệp YAML (mặc định configs/default.yaml)."""
+    if config_path is None or not Path(config_path).exists():
+        return {}
+    with open(config_path, "r", encoding="utf-8") as f:
+        return yaml.safe_load(f) or {}
+
+
+def run_preprocess(
+    raw_dir: Path,
+    out_dir: Path,
+    config_path: Optional[Path] = Path("configs/default.yaml"),
+) -> None:
+    """Chạy toàn bộ pipeline tiền xử lý nhân quả dựa trên cấu hình YAML."""
+    cfg = load_preprocess_config(config_path)
+    data_cfg = cfg.get("data", {}) if isinstance(cfg.get("data"), dict) else {}
+    paths_cfg = cfg.get("paths", {}) if isinstance(cfg.get("paths"), dict) else {}
+
+    if out_dir == Path("data/preprocess") and paths_cfg.get("data_dir"):
+        out_dir = Path(str(paths_cfg["data_dir"]))
+
+    train_end = str(data_cfg.get("train_end", "2015-12-31 23:00:00"))
+    train_dev_end = str(data_cfg.get("train_dev_end", "2016-04-30 23:00:00"))
+    dev_end = str(data_cfg.get("dev_end", "2016-08-31 23:00:00"))
+    allowed_stations = data_cfg.get("stations")
+
     csv_files = sorted(raw_dir.glob("PRSA_Data_*.csv"))
     if not csv_files:
         raise FileNotFoundError(
@@ -227,7 +253,22 @@ def run_preprocess(raw_dir: Path, out_dir: Path) -> None:
         )
     raw_df = pd.concat([pd.read_csv(p) for p in csv_files], ignore_index=True)
 
-    splits = split_chronological_per_station(raw_df)
+    # Chuẩn hóa tên cột về chữ thường để khớp với CONTINUOUS_COLS (lowercase).
+    # Giữ nguyên cột 'station' và 'wd'/'cbwd' (không đổi sang chữ thường vì giá trị là chuỗi).
+    preserve_as_is = {"station", "wd", "cbwd", "datetime"}
+    raw_df.columns = [
+        c.lower() if c not in preserve_as_is else c for c in raw_df.columns
+    ]
+
+    if isinstance(allowed_stations, list) and allowed_stations and "station" in raw_df.columns:
+        raw_df = raw_df[raw_df["station"].isin(allowed_stations)].reset_index(drop=True)
+
+    splits = split_chronological_per_station(
+        raw_df,
+        train_end=train_end,
+        train_dev_end=train_dev_end,
+        dev_end=dev_end,
+    )
     imputed = causal_impute_splits(splits)
     encoded = encode_features(imputed)
     verify_causal_preprocessing(raw_df, encoded)
@@ -235,13 +276,20 @@ def run_preprocess(raw_dir: Path, out_dir: Path) -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
     for split_name, df_out in encoded.items():
         df_out.to_csv(out_dir / f"{split_name}.csv", index=False)
-    print(f"[SAVED] Đã xuất 4 tập sạch nhân quả (D=31) tại: {out_dir}")
+
+    # Xuất kèm StandardScaler khớp duy nhất trên tập train (D=31) để đồng bộ
+    # với các công cụ kiểm định/XAI/ONNX, giữ nguyên CSV chưa scale để tránh Double-Scaling.
+    scaler = StandardScaler()
+    scaler.fit(encoded["train"][CANONICAL_COLS])
+    joblib.dump(scaler, out_dir / "standard_scaler.pkl")
+    print(f"[SAVED] Đã xuất 4 tập sạch nhân quả (D=31) và standard_scaler.pkl tại: {out_dir}")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+    parser.add_argument("--config", type=Path, default=Path("configs/default.yaml"))
     parser.add_argument("--raw-dir", type=Path, default=Path("data/raw"))
     parser.add_argument("--out-dir", type=Path, default=Path("data/preprocess"))
     args = parser.parse_args()
-    run_preprocess(args.raw_dir, args.out_dir)
+    run_preprocess(args.raw_dir, args.out_dir, config_path=args.config)
 

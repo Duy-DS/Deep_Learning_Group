@@ -34,7 +34,7 @@ class ExperimentMetricsContract(BaseModel):
         "LSTM", "DLinear", "Informer", "Informer_NoProbSparse", "PatchTST"
     ] = Field(..., description="Tên kiến trúc mô hình")
     station_id: str = Field(
-        ..., description="Tên trạm quan trắc (hoặc 'ALL_36_STATIONS')"
+        ..., description="Tên trạm quan trắc (hoặc 'ALL_12_STATIONS' cho UCI PRSA)"
     )
     horizon: Literal[24, 48, 96, 192] = Field(
         ..., description="Khung dự báo tương lai (H giờ)"
@@ -79,7 +79,7 @@ class MetricsCalculator:
         >>> contract = calc.summarize_multi_seed(
         ...     experiment_id="EXP01",
         ...     model_name="LSTM",
-        ...     station_id="ALL_36_STATIONS",
+        ...     station_id="ALL_12_STATIONS",
         ...     horizon=24,
         ...     mse_per_seed=[0.12, 0.13, 0.11],
         ...     mae_per_seed=[0.25, 0.27, 0.24],
@@ -267,7 +267,7 @@ def _run_smoke_test() -> None:
     contract = calc.summarize_multi_seed(
         experiment_id="EXP_SMOKE",
         model_name="LSTM",
-        station_id="ALL_36_STATIONS",
+        station_id="ALL_12_STATIONS",
         horizon=24,
         mse_per_seed=[0.100, 0.110, 0.090],
         mae_per_seed=[0.250, 0.260, 0.240],

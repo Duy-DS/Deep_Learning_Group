@@ -23,7 +23,7 @@
 ## 2. Thiết lập thực nghiệm & Tính tái lập (Experimental Setup & Reproducibility)
 - **Kiến trúc mô hình:** [LSTM | DLinear | Informer | Informer_NoProbSparse | PatchTST]
 - **Chế độ dữ liệu:** `[multivariate | univariate]`
-- **Phạm vi dữ liệu:** Trạm cụ thể hoặc toàn bộ 36 trạm quan trắc (`ALL_36_STATIONS`).
+- **Phạm vi dữ liệu:** Trạm cụ thể hoặc toàn bộ 12 trạm UCI PRSA (`ALL_12_STATIONS`).
 - **Phân chia chuỗi thời gian:** `60% Train / 10% Val / 10% Val-test / 20% Test` (Chia tuyến tính theo thời gian, tuyệt đối không shuffle).
 - **Quy chuẩn chống rò rỉ (Data Leakage Guard):** StandardScaler chỉ fit trên tập Train, sau đó transform cho Val/Test.
 - **Cấu hình trượt (Sliding Window):**
