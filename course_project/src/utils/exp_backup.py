@@ -16,6 +16,47 @@ import pandas as pd
 import yaml
 
 
+def load_env_file(env_path: str | Path = ".env") -> Dict[str, str]:
+    """
+    Nạp các biến môi trường từ tệp `.env` (dùng `python-dotenv` nếu có, hoặc parser tích hợp)
+    mà không ghi đè các biến đã tồn tại trong `os.environ`.
+
+    Tham số:
+        env_path (str | Path): Đường dẫn tệp `.env`.
+
+    Trả về:
+        Dict[str, str]: Từ điển tên biến và giá trị đã nạp từ `.env`.
+    """
+    loaded: Dict[str, str] = {}
+    target = Path(env_path)
+    if not target.exists():
+        return loaded
+
+    try:
+        from dotenv import dotenv_values  # type: ignore
+
+        raw_map = dotenv_values(target)
+        for k, v in raw_map.items():
+            if k and v is not None:
+                loaded[str(k)] = str(v)
+                os.environ.setdefault(str(k), str(v))
+        return loaded
+    except Exception:
+        pass
+
+    for line in target.read_text(encoding="utf-8").splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#") or "=" not in stripped:
+            continue
+        key, val = stripped.split("=", 1)
+        key = key.strip()
+        val = val.strip().strip('"').strip("'")
+        if key:
+            loaded[key] = val
+            os.environ.setdefault(key, val)
+    return loaded
+
+
 class MLflowRunLogger:
     """
     Lớp bao bọc ghi nhận thực nghiệm MLflow an toàn theo biến môi trường `MLFLOW_TRACKING_URI`.
@@ -26,17 +67,20 @@ class MLflowRunLogger:
 
     def __init__(
         self,
-        experiment_name: str = "DL-PM25-BJ",
+        experiment_name: Optional[str] = None,
         tracking_uri: Optional[str] = None,
     ) -> None:
         """
         Khởi tạo logger MLflow với tên thí nghiệm và Tracking URI động.
 
         Tham số:
-            experiment_name (str): Tên experiment trên MLflow.
+            experiment_name (Optional[str]): Tên experiment trên MLflow (mặc định đọc từ `MLFLOW_EXPERIMENT_NAME`).
             tracking_uri (Optional[str]): URI lưu trữ MLflow; mặc định đọc từ `MLFLOW_TRACKING_URI` hoặc `mlruns`.
         """
-        self.experiment_name = experiment_name
+        load_env_file()
+        self.experiment_name = experiment_name or os.environ.get(
+            "MLFLOW_EXPERIMENT_NAME", "DL-PM25-BJ"
+        )
         self.tracking_uri = tracking_uri or os.environ.get("MLFLOW_TRACKING_URI", "mlruns")
         self._mlflow: Any = None
         try:
@@ -281,6 +325,7 @@ class ExperimentBackupManager:
         mlruns_dir: str | Path = "mlruns",
         output_dir: str | Path = "outputs",
         backup_dir: str | Path = "backups",
+        gdrive_folder_id: Optional[str] = None,
     ) -> None:
         """
         Khởi tạo trình quản lý sao lưu thực nghiệm.
@@ -290,11 +335,16 @@ class ExperimentBackupManager:
             mlruns_dir (str | Path): Thư mục lưu trữ MLflow runs.
             output_dir (str | Path): Thư mục đầu ra thực nghiệm (`outputs/`).
             backup_dir (str | Path): Thư mục chứa gói nén `.zip` đầu ra.
+            gdrive_folder_id (Optional[str]): Folder ID Google Drive đích (mặc định đọc từ `.env`).
         """
         self.project_root = Path(project_root).resolve()
+        load_env_file(self.project_root / ".env")
         self.mlruns_dir = self._resolve_path(mlruns_dir)
         self.output_dir = self._resolve_path(output_dir)
         self.backup_dir = self._resolve_path(backup_dir)
+        self.gdrive_folder_id = gdrive_folder_id or os.environ.get(
+            "GDRIVE_BACKUP_FOLDER_ID", "1AaKHRC-_WUQ5eZSdY9nRcINfQkfcefJL"
+        )
 
     def _resolve_path(self, target: str | Path) -> Path:
         """Chuẩn hóa đường dẫn tương đối dựa trên `project_root`."""
@@ -370,6 +420,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output-dir", type=Path, default=Path("outputs"))
     parser.add_argument("--backup-dir", type=Path, default=Path("backups"))
     parser.add_argument(
+        "--gdrive-folder-id",
+        type=str,
+        default=None,
+        help="Google Drive Folder ID đích (mặc định đọc từ GDRIVE_BACKUP_FOLDER_ID trong .env).",
+    )
+    parser.add_argument(
         "--include-checkpoints",
         action="store_true",
         help="Đính kèm thư mục outputs/checkpoints/ vào tệp zip sao lưu.",
@@ -389,6 +445,7 @@ if __name__ == "__main__":
         mlruns_dir=args.mlruns_dir,
         output_dir=args.output_dir,
         backup_dir=args.backup_dir,
+        gdrive_folder_id=args.gdrive_folder_id,
     )
     manager.create_backup_archive(
         include_checkpoints=args.include_checkpoints,

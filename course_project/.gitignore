@@ -10,30 +10,51 @@ __pycache__/
 *.onnx
 *.ckpt
 *.h5
+*.pkl
+*.csv
+*.parquet
+*.feather
+*.log
+*.zip
 checkpoints/
 weights/
+backups/
 
-# Môi trường ảo & Biến môi trường
+# Môi trường ảo & Biến môi trường (Bảo vệ bí mật .env, giữ .env.example)
 venv/
 .venv/
 env/
 .env
+.env.*
+!.env.example
 
-# Dữ liệu raw gốc và dữ liệu tiền xử lý — không theo dõi trong Git
-data/raw/
-data/preprocess/
+# Giữ khung thư mục dữ liệu bằng .gitkeep
+data/raw/*
+!data/raw/.gitkeep
 data/processed/*
 !data/processed/.gitkeep
+data/preprocess/*
+!data/preprocess/.gitkeep
 
-# Đầu ra huấn luyện, logs, checkpoints & artifacts
-outputs/
-mlruns/
-backups/
-dl_pm25_bj_backup_*.zip
-*.zip
-*.pkl
-*.log
-# Jupyter Notebook checkpoints
+# Giữ khung thư mục đầu ra & MLflow bằng .gitkeep
+outputs/*
+!outputs/.gitkeep
+!outputs/checkpoints/
+outputs/checkpoints/*
+!outputs/checkpoints/.gitkeep
+!outputs/logs/
+outputs/logs/*
+!outputs/logs/.gitkeep
+!outputs/ablation/
+outputs/ablation/*
+!outputs/ablation/.gitkeep
+!outputs/reports/
+outputs/reports/*
+!outputs/reports/.gitkeep
+mlruns/*
+!mlruns/.gitkeep
+
+# Jupyter Notebook checkpoints & Giữ notebook Cloud GPU
 .ipynb_checkpoints/
 !notebooks/colab/*.ipynb
 !notebooks/kaggle/*.ipynb

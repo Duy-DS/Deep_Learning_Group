@@ -293,26 +293,54 @@ __pycache__/
 *.onnx
 *.ckpt
 *.h5
-checkpoints/
-weights/
-
-# Dữ liệu thô và dữ liệu đã xử lý (Chỉ giữ lại file .gitkeep)
-data/raw/*
-!data/raw/.gitkeep
-data/processed/*
-!data/processed/.gitkeep
+*.pkl
 *.csv
 *.parquet
 *.feather
+*.log
+*.zip
+checkpoints/
+weights/
+backups/
 
-# Môi trường ảo & Biến môi trường
+# Môi trường ảo & Biến môi trường (Bảo vệ bí mật .env, giữ .env.example)
 venv/
 .venv/
 env/
 .env
+.env.*
+!.env.example
 
-# Jupyter Notebook checkpoints
+# Giữ khung thư mục dữ liệu bằng .gitkeep
+data/raw/*
+!data/raw/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+data/preprocess/*
+!data/preprocess/.gitkeep
+
+# Giữ khung thư mục đầu ra & MLflow bằng .gitkeep
+outputs/*
+!outputs/.gitkeep
+!outputs/checkpoints/
+outputs/checkpoints/*
+!outputs/checkpoints/.gitkeep
+!outputs/logs/
+outputs/logs/*
+!outputs/logs/.gitkeep
+!outputs/ablation/
+outputs/ablation/*
+!outputs/ablation/.gitkeep
+!outputs/reports/
+outputs/reports/*
+!outputs/reports/.gitkeep
+mlruns/*
+!mlruns/.gitkeep
+
+# Jupyter Notebook checkpoints & Giữ notebook Cloud GPU
 .ipynb_checkpoints/
+!notebooks/colab/*.ipynb
+!notebooks/kaggle/*.ipynb
 
 # Thư mục log tạm của trình huấn luyện (TensorBoard / WandB)
 runs/
@@ -327,10 +355,9 @@ Thumbs.db
 
 # BẢO VỆ HỆ THỐNG BẰNG CHỨNG: Luôn cho phép Git theo dõi toàn bộ thư mục docs/
 !docs/
-!docs/bug-fixes/*.md
-!docs/dev-logs/*.md
-!docs/reports/*.md
-!docs/experiences/*.md
+!docs/**/
+!docs/**/*.md
+!docs/**/.gitkeep
 ```
 
 ### **10. Standard Execution Commands & Completion Checklist**
