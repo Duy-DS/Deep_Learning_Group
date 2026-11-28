@@ -1,0 +1,212 @@
+# ==============================================================================
+# Cấu hình Kiểm thử Nhanh End-to-End (Smoke Test trên CPU < 5 phút)
+# Tách biệt hoàn toàn đường dẫn đầu ra (outputs_test/, mlruns_test/, data/preprocess_test/)
+# để không ghi đè dữ liệu hoặc trọng số của các lượt huấn luyện chính thức.
+# ==============================================================================
+paths:
+  data_dir: "data/preprocess_test"
+  output_dir: "outputs_test"
+  global_ckpt_dir: "outputs_test/checkpoints/global"
+  station_ckpt_dir: "outputs_test/checkpoints/stations"
+  wp02_ckpt_dir: "outputs_test/checkpoints/wp02_baseline"
+  wp02_log_dir: "outputs_test/logs/wp02_baseline"
+  log_dir: "outputs_test/logs"
+  report_dir: "outputs_test/reports"
+  ablation_dir: "outputs_test/ablation"
+  scaler_template: "outputs_test/checkpoints/global/scaler_12stations_{mode}.joblib"
+  mlruns_dir: "mlruns_test"
+
+xai:
+  background_split: "train"
+  eval_split: "test"
+  background_samples: 10
+  eval_samples: 10
+  nsamples: 10
+  seed: 42
+  device: "cpu"
+
+data:
+  mode: "multivariate"
+  num_stations: 2
+  target_col: "pm2.5"
+  target_idx: 0
+  lookback: 96
+  horizon: 24
+  horizons: [24]
+  train_stride: 24
+  eval_stride: 24
+  train_dev_stride: 24
+  dev_stride: 24
+  test_stride: 24
+  train_end: "2015-12-31 23:00:00"
+  train_dev_end: "2016-04-30 23:00:00"
+  dev_end: "2016-08-31 23:00:00"
+  num_continuous_features: 11
+  include_wind_onehot: true
+  canonical_multivariate_cols:
+    - "pm2.5"
+    - "pm10"
+    - "so2"
+    - "no2"
+    - "co"
+    - "o3"
+    - "temp"
+    - "pres"
+    - "dewp"
+    - "rain"
+    - "wspm"
+    - "hour_sin"
+    - "hour_cos"
+    - "month_sin"
+    - "month_cos"
+  stations:
+    - "Aotizhongxin"
+    - "Changping"
+
+wp02_baseline:
+  models:
+    - "lstm"
+    - "dlinear"
+  seeds: [42]
+  batch_size: 16
+  epochs: 1
+  patience: 1
+  lr: 1.0e-3
+  optimizer: "Adam"
+  scheduler: "ReduceLROnPlateau"
+
+pretrain:
+  models:
+    - "lstm"
+    - "dlinear"
+    - "informer"
+    - "patchtst"
+  all_supported_models:
+    - "lstm"
+    - "dlinear"
+    - "informer"
+    - "patchtst"
+    - "informer_full"
+  seeds: [42]
+  batch_size: 16
+  epochs: 1
+  patience: 1
+  lr: 2.0e-4
+  dlinear_lr: 1.0e-3
+  weight_decay: 3.0e-2
+  dropout: 0.30
+  use_residual_anchor: false
+  val_selection_mode: "balanced_dev"
+  loss_fn: "PeakShapeLoss"
+  huber_delta: 2.5
+  peak_threshold_z: 0.84
+  peak_alpha: 0.15
+  diff_weight: 0.05
+  peak_max_weight: 3.0
+  eval_metric: "MSELoss"
+  optimizer: "AdamW"
+  scheduler: "StepwiseWarmupCosine"
+  warmup_ratio: 0.15
+  min_lr_ratio: 0.01
+  max_grad_norm: 1.0
+  use_amp: false
+  limit_train_batches: 2
+  limit_val_batches: 2
+  include_wp02_baseline: false
+
+finetune:
+  models:
+    - "lstm"
+    - "dlinear"
+    - "informer"
+    - "patchtst"
+  ckpt_source: "wp03"
+  stride: 24
+  batch_size: 16
+  epochs: 1
+  patience: 1
+  lr: 5.0e-5
+  backbone_lr_ratio: 0.1
+  weight_decay: 2.0e-2
+  freeze_backbone: true
+  unfreeze_backbone: false
+  val_selection_mode: "balanced_dev"
+  seed: 42
+  loss_fn: "PeakShapeLoss"
+  huber_delta: 2.5
+  peak_threshold_z: 0.84
+  peak_alpha: 0.15
+  diff_weight: 0.05
+  peak_max_weight: 3.0
+  scheduler: "ReduceLROnPlateau"
+  scheduler_factor: 0.5
+  scheduler_patience: 2
+  limit_train_batches: 2
+  limit_val_batches: 2
+
+models:
+  patchtst:
+    patch_len: 12
+    stride: 6
+    d_model: 128
+    n_heads: 4
+    e_layers: 3
+    d_ff: 256
+    dropout: 0.30
+    lr: 2.0e-4
+    target_idx: 0
+    num_continuous_features: 11
+    min_std: 0.1
+    use_revin: false
+    use_revin_wrapper: false
+
+  informer:
+    d_model: 128
+    n_heads: 4
+    e_layers: 2
+    d_layers: 1
+    d_ff: 256
+    factor: 5
+    label_len: 48
+    dropout: 0.25
+    lr: 2.0e-4
+    activation: "gelu"
+    attention_type: "probsparse"
+    deterministic_eval: true
+    use_revin_wrapper: false
+
+  informer_full:
+    d_model: 128
+    n_heads: 4
+    e_layers: 2
+    d_layers: 1
+    d_ff: 256
+    factor: 96
+    label_len: 48
+    dropout: 0.25
+    lr: 2.0e-4
+    activation: "gelu"
+    attention_type: "full"
+    deterministic_eval: true
+    use_revin_wrapper: false
+
+  lstm:
+    hidden_size: 128
+    num_layers: 2
+    dropout: 0.30
+    lr: 3.0e-4
+    use_revin_wrapper: false
+
+  dlinear:
+    kernel_size: 25
+    lr: 1.0e-3
+    use_revin_wrapper: false
+
+ablation:
+  ablations: ["all"]
+  all_horizons: [24]
+  ab3_horizons: [24]
+  skip_existing: true
+  with_finetune: false
+  with_wp02_baseline: false
+

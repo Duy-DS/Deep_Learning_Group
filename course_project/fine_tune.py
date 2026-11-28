@@ -413,6 +413,8 @@ def finetune_single_station(
     seed: int = 42,
     device: Optional[torch.device] = None,
     metrics_calc: Optional[MetricsCalculator] = None,
+    limit_train_batches: Optional[int] = None,
+    limit_val_batches: Optional[int] = None,
 ) -> Dict[str, object]:
     """
     Nạp trọng số nền (từ WP03 hoặc WP02), đo Zero-shot trên cả 4 tập,
@@ -511,12 +513,29 @@ def finetune_single_station(
 
     # Đo Zero-shot (Trước fine-tune) trên đầy đủ cả 4 tập
     before_train = evaluate(
-        model, station_loaders["train"], eval_criterion, device, calc
+        model,
+        station_loaders["train"],
+        eval_criterion,
+        device,
+        calc,
+        max_batches=limit_val_batches,
     )
     before_train_dev = evaluate(
-        model, station_loaders["train_dev"], eval_criterion, device, calc
+        model,
+        station_loaders["train_dev"],
+        eval_criterion,
+        device,
+        calc,
+        max_batches=limit_val_batches,
     )
-    before_dev = evaluate(model, station_loaders["dev"], eval_criterion, device, calc)
+    before_dev = evaluate(
+        model,
+        station_loaders["dev"],
+        eval_criterion,
+        device,
+        calc,
+        max_batches=limit_val_batches,
+    )
     before_test = evaluate(
         model,
         station_loaders["test"],
@@ -525,6 +544,7 @@ def finetune_single_station(
         calc,
         target_mean=target_mean,
         target_scale=target_scale,
+        max_batches=limit_val_batches,
     )
 
     best_val_score = compute_selection_score(
@@ -628,13 +648,24 @@ def finetune_single_station(
             device=device,
             scaler=grad_scaler,
             scheduler=step_sched,
+            max_batches=limit_train_batches,
         )
         current_lr = optimizer.param_groups[0]["lr"]
         train_dev_metrics = evaluate(
-            model, station_loaders["train_dev"], eval_criterion, device, calc
+            model,
+            station_loaders["train_dev"],
+            eval_criterion,
+            device,
+            calc,
+            max_batches=limit_val_batches,
         )
         dev_metrics = evaluate(
-            model, station_loaders["dev"], eval_criterion, device, calc
+            model,
+            station_loaders["dev"],
+            eval_criterion,
+            device,
+            calc,
+            max_batches=limit_val_batches,
         )
         val_score = compute_selection_score(
             train_dev_mse=train_dev_metrics["mse"],
@@ -690,12 +721,29 @@ def finetune_single_station(
     model.load_state_dict(best_state_dict)
 
     after_train = evaluate(
-        model, station_loaders["train"], eval_criterion, device, calc
+        model,
+        station_loaders["train"],
+        eval_criterion,
+        device,
+        calc,
+        max_batches=limit_val_batches,
     )
     after_train_dev = evaluate(
-        model, station_loaders["train_dev"], eval_criterion, device, calc
+        model,
+        station_loaders["train_dev"],
+        eval_criterion,
+        device,
+        calc,
+        max_batches=limit_val_batches,
     )
-    after_dev = evaluate(model, station_loaders["dev"], eval_criterion, device, calc)
+    after_dev = evaluate(
+        model,
+        station_loaders["dev"],
+        eval_criterion,
+        device,
+        calc,
+        max_batches=limit_val_batches,
+    )
     after_test = evaluate(
         model,
         station_loaders["test"],
@@ -704,6 +752,7 @@ def finetune_single_station(
         calc,
         target_mean=target_mean,
         target_scale=target_scale,
+        max_batches=limit_val_batches,
     )
 
     mse_gain_pct = (
@@ -807,6 +856,9 @@ def run_fine_tuning_pipeline(
     output_root: str | Path = "outputs",
     seed: int = 42,
     num_stations: Optional[int] = None,
+    limit_train_batches: Optional[int] = None,
+    limit_val_batches: Optional[int] = None,
+    mlruns_dir: Optional[str | Path] = None,
 ) -> Dict[str, object]:
     """Fine-tune theo station IDs đọc động và đối chiếu số lượng với cấu hình.
 
@@ -919,6 +971,8 @@ def run_fine_tuning_pipeline(
                 seed=seed,
                 device=device,
                 metrics_calc=metrics_calc,
+                limit_train_batches=limit_train_batches,
+                limit_val_batches=limit_val_batches,
             )
             model_records.append(rec)
             all_station_records.append(rec)
@@ -926,7 +980,9 @@ def run_fine_tuning_pipeline(
             try:
                 from src.utils.exp_backup import MLflowRunLogger
 
-                MLflowRunLogger().log_run(
+                MLflowRunLogger(
+                    tracking_uri=str(mlruns_dir) if mlruns_dir is not None else None
+                ).log_run(
                     run_name=f"finetune_{model_name}_{st}_{mode}_H{horizon}_seed{seed}",
                     params={
                         "stage": "finetune",
@@ -1184,6 +1240,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--target-col", type=str, default="pm2.5")
     parser.add_argument("--num-continuous-features", type=int, default=11)
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--limit-train-batches", type=int, default=None)
+    parser.add_argument("--limit-val-batches", type=int, default=None)
+    parser.add_argument("--mlruns-dir", type=str, default=None)
     # Nạp data.num_stations từ YAML; nếu không có thì dùng contract hiện hành là 12.
     apply_yaml_config(parser, ["paths", "data", "finetune"])
     if parser.get_default("num_stations") is None:
@@ -1222,4 +1281,7 @@ if __name__ == "__main__":
         wp02_ckpt_dir=args.wp02_ckpt_dir,
         output_root=args.output_dir,
         seed=args.seed,
+        limit_train_batches=args.limit_train_batches,
+        limit_val_batches=args.limit_val_batches,
+        mlruns_dir=args.mlruns_dir,
     )

@@ -14,6 +14,7 @@ paths:
   report_dir: "outputs/reports"
   ablation_dir: "outputs/ablation"
   scaler_template: "outputs/checkpoints/global/scaler_12stations_{mode}.joblib"
+  mlruns_dir: "mlruns"
 
 xai:
   background_split: "train"
@@ -118,6 +119,8 @@ pretrain:
   min_lr_ratio: 0.01
   max_grad_norm: 1.0
   use_amp: true
+  limit_train_batches: null            # null = chạy toàn bộ batch khi huấn luyện thật
+  limit_val_batches: null
   include_wp02_baseline: false         # Bật true hoặc truyền --include-wp02-baseline để đối chứng WP02
 
 finetune:
@@ -147,6 +150,8 @@ finetune:
   scheduler: "ReduceLROnPlateau"
   scheduler_factor: 0.5
   scheduler_patience: 2
+  limit_train_batches: null
+  limit_val_batches: null
 
 models:
   patchtst:

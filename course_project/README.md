@@ -200,7 +200,8 @@ Toàn bộ dự án tuân thủ kiến trúc phân tầng nghiêm ngặt. Mã ng
 ```text
 beijing-pm25-deeplearning/
 ├── configs/
-│   └── default.yaml           # Quản lý tập trung Hyperparameters (L=96, H, LR, Paths)
+│   ├── default.yaml           # Quản lý tập trung Hyperparameters (L=96, H, LR, Paths)
+│   └── smoke_test.yaml        # Cấu hình kiểm thử nhanh End-to-End trên CPU (< 5 phút)
 ├── data/
 │   ├── raw/                   # [READ-ONLY] 12 file trạm UCI PRSA hiện có (gitignored)
 │   └── processed/             # [WRITE-ONLY] Dữ liệu đã Impute, Encode & Scale (gitignored)
@@ -213,9 +214,11 @@ beijing-pm25-deeplearning/
 │   ├── 01_eda.ipynb           # [WP01 - T0101] Khám phá dữ liệu, missing values, chu kỳ
 │   ├── 02_xai_analysis.ipynb  # [WP04 - T0403] Phân tích lỗi tại các đỉnh Smog Spikes
 │   ├── colab/
-│   │   └── train_and_finetune_colab.ipynb   # Pipeline huấn luyện GPU & backup Drive trên Colab
+│   │   ├── train_and_finetune_colab.ipynb   # Pipeline huấn luyện GPU & backup Drive trên Colab
+│   │   └── smoke_test_colab.ipynb           # Kiểm thử nhanh E2E trên Colab CPU (< 5 phút)
 │   └── kaggle/
-│       └── train_and_finetune_kaggle.ipynb  # Pipeline huấn luyện GPU & backup Drive trên Kaggle
+│       ├── train_and_finetune_kaggle.ipynb  # Pipeline huấn luyện GPU & backup Drive trên Kaggle
+│       └── smoke_test_kaggle.ipynb          # Kiểm thử nhanh E2E trên Kaggle CPU (< 5 phút)
 ├── scripts/
 │   ├── train.sh               # [WP03 - T0305] Script tự động huấn luyện qua 3 Random Seeds
 │   └── ablation.sh            # [WP06 - T0601] Script đánh giá tổng hợp & Ablation Studies

@@ -232,7 +232,8 @@ Dự án áp dụng cơ chế kiểm soát **"Evidence-First"** cực kỳ nghi�
 ```text
 beijing-pm25-deeplearning/
 ├── configs/
-│   └── default.yaml           [READ & WRITE; Nơi duy nhất chứa Hyperparameters & Paths]
+│   ├── default.yaml           [READ & WRITE; Nơi duy nhất chứa Hyperparameters & Paths]
+│   └── smoke_test.yaml        [READ & WRITE; Cấu hình Smoke Test E2E trên CPU < 5 phút]
 ├── data/
 │   ├── raw/                   [READ-ONLY; 12 file trạm UCI PRSA hiện có, CẤM sửa đổi hoặc commit]
 │   └── processed/             [WRITE-ONLY; Lưu dữ liệu đã Impute/Encode/Scale, gitignored]
@@ -245,9 +246,11 @@ beijing-pm25-deeplearning/
 │   ├── 01_eda.ipynb           [READ & WRITE; Khám phá dữ liệu WP01 - T0101]
 │   ├── 02_xai_analysis.ipynb  [READ & WRITE; Phân tích lỗi Smog Spikes WP04 - T0403]
 │   ├── colab/
-│   │   └── train_and_finetune_colab.ipynb   [READ & WRITE; Huấn luyện GPU & Backup Drive trên Colab]
+│   │   ├── train_and_finetune_colab.ipynb   [READ & WRITE; Huấn luyện GPU & Backup Drive trên Colab]
+│   │   └── smoke_test_colab.ipynb           [READ & WRITE; Kiểm thử nhanh E2E trên Colab CPU]
 │   └── kaggle/
-│       └── train_and_finetune_kaggle.ipynb  [READ & WRITE; Huấn luyện GPU & Backup Drive trên Kaggle]
+│       ├── train_and_finetune_kaggle.ipynb  [READ & WRITE; Huấn luyện GPU & Backup Drive trên Kaggle]
+│       └── smoke_test_kaggle.ipynb          [READ & WRITE; Kiểm thử nhanh E2E trên Kaggle CPU]
 ├── scripts/
 │   ├── train.sh               [READ & WRITE; Script tự động chạy 3 seeds WP03 - T0305]
 │   └── ablation.sh            [READ & WRITE; Script đánh giá tổng hợp & Ablation]
@@ -368,7 +371,13 @@ Thumbs.db
 source venv/bin/activate  # Linux/macOS (hoặc venv\Scripts\activate trên Windows)
 pip install -r requirements.txt
 
-# 2. Chạy tiền xử lý dữ liệu & Kiểm tra chống Data Leakage (WP01)
+# 2. Chạy kiểm thử nhanh End-to-End trên CPU (< 5 phút) trước khi huấn luyện GPU
+python -m src.data_pipeline.preprocess --config configs/smoke_test.yaml
+python training_loop.py --config configs/smoke_test.yaml
+python fine_tune.py --config configs/smoke_test.yaml
+python run_ablation.py --config configs/smoke_test.yaml
+
+# 3. Chạy tiền xử lý dữ liệu & Kiểm tra chống Data Leakage (WP01)
 python -m src.data_pipeline.preprocess --config configs/default.yaml
 
 # 3. Huấn luyện thử nghiệm một mô hình với cấu hình chuẩn (WP02 / WP03)

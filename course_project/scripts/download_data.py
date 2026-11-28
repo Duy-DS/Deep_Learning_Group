@@ -81,9 +81,23 @@ class UciBeijingDataDownloader:
             FileExistsError: Nếu file đích tồn tại nhưng khác nội dung archive UCI.
             urllib.error.URLError: Nếu không thể kết nối tới UCI.
         """
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+        expected_files = [
+            f"PRSA_Data_{station}_20130301-20170228.csv" for station in self.STATIONS
+        ]
+        if all(
+            (self.output_dir / fname).exists() and (self.output_dir / fname).stat().st_size > 0
+            for fname in expected_files
+        ):
+            results = {fname: "already_verified" for fname in expected_files}
+            print(
+                f"[SKIP] Đã có đủ {len(results)} tệp CSV tại {self.output_dir}; "
+                "bỏ qua tải lại từ UCI."
+            )
+            return results
+
         archive_bytes = self._download_archive()
         station_files = self._read_station_files(archive_bytes)
-        self.output_dir.mkdir(parents=True, exist_ok=True)
 
         results: Dict[str, str] = {}
         for filename, content in sorted(station_files.items()):

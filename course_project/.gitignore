@@ -35,6 +35,7 @@ data/processed/*
 !data/processed/.gitkeep
 data/preprocess/*
 !data/preprocess/.gitkeep
+data/preprocess_test/
 
 # Giữ khung thư mục đầu ra & MLflow bằng .gitkeep
 outputs/*
@@ -53,6 +54,11 @@ outputs/reports/*
 !outputs/reports/.gitkeep
 mlruns/*
 !mlruns/.gitkeep
+
+# Thư mục kiểm thử Smoke Test tạm thời (tuyệt đối không đưa lên Git)
+outputs_test/
+mlruns_test/
+backups_test/
 
 # Jupyter Notebook checkpoints & Giữ notebook Cloud GPU
 .ipynb_checkpoints/

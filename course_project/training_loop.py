@@ -849,6 +849,7 @@ def train_one_epoch(
     scaler: Optional[torch.amp.GradScaler] = None,
     scheduler: Optional[torch.optim.lr_scheduler.LRScheduler] = None,
     max_grad_norm: float = 1.0,
+    max_batches: Optional[int] = None,
 ) -> float:
     """Huấn luyện 1 epoch với Mixed Precision (AMP), Gradient Clipping và Step-wise LR."""
     model.train()
@@ -856,7 +857,7 @@ def train_one_epoch(
     total_samples = 0
     use_amp = (scaler is not None) and (device.type == "cuda")
 
-    for batch_x, batch_y in dataloader:
+    for batch_idx, (batch_x, batch_y) in enumerate(dataloader, start=1):
         batch_x = batch_x.to(device, non_blocking=True)
         batch_y = batch_y.to(device, non_blocking=True)
 
@@ -886,6 +887,9 @@ def train_one_epoch(
         total_loss += loss.item() * batch_size
         total_samples += batch_size
 
+        if max_batches is not None and max_batches > 0 and batch_idx >= max_batches:
+            break
+
     return total_loss / max(total_samples, 1)
 
 
@@ -899,6 +903,7 @@ def evaluate(
     target_mean: Optional[float] = None,
     target_scale: Optional[float] = None,
     spike_threshold_ugm3: float = 150.0,
+    max_batches: Optional[int] = None,
 ) -> Dict[str, float]:
     """
     Đánh giá mô hình bằng `MetricsCalculator` từ `utils_metrics.py` trên toàn bộ tập dữ liệu
@@ -913,7 +918,7 @@ def evaluate(
     targets_list: List[torch.Tensor] = []
     use_amp = device.type == "cuda"
 
-    for batch_x, batch_y in dataloader:
+    for batch_idx, (batch_x, batch_y) in enumerate(dataloader, start=1):
         batch_x = batch_x.to(device, non_blocking=True)
         batch_y = batch_y.to(device, non_blocking=True)
 
@@ -927,6 +932,9 @@ def evaluate(
 
         preds_list.append(preds.float().cpu())
         targets_list.append(batch_y.float().cpu())
+
+        if max_batches is not None and max_batches > 0 and batch_idx >= max_batches:
+            break
 
     all_preds_2d = torch.cat(preds_list, dim=0)
     all_targets_2d = torch.cat(targets_list, dim=0)
@@ -1188,6 +1196,9 @@ class TrainingPipeline:
         min_lr_ratio: float = 0.01,
         max_grad_norm: float = 1.0,
         seeds: Optional[List[int]] = None,
+        limit_train_batches: Optional[int] = None,
+        limit_val_batches: Optional[int] = None,
+        mlruns_dir: Optional[str | Path] = None,
     ) -> None:
         self.data_dir = Path(data_dir)
         self.output_dir = Path(output_dir)
@@ -1215,6 +1226,9 @@ class TrainingPipeline:
         self.min_lr_ratio = min_lr_ratio
         self.max_grad_norm = max_grad_norm
         self.seeds = seeds if seeds is not None else [42, 1024, 2026]
+        self.limit_train_batches = limit_train_batches
+        self.limit_val_batches = limit_val_batches
+        self.mlruns_dir = str(mlruns_dir) if mlruns_dir is not None else None
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.metrics_calc = MetricsCalculator()
@@ -1323,6 +1337,7 @@ class TrainingPipeline:
                 scaler=grad_scaler,
                 scheduler=scheduler,
                 max_grad_norm=self.max_grad_norm,
+                max_batches=self.limit_train_batches,
             )
             current_lr = optimizer.param_groups[0]["lr"]
             train_dev_metrics = evaluate(
@@ -1331,9 +1346,15 @@ class TrainingPipeline:
                 eval_criterion,
                 self.device,
                 self.metrics_calc,
+                max_batches=self.limit_val_batches,
             )
             dev_metrics = evaluate(
-                model, loaders["dev"], eval_criterion, self.device, self.metrics_calc
+                model,
+                loaders["dev"],
+                eval_criterion,
+                self.device,
+                self.metrics_calc,
+                max_batches=self.limit_val_batches,
             )
             dev_loss = dev_metrics["loss"]
             val_score = compute_selection_score(
@@ -1418,13 +1439,28 @@ class TrainingPipeline:
         model.load_state_dict(ckpt["model_state_dict"])
 
         train_final = evaluate(
-            model, loaders["train"], eval_criterion, self.device, self.metrics_calc
+            model,
+            loaders["train"],
+            eval_criterion,
+            self.device,
+            self.metrics_calc,
+            max_batches=self.limit_val_batches,
         )
         train_dev_final = evaluate(
-            model, loaders["train_dev"], eval_criterion, self.device, self.metrics_calc
+            model,
+            loaders["train_dev"],
+            eval_criterion,
+            self.device,
+            self.metrics_calc,
+            max_batches=self.limit_val_batches,
         )
         dev_final = evaluate(
-            model, loaders["dev"], eval_criterion, self.device, self.metrics_calc
+            model,
+            loaders["dev"],
+            eval_criterion,
+            self.device,
+            self.metrics_calc,
+            max_batches=self.limit_val_batches,
         )
         test_metrics = evaluate(
             model,
@@ -1434,6 +1470,7 @@ class TrainingPipeline:
             self.metrics_calc,
             target_mean=target_mean,
             target_scale=target_scale,
+            max_batches=self.limit_val_batches,
         )
 
         orig_msg = ""
@@ -1582,7 +1619,7 @@ class TrainingPipeline:
                 try:
                     from src.utils.exp_backup import MLflowRunLogger
 
-                    MLflowRunLogger().log_run(
+                    MLflowRunLogger(tracking_uri=self.mlruns_dir).log_run(
                         run_name=f"pretrain_{model_name}_{self.mode}_H{self.horizon}_seed{seed}",
                         params={
                             "stage": "pretrain",
@@ -1849,6 +1886,9 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Chạy kèm WP02 BaselineTrainer (LSTM, DLinear) trên cùng dữ liệu WP01 để đối chứng.",
     )
+    parser.add_argument("--limit-train-batches", type=int, default=None)
+    parser.add_argument("--limit-val-batches", type=int, default=None)
+    parser.add_argument("--mlruns-dir", type=str, default=None)
     apply_yaml_config(parser, ["paths", "data", "pretrain"])
     args = parser.parse_args()
     args.data_dir = Path(args.data_dir)
@@ -1886,6 +1926,9 @@ if __name__ == "__main__":
         min_lr_ratio=args.min_lr_ratio,
         max_grad_norm=args.max_grad_norm,
         seeds=args.seeds,
+        limit_train_batches=args.limit_train_batches,
+        limit_val_batches=args.limit_val_batches,
+        mlruns_dir=args.mlruns_dir,
     )
     pipeline.run(
         models=args.models,

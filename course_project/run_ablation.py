@@ -55,6 +55,7 @@ def ensure_pretrain_results(
     data_dir: Path,
     output_dir: Path,
     mode: str,
+    horizon: int,
     models: Sequence[str],
     lookback: int,
     batch_size: int,
@@ -75,6 +76,10 @@ def ensure_pretrain_results(
     val_selection_mode: str,
     model_configs: Dict[str, Dict[str, Any]],
     seeds: List[int],
+    skip_existing: bool = True,
+    limit_train_batches: Optional[int] = None,
+    limit_val_batches: Optional[int] = None,
+    mlruns_dir: Optional[str] = None,
 ) -> pd.DataFrame:
     """
     Đảm bảo đã có đủ kết quả Pre-training cho danh sách `models` ở cấu hình `(mode, horizon)`.
@@ -127,6 +132,9 @@ def ensure_pretrain_results(
             val_selection_mode=val_selection_mode,
             model_configs=model_configs,
             seeds=seeds,
+            limit_train_batches=limit_train_batches,
+            limit_val_batches=limit_val_batches,
+            mlruns_dir=mlruns_dir,
         )
         new_runs_df, new_summary_df = pipeline.run(models=missing_models)
 
@@ -598,6 +606,9 @@ def run_ablation_suite(args: argparse.Namespace) -> None:
             model_configs=model_configs,
             seeds=args.seeds,
             skip_existing=args.skip_existing,
+            limit_train_batches=args.limit_train_batches,
+            limit_val_batches=args.limit_val_batches,
+            mlruns_dir=args.mlruns_dir,
         )
         if (
             mode == "multivariate"
@@ -656,7 +667,7 @@ def run_ablation_suite(args: argparse.Namespace) -> None:
         print("BẮT ĐẦU ABLATION 2 (RQ2): ĐA KHUNG DỰ BÁO H IN {24, 48, 96, 192}")
         print("=" * 84)
         horizon_dfs: Dict[int, pd.DataFrame] = {}
-        for h in ALL_HORIZONS:
+        for h in args.all_horizons:
             horizon_dfs[h] = _get_pretrain("multivariate", h, DEFAULT_MODELS)
         if multi_h24 is None and 24 in horizon_dfs:
             multi_h24 = horizon_dfs[24]
@@ -758,6 +769,14 @@ def parse_args() -> argparse.Namespace:
         choices=[24, 48, 96, 192],
         help="Khung dự báo cho Ablation 3 (mặc định: 96 192).",
     )
+    parser.add_argument(
+        "--all-horizons",
+        nargs="+",
+        type=int,
+        default=ALL_HORIZONS,
+        choices=[24, 48, 96, 192],
+        help="Danh sách khung dự báo cho Ablation 2 (mặc định: 24 48 96 192).",
+    )
     parser.add_argument("--num-stations", type=int, default=None)
     parser.add_argument(
         "--lookback",
@@ -766,6 +785,9 @@ def parse_args() -> argparse.Namespace:
         help="Chiều dài cửa sổ lịch sử L (mặc định: 96 hoặc đọc từ data.lookback trong YAML).",
     )
     parser.add_argument("--batch-size", type=int, default=512)
+    parser.add_argument("--limit-train-batches", type=int, default=None)
+    parser.add_argument("--limit-val-batches", type=int, default=None)
+    parser.add_argument("--mlruns-dir", type=str, default=None)
     parser.add_argument("--train-stride", type=int, default=4)
     parser.add_argument("--train-dev-stride", type=int, default=None)
     parser.add_argument("--dev-stride", type=int, default=None)

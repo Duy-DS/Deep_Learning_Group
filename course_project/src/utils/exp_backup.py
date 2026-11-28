@@ -357,6 +357,7 @@ class ExperimentBackupManager:
         include_docs: bool = True,
         export_mlflow_csv: bool = True,
         timestamp: Optional[str] = None,
+        filename_prefix: str = "dl_pm25_bj_backup",
     ) -> Path:
         """
         Tạo tệp `.zip` sao lưu toàn bộ kết quả thực nghiệm và nhật ký MLflow.
@@ -366,13 +367,14 @@ class ExperimentBackupManager:
             include_docs (bool): Có đính kèm thư mục `docs/` hay không.
             export_mlflow_csv (bool): Có tự động xuất `mlflow_runs_export.csv` trước khi nén hay không.
             timestamp (Optional[str]): Chuỗi thời gian `[YYMMDD]_[HHMM]` tùy chỉnh.
+            filename_prefix (str): Tiền tố tên tệp nén `.zip` (mặc định `dl_pm25_bj_backup`).
 
         Trả về:
             Path: Đường dẫn tuyệt đối tới tệp `.zip` vừa tạo.
         """
         ts = timestamp or datetime.now().strftime("%y%m%d_%H%M")
         self.backup_dir.mkdir(parents=True, exist_ok=True)
-        zip_path = self.backup_dir / f"dl_pm25_bj_backup_{ts}.zip"
+        zip_path = self.backup_dir / f"{filename_prefix}_{ts}.zip"
 
         csv_path: Optional[Path] = None
         if export_mlflow_csv:
@@ -538,6 +540,12 @@ def parse_args() -> argparse.Namespace:
         help="Bỏ qua thư mục docs/ khi đóng gói.",
     )
     parser.add_argument(
+        "--prefix",
+        type=str,
+        default="dl_pm25_bj_backup",
+        help="Tiền tố tên tệp zip backup (ví dụ: dl_pm25_bj_SMOKE_TEST).",
+    )
+    parser.add_argument(
         "--upload-gdrive",
         action="store_true",
         help="Tự động tải gói zip và mlflow_runs_export.csv lên Google Drive sau khi đóng gói.",
@@ -558,6 +566,7 @@ if __name__ == "__main__":
         include_checkpoints=args.include_checkpoints,
         include_docs=(not args.skip_docs),
         export_mlflow_csv=True,
+        filename_prefix=args.prefix,
     )
     if args.upload_gdrive:
         csv_out = manager.output_dir / "mlflow_runs_export.csv"
