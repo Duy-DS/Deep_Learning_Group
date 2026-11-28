@@ -211,7 +211,11 @@ beijing-pm25-deeplearning/
 │   └── reports/               # Báo cáo nghiệm thu Task: [Task ID]_[YYMMDD]_[HHMM].md
 ├── notebooks/
 │   ├── 01_eda.ipynb           # [WP01 - T0101] Khám phá dữ liệu, missing values, chu kỳ
-│   └── 02_xai_analysis.ipynb  # [WP04 - T0403] Phân tích lỗi tại các đỉnh Smog Spikes
+│   ├── 02_xai_analysis.ipynb  # [WP04 - T0403] Phân tích lỗi tại các đỉnh Smog Spikes
+│   ├── colab/
+│   │   └── train_and_finetune_colab.ipynb   # Pipeline huấn luyện GPU & backup Drive trên Colab
+│   └── kaggle/
+│       └── train_and_finetune_kaggle.ipynb  # Pipeline huấn luyện GPU & backup Drive trên Kaggle
 ├── scripts/
 │   ├── train.sh               # [WP03 - T0305] Script tự động huấn luyện qua 3 Random Seeds
 │   └── ablation.sh            # [WP06 - T0601] Script đánh giá tổng hợp & Ablation Studies
@@ -228,6 +232,8 @@ beijing-pm25-deeplearning/
 │   ├── xai/
 │   │   ├── shap_explainer.py  # [T0401] SHAP Global Feature Importance
 │   │   └── ig_explainer.py    # [T0402] Integrated Gradients Local Attribution
+│   ├── utils/
+│   │   └── exp_backup.py      # [T0305/WP06] Xuất log MLflow & đóng gói sao lưu thực nghiệm
 │   └── app/
 │       └── main.py            # [T0501, T0502, T0504] Streamlit Dashboard & Plotly Charts
 ├── training_loop.py           # [T0301] Pipeline huấn luyện tổng thể, Early Stopping

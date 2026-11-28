@@ -923,6 +923,40 @@ def run_fine_tuning_pipeline(
             model_records.append(rec)
             all_station_records.append(rec)
 
+            try:
+                from src.utils.exp_backup import MLflowRunLogger
+
+                MLflowRunLogger().log_run(
+                    run_name=f"finetune_{model_name}_{st}_{mode}_H{horizon}_seed{seed}",
+                    params={
+                        "stage": "finetune",
+                        "model": model_name,
+                        "station": st,
+                        "mode": mode,
+                        "lookback": lookback,
+                        "horizon": horizon,
+                        "seed": seed,
+                        "lr": lr,
+                        "epochs": epochs,
+                        "freeze_backbone": freeze_backbone,
+                    },
+                    metrics={
+                        "before_test_mse": float(rec.get("before_test_mse", float("nan"))),
+                        "after_test_mse": float(rec.get("after_test_mse", float("nan"))),
+                        "after_test_mae": float(rec.get("after_test_mae", float("nan"))),
+                        "improved": float(1.0 if rec.get("improved") else 0.0),
+                    },
+                    tags={
+                        "mlflow.source.name": "fine_tune.py",
+                        "model": model_name,
+                        "station": st,
+                        "horizon": str(horizon),
+                        "seed": str(seed),
+                    },
+                )
+            except Exception:
+                pass
+
         df_m = pd.DataFrame(model_records)
         win_count = int(df_m["improved"].to_numpy().sum())
         model_summary_records.append(

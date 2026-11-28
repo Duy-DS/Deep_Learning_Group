@@ -27,10 +27,16 @@ data/processed/*
 
 # Đầu ra huấn luyện, logs, checkpoints & artifacts
 outputs/
+mlruns/
+backups/
+dl_pm25_bj_backup_*.zip
+*.zip
 *.pkl
 *.log
 # Jupyter Notebook checkpoints
 .ipynb_checkpoints/
+!notebooks/colab/*.ipynb
+!notebooks/kaggle/*.ipynb
 
 # Thư mục log tạm của trình huấn luyện (TensorBoard / WandB)
 runs/

@@ -464,6 +464,35 @@ def run_multi_seed_experiment(
             f"  [RESULT SEED {seed}] Test MSE: {test_metrics['mse']:.6f} | Test MAE: {test_metrics['mae']:.6f}"
         )
 
+        try:
+            from src.utils.exp_backup import MLflowRunLogger
+
+            MLflowRunLogger().log_run(
+                run_name=f"baseline_{model_name}_H{horizon}_seed{seed}",
+                params={
+                    "stage": "wp02_baseline",
+                    "model": model_name,
+                    "lookback": lookback,
+                    "horizon": horizon,
+                    "seed": seed,
+                    "lr": learning_rate,
+                    "epochs": epochs,
+                    "smoke_test": smoke_test,
+                },
+                metrics={
+                    "test_mse": float(test_metrics["mse"]),
+                    "test_mae": float(test_metrics["mae"]),
+                },
+                tags={
+                    "mlflow.source.name": "train_baseline.py",
+                    "model": model_name,
+                    "horizon": str(horizon),
+                    "seed": str(seed),
+                },
+            )
+        except Exception:
+            pass
+
     # Đóng gói kết quả qua ExperimentMetricsContract
     contract = metrics_calc.summarize_multi_seed(
         experiment_id=f"EXP_{model_name}_H{horizon}",
@@ -517,6 +546,12 @@ if __name__ == "__main__":
     )
     parser.add_argument("--epochs", type=int, default=None, help="Số epochs tối đa")
     parser.add_argument(
+        "--output-dir",
+        type=str,
+        default=None,
+        help="Thư mục gốc ghi đè checkpoints & logs (tùy chọn cho Colab/Kaggle)",
+    )
+    parser.add_argument(
         "--smoke-test",
         action="store_true",
         default=True,
@@ -534,8 +569,12 @@ if __name__ == "__main__":
     lookback = int(data_cfg.get("lookback", 96))
     seeds = list(wp02_cfg.get("seeds", [42, 1024, 2026]))
     lr = float(wp02_cfg.get("lr", 1e-3))
-    ckpt_dir = str(paths_cfg.get("wp02_ckpt_dir", "checkpoints"))
-    log_dir = str(paths_cfg.get("wp02_log_dir", "outputs/logs"))
+    if args.output_dir:
+        ckpt_dir = str(Path(args.output_dir) / "checkpoints" / "wp02_baseline")
+        log_dir = str(Path(args.output_dir) / "logs" / "wp02_baseline")
+    else:
+        ckpt_dir = str(paths_cfg.get("wp02_ckpt_dir", "checkpoints"))
+        log_dir = str(paths_cfg.get("wp02_log_dir", "outputs/logs"))
 
     models_to_run = ["LSTM", "DLinear"] if args.model == "all" else [args.model]
 

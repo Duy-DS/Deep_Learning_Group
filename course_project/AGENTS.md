@@ -243,7 +243,11 @@ beijing-pm25-deeplearning/
 │   └── reports/               [Lưu báo cáo hoàn thành task: [Task ID]_[YYMMDD]_[HHMM].md]
 ├── notebooks/
 │   ├── 01_eda.ipynb           [READ & WRITE; Khám phá dữ liệu WP01 - T0101]
-│   └── 02_xai_analysis.ipynb  [READ & WRITE; Phân tích lỗi Smog Spikes WP04 - T0403]
+│   ├── 02_xai_analysis.ipynb  [READ & WRITE; Phân tích lỗi Smog Spikes WP04 - T0403]
+│   ├── colab/
+│   │   └── train_and_finetune_colab.ipynb   [READ & WRITE; Huấn luyện GPU & Backup Drive trên Colab]
+│   └── kaggle/
+│       └── train_and_finetune_kaggle.ipynb  [READ & WRITE; Huấn luyện GPU & Backup Drive trên Kaggle]
 ├── scripts/
 │   ├── train.sh               [READ & WRITE; Script tự động chạy 3 seeds WP03 - T0305]
 │   └── ablation.sh            [READ & WRITE; Script đánh giá tổng hợp & Ablation]
@@ -260,6 +264,8 @@ beijing-pm25-deeplearning/
 │   ├── xai/
 │   │   ├── shap_explainer.py  [T0401: SHAP Global Feature Importance]
 │   │   └── ig_explainer.py    [T0402: Integrated Gradients Local Attribution]
+│   ├── utils/
+│   │   └── exp_backup.py      [T0305/WP06: Ghi nhận MLflow, xuất CSV & nén backup]
 │   └── app/
 │       └── main.py            [T0501, T0502, T0504: Streamlit & Plotly Dashboard]
 ├── training_loop.py           [READ & WRITE; T0301: Pipeline huấn luyện & Early Stopping]

@@ -1579,6 +1579,41 @@ class TrainingPipeline:
                 model_runs.append(rec)
                 all_run_records.append(rec)
 
+                try:
+                    from src.utils.exp_backup import MLflowRunLogger
+
+                    MLflowRunLogger().log_run(
+                        run_name=f"pretrain_{model_name}_{self.mode}_H{self.horizon}_seed{seed}",
+                        params={
+                            "stage": "pretrain",
+                            "model": model_name,
+                            "mode": self.mode,
+                            "lookback": self.lookback,
+                            "horizon": self.horizon,
+                            "seed": seed,
+                            "batch_size": self.batch_size,
+                            "lr": self.dlinear_lr if model_name == "dlinear" else self.lr,
+                            "epochs": self.epochs,
+                            "loss_fn": self.loss_fn,
+                        },
+                        metrics={
+                            "train_mse": float(rec.get("train_mse", float("nan"))),
+                            "dev_mse": float(rec.get("dev_mse", float("nan"))),
+                            "test_mse": float(rec.get("test_mse", float("nan"))),
+                            "test_rmse": float(rec.get("test_rmse", float("nan"))),
+                            "test_mae": float(rec.get("test_mae", float("nan"))),
+                            "best_val_score": float(rec.get("best_val_score", float("nan"))),
+                        },
+                        tags={
+                            "mlflow.source.name": "training_loop.py",
+                            "model": model_name,
+                            "horizon": str(self.horizon),
+                            "seed": str(seed),
+                        },
+                    )
+                except Exception:
+                    pass
+
                 if float(rec["best_val_score"]) < best_overall_val_score:
                     best_overall_val_score = float(rec["best_val_score"])
                     best_overall_ckpt_src = Path(str(rec["checkpoint_path"]))
