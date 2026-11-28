@@ -409,6 +409,108 @@ class ExperimentBackupManager:
         print(f"[BACKUP] Đã đóng gói {packed_files} tệp tại: {zip_path}")
         return zip_path
 
+    def upload_to_gdrive(self, file_paths: List[Path]) -> List[str]:
+        """
+        Tải các tệp sao lưu lên thư mục Google Drive đích (`self.gdrive_folder_id`).
+
+        Hỗ trợ tự động nhận diện chứng thực theo thứ tự:
+        1. `google.colab.auth` (khi chạy trên Google Colab).
+        2. Biến môi trường `GDRIVE_SERVICE_ACCOUNT_JSON` / `GDRIVE_OAUTH_TOKEN` (từ `.env` hoặc hệ thống).
+        3. `kaggle_secrets.UserSecretsClient` (khi chạy trên Kaggle).
+
+        Tham số:
+            file_paths (List[Path]): Danh sách đường dẫn tệp cần tải lên Google Drive.
+
+        Trả về:
+            List[str]: Danh sách File ID đã tải lên thành công trên Google Drive.
+        """
+        uploaded_ids: List[str] = []
+        try:
+            from googleapiclient.discovery import build  # type: ignore
+            from googleapiclient.http import MediaFileUpload  # type: ignore
+        except Exception as exc:
+            print(f"[WARN] Thiếu thư viện Google Drive API ({exc}); bỏ qua upload tự động.")
+            return uploaded_ids
+
+        creds: Any = None
+        drive_service: Any = None
+        try:
+            from google.colab import auth  # type: ignore
+
+            auth.authenticate_user()
+            drive_service = build("drive", "v3")
+        except Exception:
+            drive_service = None
+
+        if drive_service is None:
+            import json
+
+            sa_raw = os.environ.get("GDRIVE_SERVICE_ACCOUNT_JSON", "").strip()
+            oauth_tok = os.environ.get("GDRIVE_OAUTH_TOKEN", "").strip()
+            if not sa_raw and not oauth_tok:
+                try:
+                    from kaggle_secrets import UserSecretsClient  # type: ignore
+
+                    secrets = UserSecretsClient()
+                    try:
+                        sa_raw = secrets.get_secret("GDRIVE_SERVICE_ACCOUNT_JSON").strip()
+                    except Exception:
+                        sa_raw = ""
+                    if not sa_raw:
+                        try:
+                            oauth_tok = secrets.get_secret("GDRIVE_OAUTH_TOKEN").strip()
+                        except Exception:
+                            oauth_tok = ""
+                except Exception:
+                    pass
+
+            try:
+                if sa_raw:
+                    from google.oauth2 import service_account  # type: ignore
+
+                    creds = service_account.Credentials.from_service_account_info(
+                        json.loads(sa_raw),
+                        scopes=["https://www.googleapis.com/auth/drive.file"],
+                    )
+                elif oauth_tok:
+                    from google.oauth2.credentials import Credentials  # type: ignore
+
+                    creds = Credentials(token=oauth_tok)
+                if creds is not None:
+                    drive_service = build("drive", "v3", credentials=creds)
+            except Exception as exc:
+                print(f"[WARN] Không khởi tạo được chứng thực Google Drive ({exc}).")
+                return uploaded_ids
+
+        if drive_service is None:
+            print(
+                "[WARN] Chưa có thông tin xác thực Google Drive; "
+                "bản sao lưu vẫn an toàn ở ổ đĩa cục bộ."
+            )
+            return uploaded_ids
+
+        for fp in file_paths:
+            if not fp.exists():
+                continue
+            mime = "application/zip" if fp.suffix == ".zip" else "text/csv"
+            try:
+                meta = {"name": fp.name, "parents": [self.gdrive_folder_id]}
+                media = MediaFileUpload(str(fp), mimetype=mime, resumable=True)
+                created = (
+                    drive_service.files()
+                    .create(body=meta, media_body=media, fields="id")
+                    .execute()
+                )
+                fid = str(created.get("id", ""))
+                uploaded_ids.append(fid)
+                print(
+                    f"[GDRIVE API] Đã upload {fp.name} -> file_id={fid} "
+                    f"vào folder {self.gdrive_folder_id}"
+                )
+            except Exception as exc:
+                print(f"[WARN] Lỗi upload {fp.name} lên Google Drive ({exc}).")
+        return uploaded_ids
+
 
 def parse_args() -> argparse.Namespace:
     """Phân tích tham số dòng lệnh cho tác vụ xuất log MLflow và đóng gói sao lưu."""
@@ -435,6 +537,11 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Bỏ qua thư mục docs/ khi đóng gói.",
     )
+    parser.add_argument(
+        "--upload-gdrive",
+        action="store_true",
+        help="Tự động tải gói zip và mlflow_runs_export.csv lên Google Drive sau khi đóng gói.",
+    )
     return parser.parse_args()
 
 
@@ -447,9 +554,12 @@ if __name__ == "__main__":
         backup_dir=args.backup_dir,
         gdrive_folder_id=args.gdrive_folder_id,
     )
-    manager.create_backup_archive(
+    zip_out = manager.create_backup_archive(
         include_checkpoints=args.include_checkpoints,
         include_docs=(not args.skip_docs),
         export_mlflow_csv=True,
     )
+    if args.upload_gdrive:
+        csv_out = manager.output_dir / "mlflow_runs_export.csv"
+        manager.upload_to_gdrive([zip_out, csv_out])
 

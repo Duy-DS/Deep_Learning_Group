@@ -759,6 +759,12 @@ def parse_args() -> argparse.Namespace:
         help="Khung dự báo cho Ablation 3 (mặc định: 96 192).",
     )
     parser.add_argument("--num-stations", type=int, default=None)
+    parser.add_argument(
+        "--lookback",
+        type=int,
+        default=96,
+        help="Chiều dài cửa sổ lịch sử L (mặc định: 96 hoặc đọc từ data.lookback trong YAML).",
+    )
     parser.add_argument("--batch-size", type=int, default=512)
     parser.add_argument("--train-stride", type=int, default=4)
     parser.add_argument("--train-dev-stride", type=int, default=None)
